@@ -1,0 +1,144 @@
+[gd_scene format=3 uid="uid://dde47w4bucduk"]
+
+[ext_resource type="Script" uid="uid://dachel0bcpq2f" path="res://PopUp.gd" id="1_qokns"]
+[ext_resource type="Texture2D" uid="uid://egdjoibi7mei" path="res://icons/bone.png" id="2_bixyg"]
+
+[sub_resource type="Animation" id="Animation_bixyg"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Control/HBoxContainer:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Control/HBoxContainer:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 50)]
+}
+
+[sub_resource type="Animation" id="Animation_wwqa2"]
+resource_name = "pop_up"
+length = 3.0000000000000004
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Control/HBoxContainer:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 2.2, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Control/HBoxContainer:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.2, 2.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(-134, 18), Vector2(-134, -32), Vector2(-134, -32)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_smkxe"]
+_data = {
+&"RESET": SubResource("Animation_bixyg"),
+&"pop_up": SubResource("Animation_wwqa2")
+}
+
+[node name="ItemNotification" type="CanvasLayer" unique_id=20844433]
+layer = 100
+script = ExtResource("1_qokns")
+
+[node name="Control" type="Control" parent="." unique_id=2117963737]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_top = -80.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+size_flags_horizontal = 6
+size_flags_vertical = 6
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control" unique_id=1878406013]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 50.0
+offset_right = 268.0
+offset_bottom = 114.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="IconSquare" type="Panel" parent="Control/HBoxContainer" unique_id=31675814]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Control/HBoxContainer/IconSquare" unique_id=279747005]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_bixyg")
+expand_mode = 1
+
+[node name="NameRect" type="Panel" parent="Control/HBoxContainer" unique_id=1083881316]
+custom_minimum_size = Vector2(200, 64)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="VBoxContainer" type="HBoxContainer" parent="Control/HBoxContainer/NameRect" unique_id=35218959]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ItemName" type="Label" parent="Control/HBoxContainer/NameRect/VBoxContainer" unique_id=1822272745]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+theme_override_font_sizes/font_size = 32
+text = "Item"
+
+[node name="ItemAmount" type="Label" parent="Control/HBoxContainer/NameRect/VBoxContainer" unique_id=1317798592]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 6
+theme_override_font_sizes/font_size = 38
+text = "500"
+horizontal_alignment = 2
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1007839477]
+libraries/ = SubResource("AnimationLibrary_smkxe")

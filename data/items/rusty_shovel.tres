@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ToolData" format=3 uid="uid://d746dbs0isfl"]
+
+[ext_resource type="Texture2D" uid="uid://b6tvr1oqu7n2n" path="res://icons/gold_coin.png" id="1_fhlpt"]
+[ext_resource type="Script" uid="uid://bmnwrj4kq2set" path="res://data/ToolData.gd" id="1_fxoay"]
+
+[resource]
+script = ExtResource("1_fxoay")
+id = "rusty_shovel"
+name = "Rusty Shovel"
+type = 1
+icon = ExtResource("1_fhlpt")
+description = "A Rusty Shovel."
+is_sellable = false
+max_stack = 1
+is_stackable = false

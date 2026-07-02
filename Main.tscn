@@ -1,0 +1,361 @@
+[gd_scene format=3 uid="uid://bbcnsn3t0mi1p"]
+
+[ext_resource type="Script" uid="uid://bnrlhncec7ukt" path="res://Control.gd" id="1_trn2v"]
+[ext_resource type="PackedScene" uid="uid://c0f0m708ehxrr" path="res://ActionCard.tscn" id="3_3dxm6"]
+[ext_resource type="Script" uid="uid://dkh46ubvlp71m" path="res://scenes/views/GraveyardView.gd" id="5_20pc6"]
+[ext_resource type="PackedScene" uid="uid://68q2dacf1n11" path="res://MinionCard.tscn" id="5_lgr22"]
+[ext_resource type="Script" uid="uid://4b21xsylk5w2" path="res://scenes/views/UndercroftView.gd" id="6_5vvyt"]
+[ext_resource type="Script" uid="uid://btc6ab4s1abby" path="res://scenes/views/ShopView.gd" id="7_c6i3y"]
+[ext_resource type="Script" uid="uid://d4bv83bjbxn6a" path="res://scenes/views/ForestView.gd" id="7_trn2v"]
+[ext_resource type="Script" uid="uid://doap4rw2v3bm2" path="res://scenes/views/QuarryView.gd" id="7_wkp8b"]
+[ext_resource type="Script" uid="uid://bofccwadf0acr" path="res://scripts/ui/InventoryView.gd" id="8_trn2v"]
+[ext_resource type="PackedScene" uid="uid://cxo40vvphjf5d" path="res://scenes/NavigationPanel.tscn" id="9_03owx"]
+[ext_resource type="PackedScene" uid="uid://b8lvvrgeuhmvl" path="res://scenes/inventory/InventorySlot.tscn" id="10_20pc6"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_kbped"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fj5cn"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lgr22"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_trn2v"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_iy58a"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ee4bf"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_3lwp1"]
+
+[node name="Control" type="Control" unique_id=1821393959]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_trn2v")
+metadata/_edit_use_anchors_ = true
+
+[node name="MainViewContainer" type="Control" parent="." unique_id=1731523579]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="GraveyardView" type="PanelContainer" parent="MainViewContainer" unique_id=1525247492]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_kbped")
+script = ExtResource("5_20pc6")
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/GraveyardView" unique_id=642761077]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/GraveyardView/VBoxContainer" unique_id=1253659316]
+custom_minimum_size = Vector2(1200, 1000)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="GraveClickers" type="HFlowContainer" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer" unique_id=1613463639]
+custom_minimum_size = Vector2(815, 0)
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+
+[node name="OldGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=632804199 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="FreshGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=538341266 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SpookyGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=607783773 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="UndercroftView" type="PanelContainer" parent="MainViewContainer" unique_id=1587815137]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_fj5cn")
+script = ExtResource("6_5vvyt")
+minion_card_scene = ExtResource("5_lgr22")
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/UndercroftView" unique_id=1214996218]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/UndercroftView/VBoxContainer" unique_id=1788695680]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MinionCardContainer" type="HFlowContainer" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer" unique_id=964744288]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(815, 0)
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+
+[node name="SkeletonCard" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer/MinionCardContainer" unique_id=382650014 instance=ExtResource("5_lgr22")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ZombieCard" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer/MinionCardContainer" unique_id=750531830 instance=ExtResource("5_lgr22")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HoundCard" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer/MinionCardContainer" unique_id=1465682766 instance=ExtResource("5_lgr22")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="WraithCard" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer/MinionCardContainer" unique_id=1964398329 instance=ExtResource("5_lgr22")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ForestView" type="PanelContainer" parent="MainViewContainer" unique_id=979644529]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_lgr22")
+script = ExtResource("7_trn2v")
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/ForestView" unique_id=795878218]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/ForestView/VBoxContainer" unique_id=964766219]
+custom_minimum_size = Vector2(1200, 1000)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="TreeClickers" type="HFlowContainer" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer" unique_id=897370957]
+custom_minimum_size = Vector2(810, 0)
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+
+[node name="DeadTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=1341294822 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="WillowTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=136803531 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BlackOakTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=1841329988 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="QuarryView" type="PanelContainer" parent="MainViewContainer" unique_id=765306854]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_trn2v")
+script = ExtResource("7_wkp8b")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/QuarryView" unique_id=766891391]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/QuarryView/VBoxContainer" unique_id=418896539]
+custom_minimum_size = Vector2(1200, 1000)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="RockClickers" type="HFlowContainer" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer" unique_id=1740451114]
+custom_minimum_size = Vector2(815, 0)
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+
+[node name="LimestoneCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=1793496018 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SlateCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=585467646 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="GraniteCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=324943994 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ShopView" type="PanelContainer" parent="MainViewContainer" unique_id=733055358]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_iy58a")
+script = ExtResource("7_c6i3y")
+
+[node name="ShopPanel" type="PanelContainer" parent="MainViewContainer/ShopView" unique_id=373421957]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_ee4bf")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/ShopView/ShopPanel" unique_id=1066784931]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="ShovelUpgrades" type="Label" parent="MainViewContainer/ShopView/ShopPanel/VBoxContainer" unique_id=1344294124]
+layout_mode = 2
+text = "Shovel Upgrades"
+horizontal_alignment = 1
+
+[node name="UpgradeShovelButton" type="Button" parent="MainViewContainer/ShopView/ShopPanel/VBoxContainer" unique_id=1694231330]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Upgrade Shovel"
+
+[node name="InventoryView" type="PanelContainer" parent="MainViewContainer" unique_id=396250725]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_3lwp1")
+script = ExtResource("8_trn2v")
+inventory_slot_scene = ExtResource("10_20pc6")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainViewContainer/InventoryView" unique_id=24603565]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=149145639]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InventoryGrid" type="GridContainer" parent="MainViewContainer/InventoryView/HBoxContainer/ScrollContainer" unique_id=8455750]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+columns = 6
+
+[node name="DetailsPanel" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=1070461901]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ItemNameLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsPanel" unique_id=313014510]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="ItemIconRect" type="TextureRect" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsPanel" unique_id=699356379]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+
+[node name="ItemDescriptionLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsPanel" unique_id=386800124]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Action row" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsPanel" unique_id=384412475]
+layout_mode = 2
+
+[node name="SellButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsPanel/Action row" unique_id=1976835133]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sell"
+
+[node name="DestroyButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsPanel/Action row" unique_id=846545793]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Destroy"
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1491495011]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -124.0
+offset_right = 222.0
+offset_bottom = 124.0
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="NavigationButtons" type="VBoxContainer" parent="MarginContainer" unique_id=11798162]
+layout_mode = 2
+
+[node name="InventoryNavButton" type="Button" parent="MarginContainer/NavigationButtons" unique_id=295689450]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Inventory"
+
+[node name="ShopNavButton" type="Button" parent="MarginContainer/NavigationButtons" unique_id=545983059]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Shop"
+
+[node name="Control" type="Control" parent="MarginContainer/NavigationButtons" unique_id=1290266600]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+
+[node name="NavigationPanel" parent="MarginContainer/NavigationButtons" unique_id=130011712 instance=ExtResource("9_03owx")]
+layout_mode = 2
+
+[node name="GameTickTimer" type="Timer" parent="." unique_id=917135822]
+unique_name_in_owner = true
+autostart = true
+
+[node name="BulkBuyContainer" type="HBoxContainer" parent="." unique_id=1820829963]
+visible = false
+layout_mode = 0
+offset_right = 1155.0
+offset_bottom = 31.0
+
+[node name="BuyX1Button" type="Button" parent="BulkBuyContainer" unique_id=72831921]
+unique_name_in_owner = true
+layout_mode = 2
+text = "x1"
+
+[node name="BuyX10Button" type="Button" parent="BulkBuyContainer" unique_id=959366869]
+unique_name_in_owner = true
+layout_mode = 2
+text = "x10"
+
+[node name="BuyX100Button" type="Button" parent="BulkBuyContainer" unique_id=285808788]
+unique_name_in_owner = true
+layout_mode = 2
+text = "x100"
+
+[connection signal="timeout" from="GameTickTimer" to="." method="_on_game_tick"]

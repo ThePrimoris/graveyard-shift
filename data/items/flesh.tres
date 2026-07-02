@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://cx6mnty6jlv73"]
+
+[ext_resource type="Texture2D" uid="uid://dfdv7ck134bob" path="res://icons/flesh.png" id="1_7cqwm"]
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_p2taa"]
+
+[resource]
+script = ExtResource("1_p2taa")
+id = "flesh"
+name = "Rotting Flesh"
+icon = ExtResource("1_7cqwm")
+description = "A pound of flesh, it reeks!"
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

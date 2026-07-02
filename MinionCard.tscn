@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://68q2dacf1n11"]
+
+[ext_resource type="Script" uid="uid://qweyaxp15uou" path="res://scripts/cards/MinionCard.gd" id="1_drujm"]
+
+[node name="MinionCard" type="PanelContainer" unique_id=382650014]
+custom_minimum_size = Vector2(200, 250)
+custom_maximum_size = Vector2(200, 250)
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_drujm")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=7436008]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1660872086]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=636261602]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Minion"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="DescLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=95302249]
+unique_name_in_owner = true
+layout_mode = 2
+text = "A minion."
+autowrap_mode = 2
+
+[node name="CostLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=414769303]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=314648414]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer" unique_id=274467844]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+text = "Create"

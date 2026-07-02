@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://o3wqf25g0p8t"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_26plh"]
+[ext_resource type="Texture2D" uid="uid://1v7wmgthatp0" path="res://icon.svg" id="1_y4811"]
+
+[resource]
+script = ExtResource("1_26plh")
+id = "wood_log"
+name = "Deadwood"
+icon = ExtResource("1_y4811")
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ToolData" format=3 uid="uid://buublugxob6wr"]
+
+[ext_resource type="Script" uid="uid://bmnwrj4kq2set" path="res://data/ToolData.gd" id="1_bkbn8"]
+[ext_resource type="Texture2D" uid="uid://dfdv7ck134bob" path="res://icons/flesh.png" id="1_isq23"]
+
+[resource]
+script = ExtResource("1_bkbn8")
+tool_type = 1
+id = "rusty_hatchet"
+name = "Rusty Hatchet"
+type = 1
+icon = ExtResource("1_isq23")
+description = "A Rusty Hatchet."
+is_sellable = false
+max_stack = 1
+is_stackable = false

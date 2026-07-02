@@ -1,0 +1,120 @@
+[gd_scene format=3 uid="uid://cxo40vvphjf5d"]
+
+[ext_resource type="Script" uid="uid://c4qcc6h2gku2i" path="res://scripts/ui/NavigationPanel.gd" id="1_fmdwc"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wkp8b"]
+bg_color = Color(0.78431374, 0.63529414, 0.3019608, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_20pc6"]
+bg_color = Color(0.47843137, 0.29411766, 0.78039217, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5vvyt"]
+bg_color = Color(0.29803923, 0.6039216, 0.2784314, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c6i3y"]
+bg_color = Color(0.3529412, 0.49803922, 0.65882355, 1)
+
+[node name="NavigationPanel" type="PanelContainer" unique_id=130011712]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80.0
+offset_top = -73.5
+offset_right = 80.0
+offset_bottom = 73.5
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+script = ExtResource("1_fmdwc")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=16557926]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=678013922]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="GridContainer" type="GridContainer" parent="VBoxContainer/MarginContainer" unique_id=5163692]
+layout_mode = 2
+
+[node name="Skill_Row_Graverobbing" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=262067140]
+layout_mode = 2
+
+[node name="Graverobbing" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Graverobbing" unique_id=2081459512]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_wkp8b")
+text = "Graverobbing"
+
+[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Graverobbing" unique_id=1012950574]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GraverobbingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Graverobbing" unique_id=1766366273]
+unique_name_in_owner = true
+layout_mode = 2
+text = "(1/100)"
+
+[node name="Skill_Row_Necromancy" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=653979736]
+layout_mode = 2
+
+[node name="Necromancy" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=601007350]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_20pc6")
+text = "Necromancy"
+
+[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=33838266]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NecromancyXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=1455638701]
+unique_name_in_owner = true
+layout_mode = 2
+text = "(1/100)"
+
+[node name="Skill_Row_Lumbering" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=398539114]
+layout_mode = 2
+
+[node name="Lumbering" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Lumbering" unique_id=197804067]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_5vvyt")
+text = "Lumbering"
+
+[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Lumbering" unique_id=1530795436]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LumberingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Lumbering" unique_id=1366595841]
+unique_name_in_owner = true
+layout_mode = 2
+text = "(1/100)"
+
+[node name="Skill_Row_Spelunking" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=1269248638]
+layout_mode = 2
+
+[node name="Spelunking" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=1192426262]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_c6i3y")
+text = "Spelunking"
+
+[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=209014399]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SpelunkingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=1474465816]
+unique_name_in_owner = true
+layout_mode = 2
+text = "(1/100)"

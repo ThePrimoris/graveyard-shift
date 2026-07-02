@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://c0f0m708ehxrr"]
+
+[ext_resource type="Script" uid="uid://dxhdk47hkgxge" path="res://scripts/cards/ActionCard.gd" id="1_0akts"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pp3ii"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3lwp1"]
+bg_color = Color(0.6, 0.6, 0.9372549, 1)
+
+[node name="ActionCard" type="PanelContainer" unique_id=632804199]
+custom_minimum_size = Vector2(200, 250)
+custom_maximum_size = Vector2(200, 250)
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_0akts")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=488872752]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=2098036583]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=322758036]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxEmpty_pp3ii")
+text = "RESOURCE"
+horizontal_alignment = 1
+autowrap_mode = 2
+uppercase = true
+
+[node name="DescLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1619440427]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Description"
+autowrap_mode = 2
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1385715074]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1381377104]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Collect"
+
+[node name="ActionProgress" type="ProgressBar" parent="MarginContainer/VBoxContainer" unique_id=2082918950]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_3lwp1")
+show_percentage = false
