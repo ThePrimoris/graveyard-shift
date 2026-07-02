@@ -3,7 +3,7 @@ extends Node
 
 @export_group("Game Meta")
 @export var game_title: String = "Graveyard Shift"
-@export var game_version: String = "0.0.3"
+@export var game_version: String = "0.1.3"
 @export var game_author: String = "Matthew"
 
 @export_group("Inventory & Equipment")
