@@ -1,21 +1,37 @@
 # QuarryView.gd
 extends PanelContainer
 
-@onready var limestone_card = %LimestoneCard
-@onready var slate_card = %SlateCard
-@onready var granite_card = %GraniteCard
+@onready var limestone_card = %LimestoneRockCard
+@onready var slate_card = %SlateRockCard
+@onready var granite_card = %GraniteRockCard
+@onready var peridot_card = %PeridotRockCard
+@onready var basalt_card = %BasaltRockCard
 
 func _ready() -> void:
 	add_to_group("ui_updates")
 	
-	limestone_card.setup_card("Limestone Quarry", "Heave chunks of raw stone from the sediment layer.", "Mine", GameManager.current_quarry_duration)
-	slate_card.setup_card("Slate Quarry", "Extract slate from the metamorphic rock layer.", "Mine", GameManager.current_quarry_duration)
-	granite_card.setup_card("Granite Quarry", "Mine granite from the igneous rock layer.", "Mine", GameManager.current_quarry_duration)
-	
+	limestone_card.setup_card("Verdigris Seams", "Heave chunks of raw stone from the sediment layer.", "Mine", GameManager.current_quarry_duration)
+	slate_card.setup_card("Emberslate Fissure", "Extract slate from the metamorphic rock layer.", "Mine", GameManager.current_quarry_duration)
+	granite_card.setup_card("Hollow Crag", "Mine granite from the igneous rock layer.", "Mine", GameManager.current_quarry_duration)
+	peridot_card.setup_card("Peridotite Pits", "Extract peridot from the intrusive rock layer.", "Mine", GameManager.current_quarry_duration)
+	basalt_card.setup_card("Obsidian Chasm", "Mine basalt from the volcanic rock layer.", "Mine", GameManager.current_quarry_duration)
+
 	limestone_card.action_triggered.connect(_on_toggle_mining)
 	slate_card.action_triggered.connect(_on_toggle_mining)
 	granite_card.action_triggered.connect(_on_toggle_mining)
-	
+	peridot_card.action_triggered.connect(_on_toggle_mining)
+	basalt_card.action_triggered.connect(_on_toggle_mining)
+
+	for card in [
+		limestone_card,
+		slate_card,
+		granite_card,
+		peridot_card,
+		basalt_card
+	]:
+		if card:
+			card.set_progress_color("#5a7fa8")
+
 	update_ui()
 
 func _process(delta: float) -> void:
@@ -47,7 +63,7 @@ func _award_mining_rewards() -> void:
 	get_tree().call_group("ui_updates", "update_ui")
 
 func update_ui() -> void:
-	for card in [limestone_card, slate_card, granite_card]:
+	for card in [limestone_card, slate_card, granite_card, peridot_card, basalt_card]:
 		if card:
 			card.progress_bar.max_value = GameManager.current_quarry_duration
 			var is_running = (GameManager.active_action_source == card)

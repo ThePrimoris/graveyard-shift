@@ -1,6 +1,13 @@
-[gd_scene format=3 uid="uid://boxt5s6gmfkb0"]
+[gd_scene format=3 uid="uid://c0f0m708ehxrr"]
 
 [ext_resource type="Script" uid="uid://dxhdk47hkgxge" path="res://scripts/cards/ActionCard.gd" id="1_0akts"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ap8o6"]
+bg_color = Color(0.101960786, 0.101960786, 0.101960786, 0.6)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3lwp1"]
 bg_color = Color(0.6, 0.6, 0.9372549, 1)
@@ -10,6 +17,7 @@ custom_minimum_size = Vector2(200, 250)
 custom_maximum_size = Vector2(200, 250)
 offset_right = 40.0
 offset_bottom = 40.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_ap8o6")
 script = ExtResource("1_0akts")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=488872752]
@@ -32,7 +40,9 @@ uppercase = true
 [node name="DescLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1619440427]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Description"
+horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1385715074]
@@ -46,7 +56,8 @@ text = "Start Digging"
 
 [node name="ActionProgress" type="ProgressBar" parent="MarginContainer/VBoxContainer" unique_id=2082918950]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
+size_flags_vertical = 1
 theme_override_styles/fill = SubResource("StyleBoxFlat_3lwp1")
 show_percentage = false

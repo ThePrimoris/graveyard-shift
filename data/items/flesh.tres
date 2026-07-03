@@ -6,7 +6,8 @@
 [resource]
 script = ExtResource("1_p2taa")
 id = "flesh"
-name = "Rotting Flesh"
+name = "Still Flesh"
+type = 2
 icon = ExtResource("1_7cqwm")
 description = "A pound of flesh, it reeks!"
 metadata/_custom_type_script = "uid://lm34okuvj3hr"

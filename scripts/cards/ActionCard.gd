@@ -21,6 +21,11 @@ func setup_card(title_text: String, desc_text: String, verb: String, max_duratio
 	progress_bar.max_value = max_duration
 	progress_bar.value = 0.0
 
+func set_progress_color(color: Color) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	progress_bar.add_theme_stylebox_override("fill", style)
+
 func update_progress(current_value: float) -> void:
 	if progress_bar:
 		progress_bar.value = current_value

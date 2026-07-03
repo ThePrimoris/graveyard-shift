@@ -16,7 +16,6 @@ func _ready() -> void:
 
 # --- ADDED: Helper to match InventoryView calls ---
 func setup(item: Item, quantity: int) -> void:
-	print("DEBUG: Setting up slot index ", slot_index, " with item: ", item.name)
 	current_item = item
 	icon_rect.texture = item.icon
 	count_label.text = str(quantity) if quantity > 1 else ""

@@ -2,7 +2,7 @@ extends Item
 class_name ToolData
 
 enum ToolType { SHOVEL, HATCHET, PICKAXE }
-enum ToolTier { RUSTED, REINFORCED, BLOODFORGED, PHANTASMAL }
+enum ToolTier { RUSTED, GALVANIZED, REINFORCED, TEMPERED }
 
 @export_group("Tool Stats")
 @export var speed_multiplier: float = 1.0 

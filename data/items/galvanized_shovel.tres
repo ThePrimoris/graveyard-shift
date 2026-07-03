@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://d2pnil5ijjuaj"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_uk410"]
+
+[resource]
+script = ExtResource("1_uk410")
+id = "galvanized_shovel"
+name = "Galvanized Steel Shovel"
+type = 1
+is_sellable = false
+rarity = 1
+max_stack = 1
+is_stackable = false
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

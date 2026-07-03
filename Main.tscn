@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bbcnsn3t0mi1p"]
 
 [ext_resource type="Script" uid="uid://bnrlhncec7ukt" path="res://Control.gd" id="1_trn2v"]
-[ext_resource type="PackedScene" uid="uid://c0f0m708ehxrr" path="res://ActionCard.tscn" id="3_3dxm6"]
+[ext_resource type="PackedScene" uid="uid://c0f0m708ehxrr" path="res://scenes/cards/ActionCard.tscn" id="3_3dxm6"]
 [ext_resource type="Script" uid="uid://dkh46ubvlp71m" path="res://scenes/views/GraveyardView.gd" id="5_20pc6"]
 [ext_resource type="PackedScene" uid="uid://68q2dacf1n11" path="res://MinionCard.tscn" id="5_lgr22"]
 [ext_resource type="Script" uid="uid://4b21xsylk5w2" path="res://scenes/views/UndercroftView.gd" id="6_5vvyt"]
@@ -75,15 +75,23 @@ layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 6
 
-[node name="OldGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=632804199 instance=ExtResource("3_3dxm6")]
+[node name="FleshGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=632804199 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="FreshGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=538341266 instance=ExtResource("3_3dxm6")]
+[node name="BoneGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=538341266 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="SpookyGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=607783773 instance=ExtResource("3_3dxm6")]
+[node name="MeatGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=607783773 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ChainsGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=516402416 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="WaxGraveCard" parent="MainViewContainer/GraveyardView/VBoxContainer/ScrollContainer/GraveClickers" unique_id=1199633380 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
@@ -153,20 +161,28 @@ size_flags_horizontal = 4
 size_flags_vertical = 6
 
 [node name="TreeClickers" type="HFlowContainer" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer" unique_id=897370957]
-custom_minimum_size = Vector2(810, 0)
+custom_minimum_size = Vector2(815, 0)
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 6
 
-[node name="DeadTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=1341294822 instance=ExtResource("3_3dxm6")]
+[node name="GravewoodTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=1341294822 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="WillowTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=136803531 instance=ExtResource("3_3dxm6")]
+[node name="BlackthornTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=136803531 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="BlackOakTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=1841329988 instance=ExtResource("3_3dxm6")]
+[node name="AshTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=1841329988 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AngelwoodTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=695108136 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="WalnutTreeCard" parent="MainViewContainer/ForestView/VBoxContainer/ScrollContainer/TreeClickers" unique_id=913919828 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
@@ -196,15 +212,23 @@ layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 6
 
-[node name="LimestoneCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=1793496018 instance=ExtResource("3_3dxm6")]
+[node name="LimestoneRockCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=1793496018 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="SlateCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=585467646 instance=ExtResource("3_3dxm6")]
+[node name="SlateRockCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=585467646 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="GraniteCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=324943994 instance=ExtResource("3_3dxm6")]
+[node name="GraniteRockCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=324943994 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PeridotRockCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=1960283145 instance=ExtResource("3_3dxm6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BasaltRockCard" parent="MainViewContainer/QuarryView/VBoxContainer/ScrollContainer/RockClickers" unique_id=677180066 instance=ExtResource("3_3dxm6")]
 unique_name_in_owner = true
 layout_mode = 2
 
