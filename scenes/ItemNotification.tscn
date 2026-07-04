@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://dde47w4bucduk"]
 
 [ext_resource type="Script" uid="uid://dachel0bcpq2f" path="res://PopUp.gd" id="1_qokns"]
-[ext_resource type="Texture2D" uid="uid://egdjoibi7mei" path="res://icons/bone.png" id="2_bixyg"]
 
 [sub_resource type="Animation" id="Animation_bixyg"]
 length = 0.001
@@ -64,12 +63,14 @@ _data = {
 &"pop_up": SubResource("Animation_wwqa2")
 }
 
-[node name="ItemNotification" type="CanvasLayer" unique_id=20844433]
-layer = 100
+[node name="ItemNotification" type="Control" unique_id=1669470538]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_qokns")
 
 [node name="Control" type="Control" parent="." unique_id=2117963737]
-layout_mode = 3
+layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
@@ -106,7 +107,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_bixyg")
 expand_mode = 1
 
 [node name="NameRect" type="Panel" parent="Control/HBoxContainer" unique_id=1083881316]
@@ -128,16 +128,14 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 6
-theme_override_font_sizes/font_size = 32
-text = "Item"
+theme_override_font_sizes/font_size = 24
 
 [node name="ItemAmount" type="Label" parent="Control/HBoxContainer/NameRect/VBoxContainer" unique_id=1317798592]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 6
-theme_override_font_sizes/font_size = 38
-text = "500"
+theme_override_font_sizes/font_size = 28
 horizontal_alignment = 2
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1007839477]

@@ -3,17 +3,16 @@ extends Node
 
 @export_group("Game Meta")
 @export var game_title: String = "Graveyard Shift"
-@export var game_version: String = "0.1.4"
+@export var game_version: String = "0.1.5"
 @export var game_author: String = "Matthew"
 
 @export_group("Inventory & Equipment")
 @export var inventory: Array[Item] = [] 
 @export var active_tool: ToolData = null
 
-# Starting Equipment Paths - Ensure these match your actual FileSystem paths
-const PATH_SHOVEL = "res://data/items/rusty_shovel.tres"
-const PATH_HATCHET = "res://data/items/rusty_hatchet.tres"
-const PATH_PICKAXE = "res://data/items/rusty_pickaxe.tres"
+const PATH_SHOVEL = "res://data/items/tools/rusty_shovel.tres"
+const PATH_HATCHET = "res://data/items/tools/rusty_hatchet.tres"
+const PATH_PICKAXE = "res://data/items/tools/rusty_pickaxe.tres"
 
 var active_action_source: Node = null
 
@@ -25,6 +24,8 @@ var wood_logs: float = 0.0
 var tree_sap: float = 0.0
 var stone: float = 0.0
 var opal_gem: float = 0.0
+
+enum SkillType { GRAVEROBBING, LUMBERING, SPELUNKING }
 
 var skills: Dictionary = {
 	"graverobbing": {"level": 1, "xp": 0.0},
@@ -72,7 +73,6 @@ func _setup_starting_equipment() -> void:
 func set_active_tool(tool: ToolData) -> void:
 	if inventory.has(tool):
 		active_tool = tool
-		print("Equipped: " + active_tool.name)
 		recalculate_all_speeds()
 		get_tree().call_group("ui_updates", "update_ui")
 	else:

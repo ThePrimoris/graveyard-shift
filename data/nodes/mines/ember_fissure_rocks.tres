@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://rgw7n2okb8kv"]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_6f7f2"]
+
+[resource]
+script = ExtResource("1_6f7f2")
+id = "ember_fissure_rocks"
+name = "Emberslate Fissure"
+required_skill = 2
+required_level = 3
+required_tool_type = 2
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

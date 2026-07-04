@@ -4,7 +4,7 @@ class_name Item
 @export_group("Basic Information")
 @export var id: String = ""
 @export var name: String = ""
-@export var type: ItemType = ItemType.MISC
+@export var type: ItemType = ItemType.MATERIAL
 @export var icon: Texture2D
 @export_multiline var description: String = ""
 
@@ -21,5 +21,5 @@ class_name Item
 @export var required_level: int = 1
 @export var item_effect: Resource = null
 
-enum ItemType { MISC, TOOL, MATERIAL, QUEST }
+enum ItemType { MATERIAL, TOOL, QUEST, MISC }
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }

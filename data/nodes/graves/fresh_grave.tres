@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://8l6yfqds04th"]
+
+[ext_resource type="Resource" uid="uid://cx6mnty6jlv73" path="res://data/items/materials/flesh.tres" id="1_x3dcc"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_xxtht"]
+[ext_resource type="Resource" uid="uid://c3k6hou7mjn8q" path="res://data/items/materials/marrow.tres" id="3_song8"]
+[ext_resource type="Resource" uid="uid://dngihl7b7hmwy" path="res://data/items/materials/blood.tres" id="4_2mgt1"]
+
+[resource]
+script = ExtResource("1_xxtht")
+id = "flesh_grave"
+name = "Fresh Grave"
+description = "A freshly dug grave."
+base_duration = 10.0
+primary_drop = ExtResource("1_x3dcc")
+secondary_drop = ExtResource("3_song8")
+tertiary_drop = ExtResource("4_2mgt1")
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

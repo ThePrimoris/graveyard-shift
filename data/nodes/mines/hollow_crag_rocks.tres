@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://wam2qjpuxs8p"]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_v7afe"]
+
+[resource]
+script = ExtResource("1_v7afe")
+id = "hollow_crag_rocks"
+name = "Hollow Crag"
+required_skill = 2
+required_level = 5
+required_tool_type = 2
+required_tool_tier = 1
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

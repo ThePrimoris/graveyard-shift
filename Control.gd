@@ -12,6 +12,7 @@ const SLOT_SCENE = preload("res://scenes/inventory/InventorySlot.tscn")
 @onready var quarry_view: PanelContainer = %QuarryView
 @onready var inventory_view: PanelContainer = %InventoryView
 @onready var shop_view: PanelContainer = %ShopView
+@onready var ritual_altar_view: PanelContainer = %RitualView
 
 func _ready() -> void:
 	add_to_group("ui_updates")
@@ -52,6 +53,7 @@ func switch_view(target_view: String) -> void:
 	if forest_view: forest_view.visible = (target_view == "forest") 
 	if quarry_view: quarry_view.visible = (target_view == "quarry") 
 	if inventory_view: inventory_view.visible = (target_view == "inventory")
+	if ritual_altar_view: ritual_altar_view.visible = (target_view == "ritual_altar")
 
 	get_tree().call_group("ui_updates", "update_ui")
 

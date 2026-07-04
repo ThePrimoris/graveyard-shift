@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://btiuwr5cwpi3e"]
+
+[ext_resource type="Resource" uid="uid://be3laibyfsb8n" path="res://data/items/materials/bones.tres" id="1_egags"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="2_h1g58"]
+[ext_resource type="Resource" uid="uid://ei2ox8tffl8h" path="res://data/items/materials/beast_urn.tres" id="3_m2086"]
+[ext_resource type="Resource" uid="uid://conmalm5qil7f" path="res://data/items/materials/grave_dust.tres" id="4_65i7a"]
+
+[resource]
+script = ExtResource("2_h1g58")
+id = "desc_crypt"
+name = "Descerated Crypt"
+description = "A descecrated crypt."
+required_level = 3
+base_duration = 15.0
+primary_drop = ExtResource("1_egags")
+secondary_drop = ExtResource("3_m2086")
+tertiary_drop = ExtResource("4_65i7a")
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

@@ -5,14 +5,14 @@
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wkp8b"]
 bg_color = Color(0.78431374, 0.63529414, 0.3019608, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_20pc6"]
-bg_color = Color(0.47843137, 0.29411766, 0.78039217, 1)
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5vvyt"]
 bg_color = Color(0.29803923, 0.6039216, 0.2784314, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c6i3y"]
 bg_color = Color(0.3529412, 0.49803922, 0.65882355, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_20pc6"]
+bg_color = Color(0.47843137, 0.29411766, 0.78039217, 1)
 
 [node name="NavigationPanel" type="PanelContainer" unique_id=130011712]
 anchors_preset = 8
@@ -62,25 +62,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "(1/100)"
 
-[node name="Skill_Row_Necromancy" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=653979736]
-layout_mode = 2
-
-[node name="Necromancy" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=601007350]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_20pc6")
-text = "Necromancy"
-
-[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=33838266]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="NecromancyXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=1455638701]
-unique_name_in_owner = true
-layout_mode = 2
-text = "(1/100)"
-
 [node name="Skill_Row_Lumbering" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=398539114]
 layout_mode = 2
 
@@ -115,6 +96,25 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="SpelunkingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=1474465816]
+unique_name_in_owner = true
+layout_mode = 2
+text = "(1/100)"
+
+[node name="Skill_Row_Necromancy" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=653979736]
+layout_mode = 2
+
+[node name="Necromancy" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=601007350]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_20pc6")
+text = "Necromancy"
+
+[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=33838266]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NecromancyXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=1455638701]
 unique_name_in_owner = true
 layout_mode = 2
 text = "(1/100)"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://cyd66n1ib3arb"]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_0kqf6"]
+[ext_resource type="Resource" uid="uid://cbytoch7gvjoq" path="res://data/items/materials/rotten_meat.tres" id="1_62t4e"]
+[ext_resource type="Resource" uid="uid://cpaxov16hf81k" path="res://data/items/materials/beast_claws.tres" id="3_nfopg"]
+[ext_resource type="Resource" uid="uid://blagbs0mudlv" path="res://data/items/materials/bile.tres" id="4_l1f36"]
+
+[resource]
+script = ExtResource("1_0kqf6")
+id = "forgot_trenches"
+name = "Forgotten Trenches"
+description = "Mass graves on a long forgotten battlefield."
+required_level = 5
+required_tool_tier = 1
+base_duration = 20.0
+primary_drop = ExtResource("1_62t4e")
+secondary_drop = ExtResource("3_nfopg")
+tertiary_drop = ExtResource("4_l1f36")
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

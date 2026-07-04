@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://blyjfgrpp2q35"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_lv6s7"]
+
+[resource]
+script = ExtResource("1_lv6s7")
+id = "beads"
+name = "Gilded Rosary Beads"
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

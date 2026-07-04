@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://d2mw3rchal0x3"]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_h7h3n"]
+
+[resource]
+script = ExtResource("1_h7h3n")
+id = "thorn_trees"
+name = "Thornwood Grove"
+required_skill = 1
+required_level = 3
+required_tool_type = 1
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

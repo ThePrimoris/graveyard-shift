@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://erks1h817n4j"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_nkv5b"]
+
+[resource]
+script = ExtResource("1_nkv5b")
+id = "ashes"
+name = "Censer Ashes"
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

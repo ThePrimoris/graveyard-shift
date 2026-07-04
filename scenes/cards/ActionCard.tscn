@@ -33,7 +33,7 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=322758036]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Grave Type"
+text = "Node Name"
 horizontal_alignment = 1
 uppercase = true
 
@@ -52,7 +52,7 @@ size_flags_vertical = 3
 [node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1381377104]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Start Digging"
+text = "Start Action"
 
 [node name="ActionProgress" type="ProgressBar" parent="MarginContainer/VBoxContainer" unique_id=2082918950]
 unique_name_in_owner = true

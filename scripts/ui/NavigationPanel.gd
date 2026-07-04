@@ -3,6 +3,7 @@ extends PanelContainer
 # UI Handles for your Buttons
 @onready var inv_btn: Button = %InventoryNavButton
 @onready var shop_btn: Button = %ShopNavButton
+@onready var ritual_btn: Button = %RitualNavButton
 @onready var grave_btn: Button = %Graverobbing
 @onready var necro_btn: Button = %Necromancy
 @onready var lumber_btn: Button = %Lumbering
@@ -19,6 +20,7 @@ func _ready() -> void:
 	
 	shop_btn.pressed.connect(_on_nav_pressed.bind("shop"))
 	inv_btn.pressed.connect(_on_nav_pressed.bind("inventory"))
+	ritual_btn.pressed.connect(_on_nav_pressed.bind("ritual_altar"))
 	
 	# Wire buttons to the switch_view group
 	grave_btn.pressed.connect(_on_nav_pressed.bind("graveyard"))

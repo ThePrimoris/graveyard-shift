@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://bxydyblonjbfk"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_82dol"]
+
+[resource]
+script = ExtResource("1_82dol")
+id = "skulls"
+name = "Fractured Skulls"
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

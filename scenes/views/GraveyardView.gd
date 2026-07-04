@@ -1,140 +1,145 @@
-# GraveyardView.gd
 extends PanelContainer
 
-var fresh_grave_progress: float = 0.0
-var desc_crypt_progress: float = 0.0
-var forgot_trench_progress: float = 0.0
+## Drag and drop your node .tres files here in the Inspector.
+## You can have 1 or all 5 filled; the script will handle it cleanly.
+@export var active_nodes: Array[HarvestNode] = []
 
-const BONE_ITEM = preload("res://data/items/bones.tres")
-const FLESH_ITEM = preload("res://data/items/flesh.tres")
-const GRAVE_DUST_ITEM = preload("res://data/items/grave_dust.tres")
+# Dynamic tracking for progress bars: { "fresh_grave": 0.0, "desecrated_crypt": 0.0 }
+var node_progress: Dictionary = {}
 
-@onready var fresh_grave_card = %FleshGraveCard
-@onready var desc_crypt_card = %BoneGraveCard
-@onready var forgot_trench_card = %MeatGraveCard
-@onready var bedlam_wards_card = %ChainsGraveCard
-@onready var silent_sepulcher_card = %WaxGraveCard
+@onready var cards: Array = [
+	%FreshGrave,
+	%DescCryptGrave,
+	%ForgotTrenchesGrave,
+	%BedlamWardGrave,
+	%SilentChurchGrave
+]
 
 func _ready() -> void:
 	add_to_group("ui_updates")
 	
-	fresh_grave_card.setup_card("Fresh Grave", "A freshly dug grave.", "Dig", GameManager.current_grave_duration)
-	desc_crypt_card.setup_card("Desecrated Crypt", "Ominous", "Dig", GameManager.current_grave_duration)
-	forgot_trench_card.setup_card("Forgotten Trenches", "Mass graves, from a long forgotten battle.", "Dig", GameManager.current_grave_duration)
-	bedlam_wards_card.setup_card("Bedlam Wards", "Ancient barriers that protect the dead.", "Dig", GameManager.current_grave_duration)
-	silent_sepulcher_card.setup_card("Silent Sepulchers", "Sealed resting places, untouched by time.", "Dig", GameManager.current_grave_duration)
-
-	fresh_grave_card.action_triggered.connect(_on_toggle_fresh_grave)
-	desc_crypt_card.action_triggered.connect(_on_toggle_desc_crypt)
-	forgot_trench_card.action_triggered.connect(_on_toggle_forgot_trench)
-	bedlam_wards_card.action_triggered.connect(_on_toggle_bedlam_wards)
-	silent_sepulcher_card.action_triggered.connect(_on_toggle_silent_sepulcher)
-
-	for card in [
-	fresh_grave_card,
-	desc_crypt_card,
-	forgot_trench_card,
-	bedlam_wards_card,
-	silent_sepulcher_card
-	]:
-		card.set_progress_color("#c8a24d")
+	# Loop through all physical cards to ensure they are initialized safely
+	for i in range(cards.size()):
+		var card = cards[i]
+		if not card: continue
+		
+		# Check if we have a matching data resource file configured for this slot
+		if i < active_nodes.size() and active_nodes[i] != null:
+			var node_data = active_nodes[i]
+			node_progress[node_data.id] = 0.0
+			
+			card.setup_card(node_data.name, node_data.description, "Digging", node_data.base_duration)
+			card.set_progress_color("#c8a24d")
+			card.visible = true
+			
+			# Bind the current card instance cleanly to the custom engine signal
+			card.action_triggered.connect(func():
+				print("[Signal Debug] Clicked action button on card node: ", card.name)
+				GameManager.register_activity(card)
+			)
+		else:
+			# Fallback if you haven't created a .tres file for this slot yet
+			card.setup_card("Undiscovered Location", "No data resource assigned.", "Locked", 3.0)
+			card.action_button.disabled = true
 
 	update_ui()
 
 func _process(delta: float) -> void:
-	if GameManager.active_action_source == fresh_grave_card:
-		fresh_grave_progress += delta
-		if fresh_grave_progress >= GameManager.current_grave_duration:
-			fresh_grave_progress = 0.0
-			_award_fresh_grave_rewards()
-		fresh_grave_card.update_progress(fresh_grave_progress)
-	else:
-		if fresh_grave_progress > 0.0:
-			fresh_grave_progress = 0.0
-			fresh_grave_card.update_progress(0.0)
-			
-	if GameManager.active_action_source == desc_crypt_card:
-		desc_crypt_progress += delta
-		if desc_crypt_progress >= GameManager.current_grave_duration:
-			desc_crypt_progress = 0.0
-			_award_desc_crypt_rewards()
-		desc_crypt_card.update_progress(desc_crypt_progress)
-	else:
-		if desc_crypt_progress > 0.0:
-			desc_crypt_progress = 0.0
-			desc_crypt_card.update_progress(0.0)
+	# Keep a lightweight global action print tracker running for debugging
+	if GameManager.active_action_source != null and Engine.get_frames_drawn() % 60 == 0:
+		print("[Process Debug] GameManager says active source node is: ", GameManager.active_action_source.name)
+
+	for i in range(active_nodes.size()):
+		var node_data = active_nodes[i]
+		var card = cards[i]
 		
-	if GameManager.active_action_source == forgot_trench_card:
-		forgot_trench_progress += delta
-		if forgot_trench_progress >= GameManager.current_grave_duration:
-			forgot_trench_progress = 0.0
-			_award_forgot_trench_rewards()
-		forgot_trench_card.update_progress(forgot_trench_progress)
-	else:
-		if forgot_trench_progress > 0.0:
-			forgot_trench_progress = 0.0
-			forgot_trench_card.update_progress(0.0)
+		if not node_data or not card: continue
+		
+		if GameManager.active_action_source == card:
+			node_progress[node_data.id] += delta
+			
+			if node_progress[node_data.id] >= node_data.base_duration:
+				node_progress[node_data.id] = 0.0
+				_process_harvest_rewards(node_data)
+				
+			card.update_progress(node_progress[node_data.id])
+		else:
+			if node_progress[node_data.id] > 0.0:
+				node_progress[node_data.id] = 0.0
+				card.update_progress(0.0)
 
-func _on_toggle_fresh_grave() -> void: GameManager.register_activity(fresh_grave_card)
-func _on_toggle_desc_crypt() -> void: GameManager.register_activity(desc_crypt_card)
-func _on_toggle_forgot_trench() -> void: GameManager.register_activity(forgot_trench_card)
-func _on_toggle_bedlam_wards() -> void: GameManager.register_activity(bedlam_wards_card)
-func _on_toggle_silent_sepulcher() -> void: GameManager.register_activity(silent_sepulcher_card)
-
-func _award_fresh_grave_rewards() -> void:
-	var minion_bonus = (GameManager.minions[0]["count"] * GameManager.minions[0]["production"]) + (GameManager.minions[2]["count"] * GameManager.minions[2]["production"])
-	var gained = 1 + floor(minion_bonus)
-	InventoryManager.add_item(BONE_ITEM, gained)
-	NotificationManager.show_item("Bone", gained)
-	GameManager.add_xp("graverobbing", 10.0)
-
-func _award_desc_crypt_rewards() -> void:
-	var minion_bonus = (GameManager.minions[1]["count"] * GameManager.minions[1]["production"]) + (GameManager.minions[2]["count"] * GameManager.minions[2]["production"])
-	var gained = 1 + floor(minion_bonus)
-	InventoryManager.add_item(FLESH_ITEM, gained)
-	GameManager.add_xp("graverobbing", 25.0)
+func _process_harvest_rewards(node: HarvestNode) -> void:
+	var minion_bonus = 0.0
+	if "minions" in GameManager and GameManager.minions.size() > 0:
+		minion_bonus = GameManager.minions[0].get("count", 0) * GameManager.minions[0].get("production", 0.0)
+		
+	var multiplier = 1 + floor(minion_bonus)
 	
-func _award_forgot_trench_rewards() -> void:
-	var minion_bonus = (GameManager.minions[3]["count"] * GameManager.minions[3]["production"])
-	var gained = 1 + floor(minion_bonus)
-	InventoryManager.add_item(GRAVE_DUST_ITEM, gained)
-	GameManager.add_xp("graverobbing", 60.0)
+	_roll_loot(node.primary_drop, node.primary_chance, multiplier)
+	_roll_loot(node.secondary_drop, node.secondary_chance, multiplier)
+	_roll_loot(node.tertiary_drop, node.tertiary_chance, multiplier)
+	
+	# Dynamically convert the SkillType Enum back to a lowercase string key ("graverobbing", "lumbering", etc.)
+	var skill_key = GameManager.SkillType.keys()[node.required_skill].to_lower()
+	
+	if NecromancyManager.has_method("get_grave_plot_multiplier") and skill_key == "graverobbing":
+		GameManager.add_xp(skill_key, node.base_xp * NecromancyManager.get_grave_plot_multiplier())
+		NecromancyManager.process_grave_plot_harvest(skill_key, node.base_xp)
+	else:
+		GameManager.add_xp(skill_key, node.base_xp)
+
+func _roll_loot(item_resource: Resource, drop_chance: float, multiplier: int) -> void:
+	if item_resource == null or drop_chance <= 0.0: return
+	
+	if randf() <= drop_chance:
+		InventoryManager.add_item(item_resource, multiplier)
+		
+		var visual_name: String = ""
+		
+		if "Name" in item_resource:
+			visual_name = item_resource.Name
+		elif "item_name" in item_resource:
+			visual_name = item_resource.item_name
+		elif "name" in item_resource:
+			visual_name = item_resource.name
+		elif "display_name" in item_resource:
+			visual_name = item_resource.display_name
+		else:
+			visual_name = item_resource.resource_path.get_file().get_basename().capitalize()
+		
+		NotificationManager.show_item(visual_name, multiplier, item_resource)
 
 func update_ui() -> void:
-	var g_level = GameManager.skills["graverobbing"]["level"]
 	var tool = GameManager.active_tool
 	
-	var has_required_tool = (tool != null and 
-							 tool.tool_type == ToolData.ToolType.SHOVEL and 
-							 tool.tool_tier >= ToolData.ToolTier.GALVANIZED)
-
-	if fresh_grave_card:
-		fresh_grave_card.progress_bar.max_value = GameManager.current_grave_duration
-		fresh_grave_card.set_button_text(GameManager.active_action_source == fresh_grave_card)
-		fresh_grave_card.action_button.disabled = g_level < 1
+	for i in range(cards.size()):
+		var card = cards[i]
+		if not card: continue
 		
-	if desc_crypt_card:
-		desc_crypt_card.progress_bar.max_value = GameManager.current_grave_duration
-		desc_crypt_card.set_button_text(GameManager.active_action_source == desc_crypt_card)
-		var crypt_unlocked = (g_level >= 3)
-		desc_crypt_card.action_button.disabled = not crypt_unlocked
-		desc_crypt_card.desc_label.text = "Requires level 3 Graverobbing." if not crypt_unlocked else "Freshly buried. The smell of Rotting Flesh fills the air."
-
-		if forgot_trench_card:
-			var trench_unlocked = (g_level >= 5)
-
-			forgot_trench_card.progress_bar.max_value = GameManager.current_grave_duration
-			forgot_trench_card.set_button_text(GameManager.active_action_source == forgot_trench_card)
-
-			if not has_required_tool and not trench_unlocked:
-				forgot_trench_card.desc_label.text = "Requires level 5 Graverobbing and a Galvanized Tool."
-				forgot_trench_card.action_button.disabled = true
-			elif not has_required_tool:
-				forgot_trench_card.desc_label.text = "Requires a Galvanized Tool."
-				forgot_trench_card.action_button.disabled = true
-			elif not trench_unlocked:
-				forgot_trench_card.desc_label.text = "Requires level 5 Graverobbing."
-				forgot_trench_card.action_button.disabled = true
+		card.set_button_text(GameManager.active_action_source == card)
+		
+		if i < active_nodes.size() and active_nodes[i] != null:
+			var node = active_nodes[i]
+			card.progress_bar.max_value = node.base_duration
+			
+			# Convert the Enum index back to a lowercase string key for level checks
+			var skill_key = GameManager.SkillType.keys()[node.required_skill].to_lower()
+			var s_level = GameManager.skills[skill_key]["level"] if skill_key in GameManager.skills else 1
+			
+			var level_met = s_level >= node.required_level
+			var tool_type_met = (node.required_tool_tier == ToolData.ToolTier.RUSTED) or (tool != null and tool.tool_type == node.required_tool_type)
+			var tool_tier_met = (node.required_tool_tier == ToolData.ToolTier.RUSTED) or (tool != null and tool.tool_tier >= node.required_tool_tier)
+			var fully_accessible = level_met and tool_type_met and tool_tier_met
+			
+			if not fully_accessible:
+				# Cleanly format the skill name dynamically (e.g., "Graverobbing" or "Lumbering")
+				var formatted_skill = skill_key.capitalize()
+				var error_msg = "Requires level %d %s" % [node.required_level, formatted_skill]
+				
+				if node.required_tool_tier > ToolData.ToolTier.RUSTED:
+					error_msg += " and a %s %s" % [ToolData.ToolTier.keys()[node.required_tool_tier].capitalize(), ToolData.ToolType.keys()[node.required_tool_type].capitalize()]
+				card.desc_label.text = error_msg
+				card.action_button.disabled = true
 			else:
-				forgot_trench_card.desc_label.text = "A Spooky Grave, what could this contain?"
-				forgot_trench_card.action_button.disabled = false
+				card.desc_label.text = node.description
+				card.action_button.disabled = false

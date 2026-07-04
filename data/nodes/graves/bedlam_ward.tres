@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://uf4qfnj5vmda"]
+
+[ext_resource type="Resource" uid="uid://ovf56d23op5g" path="res://data/items/materials/chains.tres" id="1_14p6f"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="2_6rrt3"]
+[ext_resource type="Resource" uid="uid://bxydyblonjbfk" path="res://data/items/materials/skulls.tres" id="3_jphii"]
+[ext_resource type="Resource" uid="uid://df1cufafqfm8o" path="res://data/items/materials/ectoplasm.tres" id="4_biwqf"]
+
+[resource]
+script = ExtResource("2_6rrt3")
+id = "bedlam_ward"
+name = "Bedlam Wards"
+description = "A haunted insane asylum."
+required_level = 10
+required_tool_tier = 1
+primary_drop = ExtResource("1_14p6f")
+secondary_drop = ExtResource("3_jphii")
+tertiary_drop = ExtResource("4_biwqf")
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

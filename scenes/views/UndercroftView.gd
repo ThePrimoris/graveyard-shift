@@ -1,4 +1,3 @@
-# UndercroftView.gd
 extends PanelContainer
 
 @export var minion_card_scene: PackedScene
@@ -6,7 +5,11 @@ extends PanelContainer
 
 func _ready() -> void:
 	add_to_group("ui_updates")
-	GameManager.calculate_necromancy_unlocks()
+	
+	# Connect to the updated manager signal for automated reactive updates
+	if NecromancyManager.has_signal("necromancy_updated"):
+		NecromancyManager.necromancy_updated.connect(update_ui)
+	
 	_initialize_undercroft()
 	update_ui()
 
@@ -14,73 +17,74 @@ func _initialize_undercroft() -> void:
 	for child in card_container.get_children():
 		child.queue_free()
 		
-	for minion_data in GameManager.minions:
+	# Instantiates a card view dynamically for every auto-discovered minion profile
+	for minion in NecromancyManager.minion_templates:
+		if not minion: continue
+		
 		var card = minion_card_scene.instantiate()
 		card_container.add_child(card)
-		card.setup_card(minion_data["name"], "A loyal unholy construct.")
-		card.buy_triggered.connect(_on_buy_minion_pressed.bind(minion_data))
+		
+		card.setup_card(minion.name, minion.description)
+		card.buy_triggered.connect(_on_feed_materials_pressed.bind(minion.id))
 
 func update_ui() -> void:
-	GameManager.calculate_necromancy_unlocks()
-	
-	# 🌟 MATCHED TO YOUR EXACT INVENTORY ID: 'bone'
-	var current_bones = InventoryManager.get_item_count("bone")
-	var current_flesh = InventoryManager.get_item_count("flesh")
-	var current_ecto = InventoryManager.get_item_count("ectoplasm")
-	
 	var index = 0
-	for minion_data in GameManager.minions:
-		if index < card_container.get_child_count():
-			var card = card_container.get_child(index)
-			var bulk_cost = GameManager.get_bulk_cost(minion_data, GameManager.buy_amount)
+	
+	for minion in NecromancyManager.minion_templates:
+		if not minion: continue
+		if index >= card_container.get_child_count(): break
+		
+		var card = card_container.get_child(index)
+		var progress_state = NecromancyManager.minion_progress.get(minion.id, {"level": 1, "progress": {}})
+		var current_lvl = progress_state["level"]
+		
+		# 1. Update card descriptions dynamically to show current level scaling metrics
+		var max_hp = minion.base_hp + ((current_lvl - 1) * minion.hp_per_level)
+		var current_atk = minion.base_atk + ((current_lvl - 1) * minion.atk_per_level)
+		var stat_desc = "HP: %d | ATK: %.1f\n%s" % [max_hp, current_atk, minion.description]
+		
+		if card.has_method("update_description"):
+			card.update_description(stat_desc)
+		
+		# 2. Process and aggregate the requirements list layout
+		var cost_lines: Array[String] = []
+		var player_has_any_valid_materials = false
+		
+		for item_id in minion.requirements:
+			var base_amt = minion.requirements[item_id]
+			if base_amt <= 0: continue
 			
-			var cost_string = "Bones: %d" % bulk_cost["bones"]
-			if minion_data.get("cost_flesh", 0) > 0:
-				cost_string += "  Flesh: %d" % bulk_cost["flesh"]
-			if minion_data.get("cost_ectoplasm", 0) > 0:
-				cost_string += "  Ectoplasm: %d" % bulk_cost["ectoplasm"]
+			var required_amt = NecromancyManager.get_required_amount(minion, item_id, current_lvl)
+			var current_progress = progress_state["progress"].get(item_id, 0.0)
+			var inventory_count = InventoryManager.get_item_count(item_id)
 			
-			var can_afford = true
-			if bulk_cost["bones"] > 0 and current_bones < bulk_cost["bones"]: can_afford = false
-			if bulk_cost["flesh"] > 0 and current_flesh < bulk_cost["flesh"]: can_afford = false
-			if bulk_cost["ectoplasm"] > 0 and current_ecto < bulk_cost["ectoplasm"]: can_afford = false
+			cost_lines.append("%s: %d / %d (Have: %d)" % [item_id.capitalize(), current_progress, required_amt, inventory_count])
 			
-			card.update_card_state(
-				minion_data["unlocked"],
-				minion_data["count"],
-				"Summon",
-				cost_string,
-				can_afford
-			)
+			if inventory_count > 0 and current_progress < required_amt:
+				player_has_any_valid_materials = true
+				
+		var complete_cost_string = "\n".join(cost_lines)
+		if complete_cost_string == "":
+			complete_cost_string = "Fully optimized."
+			
+		# 3. Commit states down to the display card instance
+		card.update_card_state(
+			true, 
+			current_lvl,
+			"Feed Materials",
+			complete_cost_string,
+			player_has_any_valid_materials
+		)
 		index += 1
 
-func _on_buy_minion_pressed(minion_data: Dictionary) -> void:
-	var amt = GameManager.buy_amount
-	var costs = GameManager.get_bulk_cost(minion_data, amt)
+func _on_feed_materials_pressed(minion_id: String) -> void:
+	var minion = NecromancyManager._find_template(minion_id)
+	if not minion: return
 	
-	# 🌟 MATCHED TO YOUR EXACT INVENTORY ID: 'bone'
-	var current_bones = InventoryManager.get_item_count("bone")
-	var current_flesh = InventoryManager.get_item_count("flesh")
-	var current_ecto = InventoryManager.get_item_count("ectoplasm")
+	# Leverages your existing purchase increments selection from GameManager
+	var feed_amount = GameManager.get("buy_amount") if "buy_amount" in GameManager else 10
 	
-	var can_afford = true
-	if costs["bones"] > 0 and current_bones < costs["bones"]: can_afford = false
-	if costs["flesh"] > 0 and current_flesh < costs["flesh"]: can_afford = false
-	if costs["ectoplasm"] > 0 and current_ecto < costs["ectoplasm"]: can_afford = false
-	
-	if can_afford:
-		# Deduct items using your clean inventory string IDs
-		if costs["bones"] > 0: InventoryManager.remove_item("bone", costs["bones"])
-		if costs["flesh"] > 0: InventoryManager.remove_item("flesh", costs["flesh"])
-		if costs["ectoplasm"] > 0: InventoryManager.remove_item("ectoplasm", costs["ectoplasm"])
-		
-		minion_data["count"] += amt
-		
-		var xp_reward = 15.0
-		match minion_data["id"]:
-			"zombie": xp_reward = 40.0
-			"hound": xp_reward = 60.0
-			"wraith": xp_reward = 100.0
-			
-		GameManager.add_xp("necromancy", xp_reward * amt)
-		get_tree().call_group("ui_updates", "update_ui")
+	# Feeds all required resources matching the minion profile layout criteria
+	for item_id in minion.requirements:
+		if minion.requirements[item_id] > 0:
+			NecromancyManager.feed_material_to_minion(minion_id, item_id, feed_amount)

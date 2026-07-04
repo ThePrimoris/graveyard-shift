@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://2grc1xu8amno"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_rvsk3"]
+
+[resource]
+script = ExtResource("1_rvsk3")
+id = "wax"
+name = "Vigil Wax"
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

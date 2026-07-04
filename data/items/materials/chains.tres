@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://ovf56d23op5g"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_d0dnw"]
+
+[resource]
+script = ExtResource("1_d0dnw")
+id = "chains"
+name = "Shackle Links"
+metadata/_custom_type_script = "uid://lm34okuvj3hr"
