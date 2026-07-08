@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ToolData" format=3 uid="uid://b0ouj3e4v1135"]
+
+[ext_resource type="Script" uid="uid://bmnwrj4kq2set" path="res://data/ToolData.gd" id="1_ml5fp"]
+[ext_resource type="Texture2D" path="res://icons/items/reinforced_hatchet.png" id="9_icon"]
+
+[resource]
+script = ExtResource("1_ml5fp")
+icon = ExtResource("9_icon")
+tool_type = 1
+tool_tier = 2
+speed_multiplier = 1.5
+yield_bonus = 1
+id = "reinforced_hatchet"
+name = "Tungsten Hatchet"
+type = 1
+description = "A reinforced tungsten hatchet."
+metadata/_custom_type_script = "uid://bmnwrj4kq2set"

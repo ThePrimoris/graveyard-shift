@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/bones.tres" id="3_i0"]
+[ext_resource type="Resource" path="res://data/items/materials/cracked_skull.tres" id="3_i1"]
+[ext_resource type="Resource" path="res://data/items/materials/rancid_sinew.tres" id="3_i2"]
+[ext_resource type="Resource" path="res://data/items/materials/blood.tres" id="3_i3"]
+
+[sub_resource type="Resource" id="Drop0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i0")
+
+[sub_resource type="Resource" id="Drop1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i1")
+chance = 0.45
+
+[sub_resource type="Resource" id="Drop2"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i2")
+chance = 0.2
+
+[sub_resource type="Resource" id="Drop3"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i3")
+chance = 0.15
+
+[resource]
+script = ExtResource("1_node")
+id = "old_grave"
+name = "Old Graves"
+description = "Long-settled plots, headstones leaning and green. Mostly bare bone and gristle now."
+required_level = 3
+required_skill = 0
+required_tool_type = 0
+base_duration = 3.0
+base_xp = 6.5
+dig_sections = 3
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Drop0"), SubResource("Drop1"), SubResource("Drop2"), SubResource("Drop3")])
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

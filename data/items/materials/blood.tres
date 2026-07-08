@@ -1,9 +1,13 @@
-[gd_resource type="Resource" script_class="Item" format=3 uid="uid://dngihl7b7hmwy"]
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://bwx3jbyv6phwq"]
 
 [ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_gkdl2"]
+[ext_resource type="Texture2D" path="res://icons/items/blood.png" id="9_icon"]
 
 [resource]
 script = ExtResource("1_gkdl2")
+icon = ExtResource("9_icon")
 id = "blood"
 name = "Coagulated Blood"
+description = "A vial containing clumps of clotted blood."
+sell_value = 2
 metadata/_custom_type_script = "uid://lm34okuvj3hr"

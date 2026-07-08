@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
+
+[resource]
+script = ExtResource("1_node")
+id = "old_crypt"
+name = "The Old Crypt"
+description = "A great stone vault of the older dead. You only meant to tidy it — but you have disturbed a grave that was cursed shut, and something furious is waking."
+required_level = 16
+required_skill = 0
+required_tool_type = 0
+base_duration = 3.0
+base_xp = 0.0
+is_boss = true
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

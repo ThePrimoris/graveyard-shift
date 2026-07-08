@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="HarvestZone" format=3 uid="uid://diivt652yth16"]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_22hlj"]
+[ext_resource type="Resource" uid="uid://dhbm3xwg6yyj3" path="res://data/nodes/graves/fresh_grave.tres" id="2_bctdi"]
+[ext_resource type="Script" uid="uid://nrgptrpumce6" path="res://data/ZoneData.gd" id="3_v8sly"]
+
+[resource]
+script = ExtResource("3_v8sly")
+id = "asylum"
+name = "Bedlam Asylum"
+description = "An insane sanitiorium, what fun to be had!"
+required_level = 10
+nodes = Array[ExtResource("1_22hlj")]([ExtResource("2_bctdi")])
+metadata/_custom_type_script = "uid://nrgptrpumce6"

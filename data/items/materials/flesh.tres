@@ -1,12 +1,13 @@
-[gd_resource type="Resource" script_class="Item" format=3 uid="uid://cx6mnty6jlv73"]
+[gd_resource type="Resource" script_class="Item" format=3]
 
-[ext_resource type="Texture2D" uid="uid://dfdv7ck134bob" path="res://icons/flesh.png" id="1_ho1ew"]
-[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="2_0uu51"]
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/flesh.png" id="9_icon"]
 
 [resource]
-script = ExtResource("2_0uu51")
+script = ExtResource("1_item")
 id = "flesh"
 name = "Still Flesh"
-icon = ExtResource("1_ho1ew")
-description = "A pound of flesh, it reeks!"
+description = "Cold meat from a fresh grave. The foundation of all necromancy."
+icon = ExtResource("9_icon")
+sell_value = 1
 metadata/_custom_type_script = "uid://lm34okuvj3hr"

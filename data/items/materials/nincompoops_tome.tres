@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/nincompoops_tome.png" id="9_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "nincompoops_tome"
+name = "Necromancy for Nincompoops"
+description = "A water-stained beginner's guide to raising the dead. Not a grimoire. Certainly not the Necronomicon. But it will do."
+icon = ExtResource("9_icon")
+sell_value = 0
+rarity = 4
+type = 2
+is_sellable = false
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

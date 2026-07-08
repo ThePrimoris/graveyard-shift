@@ -2,62 +2,117 @@
 
 [ext_resource type="Script" uid="uid://dxhdk47hkgxge" path="res://scripts/cards/ActionCard.gd" id="1_0akts"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ap8o6"]
-bg_color = Color(0.101960786, 0.101960786, 0.101960786, 0.6)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.11, 0.145, 0.19, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.27, 0.35, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3lwp1"]
-bg_color = Color(0.6, 0.6, 0.9372549, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iconwell"]
+bg_color = Color(0.07, 0.095, 0.125, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.24, 0.3, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="ActionCard" type="PanelContainer" unique_id=632804199]
-custom_minimum_size = Vector2(200, 250)
-custom_maximum_size = Vector2(200, 250)
+custom_minimum_size = Vector2(262, 404)
 offset_right = 40.0
 offset_bottom = 40.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_ap8o6")
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_0akts")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=488872752]
 layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=2098036583]
+[node name="Body" type="HBoxContainer" parent="MarginContainer" unique_id=488872753]
 layout_mode = 2
+theme_override_constants/separation = 12
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=322758036]
+[node name="Main" type="VBoxContainer" parent="MarginContainer/Body" unique_id=2098036583]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="IconWell" type="PanelContainer" parent="MarginContainer/Body/Main" unique_id=2098036590]
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_iconwell")
+
+[node name="IconRect" type="TextureRect" parent="MarginContainer/Body/Main/IconWell" unique_id=2098036591]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/Body/Main" unique_id=322758036]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 19
 text = "Node Name"
 horizontal_alignment = 1
+autowrap_mode = 2
 uppercase = true
 
-[node name="DescLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1619440427]
+[node name="DescLabel" type="Label" parent="MarginContainer/Body/Main" unique_id=1619440427]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.68, 0.72, 0.75, 1)
 text = "Description"
 horizontal_alignment = 1
 autowrap_mode = 2
+text_overrun_behavior = 3
+max_lines_visible = 3
 
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1385715074]
+[node name="DropsBox" type="VBoxContainer" parent="MarginContainer/Body/Main" unique_id=1385715076]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Control" type="Control" parent="MarginContainer/Body/Main" unique_id=1385715074]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1381377104]
+[node name="StatsLabel" type="Label" parent="MarginContainer/Body/Main" unique_id=1385715075]
 unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.9, 0.75, 0.45, 1)
+horizontal_alignment = 1
+
+[node name="ActionButton" type="Button" parent="MarginContainer/Body/Main" unique_id=1381377104]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 text = "Start Action"
 
-[node name="ActionProgress" type="ProgressBar" parent="MarginContainer/VBoxContainer" unique_id=2082918950]
+[node name="ProgressStack" type="VBoxContainer" parent="MarginContainer/Body/Main" unique_id=2082918950]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
-size_flags_vertical = 1
-theme_override_styles/fill = SubResource("StyleBoxFlat_3lwp1")
-show_percentage = false
+theme_override_constants/separation = 3
+
+[node name="SegmentBox" type="VBoxContainer" parent="MarginContainer/Body" unique_id=2082918951]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(22, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 3

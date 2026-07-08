@@ -1,14 +1,15 @@
-[gd_resource type="Resource" script_class="Item" format=3 uid="uid://d2pnil5ijjuaj"]
+[gd_resource type="Resource" script_class="ToolData" format=3 uid="uid://8p72ejv53qau"]
 
-[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_uk410"]
+[ext_resource type="Script" uid="uid://bmnwrj4kq2set" path="res://data/ToolData.gd" id="1_3ifa5"]
+[ext_resource type="Texture2D" path="res://icons/items/galvanized_shovel.png" id="9_icon"]
 
 [resource]
-script = ExtResource("1_uk410")
+script = ExtResource("1_3ifa5")
+icon = ExtResource("9_icon")
+tool_tier = 1
+speed_multiplier = 1.25
 id = "galvanized_shovel"
-name = "Galvanized Steel Shovel"
+name = "Steel Shovel"
 type = 1
-is_sellable = false
-rarity = 1
-max_stack = 1
-is_stackable = false
-metadata/_custom_type_script = "uid://lm34okuvj3hr"
+description = "A galvanized steel shovel."
+metadata/_custom_type_script = "uid://bmnwrj4kq2set"

@@ -10,18 +10,24 @@ class_name HarvestNode
 @export var required_skill: GameManager.SkillType = GameManager.SkillType.GRAVEROBBING
 @export var required_level: int = 1
 @export var required_tool_type: ToolData.ToolType = ToolData.ToolType.SHOVEL
-@export var required_tool_tier: ToolData.ToolTier = ToolData.ToolTier.RUSTED
 
 @export_category("Balancing")
 @export var base_duration: float = 3.0
-@export var base_xp: float = 10.0
+@export var base_xp: float = 5.0
 
-@export_category("Loot Table (Drop Chances 0.0 - 1.0)")
-@export var primary_drop: Resource  # ItemData / PackedScene Resource
-@export var primary_chance: float = 1.0
+## Graverobbing dig-layer bar: how many sections it shows (0 = no section bar).
+## The sections deplete evenly across the harvest cycle, left to right.
+@export var dig_sections: int = 0
 
-@export var secondary_drop: Resource
-@export var secondary_chance: float = 0.30 # 30% chance
+@export_category("Encounter")
+## Boss nodes are cleared through combat rather than harvested.
+## Combat isn't implemented yet, so these show a placeholder for now.
+@export var is_boss: bool = false
 
-@export var tertiary_drop: Resource
-@export var tertiary_chance: float = 0.05 # 5% chance
+@export_category("Loot Pool")
+## Up to 5 entries. Every harvest rolls each entry independently against its
+## own chance — e.g. dirt 100%, gravel 75%, spectacular gem 5%.
+@export var loot_pool: Array[LootDrop] = []
+
+## Entries beyond this many are ignored at harvest time.
+const MAX_LOOT_ENTRIES: int = 5

@@ -2,14 +2,32 @@
 
 [ext_resource type="Script" uid="uid://sg0hn2pxeote" path="res://scripts/ui/InventorySlot.gd" id="1_4r0iv"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.08, 0.11, 0.145, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.27, 0.35, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [node name="InventorySlot" type="PanelContainer" unique_id=1530950447]
 custom_minimum_size = Vector2(64, 64)
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
 script = ExtResource("1_4r0iv")
 
 [node name="IconRect" type="TextureRect" parent="." unique_id=747325801]
 unique_name_in_owner = true
 layout_mode = 2
 expand_mode = 1
+stretch_mode = 5
 
 [node name="CountLabel" type="Label" parent="IconRect" unique_id=1651945501]
 unique_name_in_owner = true
@@ -20,6 +38,6 @@ size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 10
 
 [node name="Button" type="Button" parent="." unique_id=2122789302]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(60, 60)
 layout_mode = 2
 flat = true

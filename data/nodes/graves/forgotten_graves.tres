@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/jagged_fangs.tres" id="3_i0"]
+[ext_resource type="Resource" path="res://data/items/materials/bone_marrow.tres" id="3_i1"]
+[ext_resource type="Resource" path="res://data/items/materials/withered_heart.tres" id="3_i2"]
+
+[sub_resource type="Resource" id="Drop0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i0")
+
+[sub_resource type="Resource" id="Drop1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i1")
+chance = 0.45
+
+[sub_resource type="Resource" id="Drop2"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i2")
+chance = 0.08
+
+[resource]
+script = ExtResource("1_node")
+id = "forgotten_graves"
+name = "Forgotten Graves"
+description = "The oldest common plots — unmarked, overgrown, unvisited. The deepest bones give up the richest reagents."
+required_level = 11
+required_skill = 0
+required_tool_type = 0
+base_duration = 4.0
+base_xp = 13.0
+dig_sections = 4
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Drop0"), SubResource("Drop1"), SubResource("Drop2")])
+metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

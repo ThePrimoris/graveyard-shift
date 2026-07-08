@@ -1,0 +1,131 @@
+[gd_scene format=3 uid="uid://plotsbar0001a"]
+
+[ext_resource type="Script" path="res://scripts/ui/PlotsBar.gd" id="1_plots"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_plot"]
+bg_color = Color(0.11, 0.145, 0.19, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.23, 0.31, 0.39, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_plot_hover"]
+bg_color = Color(0.16, 0.22, 0.28, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.42, 0.52, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_circle"]
+bg_color = Color(0.13, 0.17, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.29, 0.42, 0.52, 1)
+corner_radius_top_left = 48
+corner_radius_top_right = 48
+corner_radius_bottom_right = 48
+corner_radius_bottom_left = 48
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_circle_hover"]
+bg_color = Color(0.18, 0.25, 0.32, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.55, 0.68, 1)
+corner_radius_top_left = 48
+corner_radius_top_right = 48
+corner_radius_bottom_right = 48
+corner_radius_bottom_left = 48
+
+[node name="PlotsBar" type="Control" unique_id=295791392]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -250.0
+offset_top = -110.0
+offset_right = 250.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("1_plots")
+
+[node name="BarRow" type="HBoxContainer" parent="." unique_id=295791393]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="PlotButton1" type="Button" parent="BarRow" unique_id=295791394]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_plot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_plot_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_plot")
+theme_override_font_sizes/font_size = 20
+text = "1"
+
+[node name="PlotButton2" type="Button" parent="BarRow" unique_id=295791395]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_plot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_plot_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_plot")
+theme_override_font_sizes/font_size = 20
+text = "2"
+
+[node name="CircleButton" type="Button" parent="BarRow" unique_id=295791396]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_circle")
+theme_override_styles/hover = SubResource("StyleBoxFlat_circle_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_circle")
+tooltip_text = "The graveyard's heart. Its purpose will be revealed."
+
+[node name="PlotButton3" type="Button" parent="BarRow" unique_id=295791397]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_plot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_plot_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_plot")
+theme_override_font_sizes/font_size = 20
+text = "3"
+
+[node name="PlotButton4" type="Button" parent="BarRow" unique_id=295791398]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_plot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_plot_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_plot")
+theme_override_font_sizes/font_size = 20
+text = "4"

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/cracked_skull.png" id="9_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "cracked_skull"
+name = "Cracked Skull"
+description = "A fractured skull, its jaw long gone. Every skeleton has to start somewhere."
+icon = ExtResource("9_icon")
+sell_value = 6
+rarity = 1
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

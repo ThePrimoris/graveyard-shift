@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://ksu4t8m1s"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" uid="uid://dtldxx66uwtg2" path="res://icons/items/rotten_logs.png" id="9_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "rotten_logs"
+name = "Rotten Logs"
+icon = ExtResource("9_icon")
+description = "Soft, damp timber from long-dead trees."
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

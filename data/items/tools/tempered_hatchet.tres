@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ToolData" format=3 uid="uid://c7e3ufu5tuf2r"]
+
+[ext_resource type="Script" uid="uid://bmnwrj4kq2set" path="res://data/ToolData.gd" id="1_eyp1i"]
+[ext_resource type="Texture2D" path="res://icons/items/tempered_hatchet.png" id="9_icon"]
+
+[resource]
+script = ExtResource("1_eyp1i")
+icon = ExtResource("9_icon")
+tool_type = 1
+tool_tier = 3
+speed_multiplier = 1.8
+yield_bonus = 2
+id = "tempered_hatchet"
+name = "Cobalt Hatchet"
+type = 1
+description = "A tempered  cobalt hatchet."
+metadata/_custom_type_script = "uid://bmnwrj4kq2set"

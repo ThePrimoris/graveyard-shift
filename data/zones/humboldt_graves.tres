@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="HarvestZone" format=3 uid="uid://c6eo5cc7ttn6m"]
+
+[ext_resource type="Script" uid="uid://nrgptrpumce6" path="res://data/ZoneData.gd" id="1_zone"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="2_hnode"]
+[ext_resource type="Resource" uid="uid://dhbm3xwg6yyj3" path="res://data/nodes/graves/fresh_grave.tres" id="3_n1"]
+[ext_resource type="Resource" path="res://data/nodes/graves/old_graves.tres" id="3_n2"]
+[ext_resource type="Resource" path="res://data/nodes/graves/sunken_graves.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/graves/forgotten_graves.tres" id="3_n4"]
+[ext_resource type="Resource" path="res://data/nodes/graves/old_crypt.tres" id="3_n5"]
+
+[resource]
+script = ExtResource("1_zone")
+id = "humboldt_graves"
+name = "Humboldt Graves"
+description = "The overgrown burial rows nearest the gate."
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("3_n4"), ExtResource("3_n5")])

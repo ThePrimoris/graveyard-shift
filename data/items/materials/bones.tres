@@ -1,9 +1,13 @@
-[gd_resource type="Resource" script_class="Item" format=3 uid="uid://be3laibyfsb8n"]
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://bphkb3ah54w7u"]
 
 [ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_jnr1a"]
+[ext_resource type="Texture2D" path="res://icons/items/bones.png" id="9_icon"]
 
 [resource]
 script = ExtResource("1_jnr1a")
+icon = ExtResource("9_icon")
 id = "bones"
-name = "Brittle Bones"
+name = "Pile of Bones"
+description = "A pile of bones."
+sell_value = 3
 metadata/_custom_type_script = "uid://lm34okuvj3hr"

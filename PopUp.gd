@@ -5,6 +5,15 @@ extends Control
 @onready var amount_label = %ItemAmount
 @onready var anim = $AnimationPlayer
 
+func _ready() -> void:
+	# Notifications must never eat clicks meant for the UI underneath them
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for child in find_children("*", "Control", true, false):
+		child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Self-destruct once the pop_up animation finishes so they never pile up
+	anim.animation_finished.connect(func(_anim_name): queue_free())
+
 func setup(item_name: String, amount: int):
 	name_label.text = item_name
 	amount_label.text = "+" + str(amount)
@@ -14,7 +23,7 @@ func setup(item_name: String, amount: int):
 func setup_with_resource(item_name: String, amount: int, item_resource: Resource) -> void:
 	# 1. Run your standard text and animation setup first
 	setup(item_name, amount)
-	
+
 	# 2. Check if the resource has an icon property and assign its texture
 	if item_resource and "icon" in item_resource and item_resource.icon:
 		if icon_node:

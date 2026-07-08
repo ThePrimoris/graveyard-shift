@@ -1,17 +1,33 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://8l6yfqds04th"]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://dhbm3xwg6yyj3"]
 
-[ext_resource type="Resource" uid="uid://cx6mnty6jlv73" path="res://data/items/materials/flesh.tres" id="1_x3dcc"]
-[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_xxtht"]
-[ext_resource type="Resource" uid="uid://c3k6hou7mjn8q" path="res://data/items/materials/marrow.tres" id="3_song8"]
-[ext_resource type="Resource" uid="uid://dngihl7b7hmwy" path="res://data/items/materials/blood.tres" id="4_2mgt1"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" uid="uid://bphkb3ah54w7u" path="res://data/items/materials/bones.tres" id="3_abwmi"]
+[ext_resource type="Resource" path="res://data/items/materials/flesh.tres" id="3_item"]
+[ext_resource type="Resource" uid="uid://bwx3jbyv6phwq" path="res://data/items/materials/blood.tres" id="4_15dru"]
+
+[sub_resource type="Resource" id="LootDrop_main"]
+script = ExtResource("2_loot")
+item = ExtResource("3_item")
+
+[sub_resource type="Resource" id="Resource_8l6qr"]
+script = ExtResource("2_loot")
+item = ExtResource("3_abwmi")
+chance = 0.45
+metadata/_custom_type_script = "uid://behtbxade6hbe"
+
+[sub_resource type="Resource" id="Resource_gkdl2"]
+script = ExtResource("2_loot")
+item = ExtResource("4_15dru")
+chance = 0.2
+metadata/_custom_type_script = "uid://behtbxade6hbe"
 
 [resource]
-script = ExtResource("1_xxtht")
-id = "flesh_grave"
-name = "Fresh Grave"
-description = "A freshly dug grave."
-base_duration = 10.0
-primary_drop = ExtResource("1_x3dcc")
-secondary_drop = ExtResource("3_song8")
-tertiary_drop = ExtResource("4_2mgt1")
+script = ExtResource("1_node")
+id = "fresh_grave"
+name = "Fresh Graves"
+description = "Recently turned earth, ripe for the robbing."
+base_duration = 3.0
+dig_sections = 2
+loot_pool = Array[ExtResource("2_loot")]([SubResource("LootDrop_main"), SubResource("Resource_8l6qr"), SubResource("Resource_gkdl2")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

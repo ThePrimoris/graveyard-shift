@@ -1,33 +1,44 @@
 [gd_scene format=3 uid="uid://cxo40vvphjf5d"]
 
 [ext_resource type="Script" uid="uid://c4qcc6h2gku2i" path="res://scripts/ui/NavigationPanel.gd" id="1_fmdwc"]
+[ext_resource type="Texture2D" path="res://icons/skills/graverobbing.png" id="ic_graverobbing"]
+[ext_resource type="Texture2D" path="res://icons/skills/lumbering.png" id="ic_lumbering"]
+[ext_resource type="Texture2D" path="res://icons/skills/spelunking.png" id="ic_spelunking"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wkp8b"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grave"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
 bg_color = Color(0.78431374, 0.63529414, 0.3019608, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5vvyt"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lumber"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
 bg_color = Color(0.29803923, 0.6039216, 0.2784314, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c6i3y"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spelunk"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
 bg_color = Color(0.3529412, 0.49803922, 0.65882355, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_20pc6"]
-bg_color = Color(0.47843137, 0.29411766, 0.78039217, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="NavigationPanel" type="PanelContainer" unique_id=130011712]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -80.0
-offset_top = -73.5
-offset_right = 80.0
-offset_bottom = 73.5
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
 script = ExtResource("1_fmdwc")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=16557926]
@@ -35,86 +46,128 @@ layout_mode = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=678013922]
 layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="SkillList" type="VBoxContainer" parent="VBoxContainer/MarginContainer" unique_id=5163692]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Graverobbing" type="Button" parent="VBoxContainer/MarginContainer/SkillList" unique_id=2081459512]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_grave")
+theme_override_styles/hover = SubResource("StyleBoxFlat_grave")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_grave")
+theme_override_font_sizes/font_size = 16
+icon = ExtResource("ic_graverobbing")
+expand_icon = true
+alignment = 0
+text = "Graverobbing"
+
+[node name="GraverobbingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/SkillList/Graverobbing" unique_id=1766366273]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = -10.0
+offset_right = -10.0
+offset_bottom = 10.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "(1/100)"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Lumbering" type="Button" parent="VBoxContainer/MarginContainer/SkillList" unique_id=197804067]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lumber")
+theme_override_styles/hover = SubResource("StyleBoxFlat_lumber")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_lumber")
+theme_override_font_sizes/font_size = 16
+icon = ExtResource("ic_lumbering")
+expand_icon = true
+alignment = 0
+text = "Lumbering"
+
+[node name="LumberingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/SkillList/Lumbering" unique_id=1366595841]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = -10.0
+offset_right = -10.0
+offset_bottom = 10.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "(1/100)"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Spelunking" type="Button" parent="VBoxContainer/MarginContainer/SkillList" unique_id=1192426262]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_spelunk")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spelunk")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spelunk")
+theme_override_font_sizes/font_size = 16
+icon = ExtResource("ic_spelunking")
+expand_icon = true
+alignment = 0
+text = "Spelunking"
+
+[node name="SpelunkingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/SkillList/Spelunking" unique_id=1474465816]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = -10.0
+offset_right = -10.0
+offset_bottom = 10.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "(1/100)"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer" unique_id=1455638801]
+layout_mode = 2
+
+[node name="CurrencyMargin" type="MarginContainer" parent="VBoxContainer" unique_id=1455638802]
+layout_mode = 2
 theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer/MarginContainer" unique_id=5163692]
+[node name="CurrencyBox" type="VBoxContainer" parent="VBoxContainer/CurrencyMargin" unique_id=1455638803]
 layout_mode = 2
 
-[node name="Skill_Row_Graverobbing" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=262067140]
-layout_mode = 2
-
-[node name="Graverobbing" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Graverobbing" unique_id=2081459512]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_wkp8b")
-text = "Graverobbing"
-
-[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Graverobbing" unique_id=1012950574]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="GraverobbingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Graverobbing" unique_id=1766366273]
+[node name="GoldValueLabel" type="Label" parent="VBoxContainer/CurrencyMargin/CurrencyBox" unique_id=1455638805]
 unique_name_in_owner = true
 layout_mode = 2
-text = "(1/100)"
-
-[node name="Skill_Row_Lumbering" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=398539114]
-layout_mode = 2
-
-[node name="Lumbering" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Lumbering" unique_id=197804067]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_5vvyt")
-text = "Lumbering"
-
-[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Lumbering" unique_id=1530795436]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="LumberingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Lumbering" unique_id=1366595841]
-unique_name_in_owner = true
-layout_mode = 2
-text = "(1/100)"
-
-[node name="Skill_Row_Spelunking" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=1269248638]
-layout_mode = 2
-
-[node name="Spelunking" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=1192426262]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_c6i3y")
-text = "Spelunking"
-
-[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=209014399]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="SpelunkingXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Spelunking" unique_id=1474465816]
-unique_name_in_owner = true
-layout_mode = 2
-text = "(1/100)"
-
-[node name="Skill_Row_Necromancy" type="HBoxContainer" parent="VBoxContainer/MarginContainer/GridContainer" unique_id=653979736]
-layout_mode = 2
-
-[node name="Necromancy" type="Button" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=601007350]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_20pc6")
-text = "Necromancy"
-
-[node name="Control" type="Control" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=33838266]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="NecromancyXPLabel" type="Label" parent="VBoxContainer/MarginContainer/GridContainer/Skill_Row_Necromancy" unique_id=1455638701]
-unique_name_in_owner = true
-layout_mode = 2
-text = "(1/100)"
+theme_override_colors/font_color = Color(0.85, 0.72, 0.3, 1)
+text = "Gold: 0"

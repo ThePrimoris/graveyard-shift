@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Item" format=3 uid="uid://uonmmqpcjwgl"]
+
+[ext_resource type="Script" uid="uid://lm34okuvj3hr" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" uid="uid://cbjn7rwhcqqrr" path="res://icons/items/stone_debris.png" id="9_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "stone_debris"
+name = "Stone Debris"
+icon = ExtResource("9_icon")
+description = "Crumbled masonry and rubble from the catacomb walls."
+metadata/_custom_type_script = "uid://lm34okuvj3hr"

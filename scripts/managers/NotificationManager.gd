@@ -9,6 +9,11 @@ func show_item(item_name: String, amount: int, item_resource: Resource = null) -
 	var container = get_tree().current_scene.find_child("NotificationContainer", true, false)
 	
 	if container:
+		# Keep the stack short: drop the oldest popup when too many are on screen
+		while container.get_child_count() >= 8:
+			var oldest = container.get_child(0)
+			container.remove_child(oldest)
+			oldest.queue_free()
 		container.add_child(instance)
 	else:
 		# Fail-safe fallback to screen root if the container isn't found
