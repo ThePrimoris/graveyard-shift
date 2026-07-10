@@ -35,6 +35,7 @@ func hard_reset() -> void:
 	DirAccess.remove_absolute(SAVE_PATH)
 	InventoryManager.reset_state()
 	GameManager.reset_state()
+	MinionManager.reset_state()
 	TutorialManager.reset_state()
 	save_game()
 	get_tree().call_group("ui_updates", "update_ui")
@@ -53,7 +54,8 @@ func save_game() -> void:
 		"active_node_id": GameManager.active_node_data.id if GameManager.active_node_data else "",
 		"purchased_slots": InventoryManager.purchased_slots,
 		"tutorial_complete": TutorialManager.tutorial_complete,
-		"inventory": InventoryManager.get_save_data()
+		"inventory": InventoryManager.get_save_data(),
+		"minions": MinionManager.get_save_data()
 	}
 
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -125,6 +127,7 @@ func load_game() -> void:
 	TutorialManager.tutorial_complete = bool(data.get("tutorial_complete", false))
 	InventoryManager.restore_from_save(data.get("inventory", []))
 	InventoryManager.refresh_capacity()
+	MinionManager.restore_from_save(data.get("minions", {}))
 	_ensure_default_equipment()
 
 	# Pick the previous node back up so the player doesn't have to re-click it

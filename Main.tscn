@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://bofccwadf0acr" path="res://scripts/ui/InventoryView.gd" id="3_inv"]
 [ext_resource type="Script" uid="uid://doap4rw2v3bm2" path="res://scenes/views/QuarryView.gd" id="3_quarry"]
 [ext_resource type="Script" uid="uid://btc6ab4s1abby" path="res://scenes/views/ShopView.gd" id="3_shop"]
+[ext_resource type="Script" path="res://scenes/views/UndercroftView.gd" id="3_under"]
 [ext_resource type="Resource" uid="uid://c6eo5cc7ttn6m" path="res://data/zones/humboldt_graves.tres" id="4_zgrave"]
 [ext_resource type="Resource" uid="uid://diivt652yth16" path="res://data/zones/bedlam_asylum.tres" id="4_zbedlam"]
 [ext_resource type="Resource" uid="uid://bd8ay4ognpm78" path="res://data/zones/mineshaft.tres" id="4_zmine"]
@@ -16,9 +17,9 @@
 [ext_resource type="PackedScene" uid="uid://b8lvvrgeuhmvl" path="res://scenes/inventory/InventorySlot.tscn" id="5_slot"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_view"]
-content_margin_left = 260.0
-content_margin_top = 16.0
-content_margin_right = 20.0
+content_margin_left = 264.0
+content_margin_top = 8.0
+content_margin_right = 16.0
 content_margin_bottom = 130.0
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_plain"]
@@ -75,8 +76,8 @@ theme_override_constants/separation = 8
 
 [node name="ZoneTitle" type="Label" parent="MainViewContainer/GraveyardView/VBoxContainer/ContentRow/ZonePanel/ZoneVBox" unique_id=-348308722]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.7, 0.72, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+theme_override_font_sizes/font_size = 12
 text = "ZONES"
 horizontal_alignment = 1
 
@@ -89,9 +90,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="GraveClickers" type="HFlowContainer" parent="MainViewContainer/GraveyardView/VBoxContainer/ContentRow/ScrollContainer" unique_id=1613463639]
-custom_minimum_size = Vector2(814, 0)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_override_constants/h_separation = 14
 theme_override_constants/v_separation = 14
@@ -128,8 +128,8 @@ theme_override_constants/separation = 8
 
 [node name="ZoneTitle" type="Label" parent="MainViewContainer/ForestView/VBoxContainer/ContentRow/ZonePanel/ZoneVBox" unique_id=1057727604]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.7, 0.72, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+theme_override_font_sizes/font_size = 12
 text = "ZONES"
 horizontal_alignment = 1
 
@@ -142,9 +142,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="TreeClickers" type="HFlowContainer" parent="MainViewContainer/ForestView/VBoxContainer/ContentRow/ScrollContainer" unique_id=897370957]
-custom_minimum_size = Vector2(814, 0)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_override_constants/h_separation = 14
 theme_override_constants/v_separation = 14
@@ -181,8 +180,8 @@ theme_override_constants/separation = 8
 
 [node name="ZoneTitle" type="Label" parent="MainViewContainer/QuarryView/VBoxContainer/ContentRow/ZonePanel/ZoneVBox" unique_id=-106001900]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.7, 0.72, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+theme_override_font_sizes/font_size = 12
 text = "ZONES"
 horizontal_alignment = 1
 
@@ -195,9 +194,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="RockClickers" type="HFlowContainer" parent="MainViewContainer/QuarryView/VBoxContainer/ContentRow/ScrollContainer" unique_id=1740451114]
-custom_minimum_size = Vector2(814, 0)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_override_constants/h_separation = 14
 theme_override_constants/v_separation = 14
@@ -217,128 +215,285 @@ inventory_slot_scene = ExtResource("5_slot")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MainViewContainer/InventoryView" unique_id=24603565]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
-[node name="LeftSpacer" type="Control" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=24603572]
+[node name="BankColumn" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=24603566]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BankHeader" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn" unique_id=24603571]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="HeaderMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 8
+
+[node name="HeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="InvTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"HeaderLabel"
+text = "Inventory"
+
+[node name="SlotsChip" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ChipPanel"
+tooltip_text = "Inventory slots used"
+
+[node name="SlotsUsedLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow/SlotsChip"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "0 / 24"
+
+[node name="ValueChip" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ChipPanel"
+tooltip_text = "Total sell value of everything you carry"
+
+[node name="BankValueLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow/ValueChip"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+text = "Value: 0 g"
+
+[node name="HeaderSpacer" type="Control" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="GridColumn" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=24603566]
+[node name="EquippedLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
 layout_mode = 2
-size_flags_horizontal = 0
-theme_override_constants/separation = 10
+size_flags_vertical = 4
+theme_type_variation = &"SectionLabel"
+text = "EQUIPPED"
 
-[node name="ToolSlotsRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn" unique_id=24603571]
-layout_mode = 2
-size_flags_horizontal = 0
-theme_override_constants/separation = 8
-
-[node name="ToolSlotsTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn/ToolSlotsRow" unique_id=24603567]
-layout_mode = 2
-text = "Equipped:"
-
-[node name="ToolSlotShovel" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn/ToolSlotsRow" unique_id=24603568]
+[node name="ToolSlotShovel" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=24603568]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Shovel"
 expand_icon = true
 
-[node name="ToolSlotHatchet" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn/ToolSlotsRow" unique_id=24603569]
+[node name="ToolSlotHatchet" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=24603569]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Hatchet"
 expand_icon = true
 
-[node name="ToolSlotPickaxe" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn/ToolSlotsRow" unique_id=24603570]
+[node name="ToolSlotPickaxe" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=24603570]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Pickaxe"
 expand_icon = true
 
-[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn" unique_id=149145639]
-custom_minimum_size = Vector2(450, 560)
+[node name="GridPanel" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_type_variation = &"CardPanel"
+
+[node name="GridMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/GridPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/GridPanel/GridMargin" unique_id=149145639]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="InventoryGrid" type="GridContainer" parent="MainViewContainer/InventoryView/HBoxContainer/GridColumn/ScrollContainer" unique_id=8455750]
+[node name="InventoryGrid" type="GridContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/GridPanel/GridMargin/ScrollContainer" unique_id=8455750]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
-columns = 6
+columns = 8
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 
-[node name="RightSpacer" type="Control" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=24603573]
+[node name="DetailsCard" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=1070461903]
+custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"CardPanel"
 
-[node name="DetailsAnchor" type="Control" parent="MainViewContainer/InventoryView" unique_id=1070461903]
+[node name="DetailsMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard"]
 layout_mode = 2
-mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
 
-[node name="DetailsPanel" type="VBoxContainer" parent="MainViewContainer/InventoryView/DetailsAnchor" unique_id=1070461901]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -300.0
-offset_top = 8.0
-grow_horizontal = 0
-theme_override_constants/separation = 10
-
-[node name="DetailsContent" type="VBoxContainer" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel" unique_id=1070461902]
+[node name="DetailsPanel" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin" unique_id=1070461901]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ItemNameLabel" type="Label" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent" unique_id=313014510]
-unique_name_in_owner = true
+[node name="DetailsTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel"]
 layout_mode = 2
+theme_type_variation = &"SectionLabel"
+text = "SELECTED ITEM"
 horizontal_alignment = 1
 
-[node name="ItemIconRect" type="TextureRect" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent" unique_id=699356379]
+[node name="NoSelectionLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
-size_flags_horizontal = 4
+theme_type_variation = &"MutedLabel"
+theme_override_font_sizes/font_size = 13
+text = "Select an item to inspect it."
+horizontal_alignment = 1
+
+[node name="DetailsContent" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel" unique_id=1070461902]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ItemHeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="IconWell" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+theme_type_variation = &"WellPanel"
+
+[node name="ItemIconRect" type="TextureRect" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow/IconWell" unique_id=699356379]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ItemDescriptionLabel" type="Label" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent" unique_id=386800124]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(280, 0)
+[node name="NameCol" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow"]
 layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 3
+
+[node name="ItemNameLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow/NameCol" unique_id=313014510]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
 autowrap_mode = 2
 
-[node name="ActionRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent" unique_id=384412475]
-layout_mode = 2
-
-[node name="SellButton" type="Button" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent/ActionRow" unique_id=1976835133]
+[node name="ItemCountLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow/NameCol"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"MutedLabel"
+
+[node name="ItemDescriptionLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent" unique_id=386800124]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="StackRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent"]
+layout_mode = 2
+
+[node name="StackTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/StackRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MutedLabel"
+theme_override_font_sizes/font_size = 13
+text = "Stack value"
+
+[node name="StackValueLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/StackRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+text = "0 g"
+
+[node name="SellPanel" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"InsetPanel"
+
+[node name="SellMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="SellVBox" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SellHeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox"]
+layout_mode = 2
+
+[node name="SellTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/SellHeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SectionLabel"
+text = "SELL"
+
+[node name="QtyLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/SellHeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "1"
+
+[node name="SellSlider" type="HSlider" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 1.0
+value = 1.0
+
+[node name="PresetRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AllBut1Button" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/PresetRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "All but 1"
+
+[node name="AllButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/PresetRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "All"
+
+[node name="SellButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox" unique_id=1976835133]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_type_variation = &"ActionButton"
 text = "Sell"
 
-[node name="SellAllButton" type="Button" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent/ActionRow" unique_id=1976835134]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Sell All"
-
-[node name="EquipButton" type="Button" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent/ActionRow" unique_id=1976835135]
+[node name="EquipButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent" unique_id=1976835135]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Equip"
 
-[node name="DestroyButton" type="Button" parent="MainViewContainer/InventoryView/DetailsAnchor/DetailsPanel/DetailsContent/ActionRow" unique_id=846545793]
+[node name="DestroyButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent" unique_id=846545793]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"DangerButton"
 text = "Destroy"
 
 [node name="ShopView" type="PanelContainer" parent="MainViewContainer" unique_id=733055358]
@@ -365,6 +520,34 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_plain")
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="UndercroftView" type="PanelContainer" parent="MainViewContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
+script = ExtResource("3_under")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/UndercroftView"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/UndercroftView/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MinionGrid" type="HFlowContainer" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 14
+
 [node name="SideNav" type="PanelContainer" parent="." unique_id=11798162]
 layout_mode = 1
 anchors_preset = 9
@@ -381,7 +564,7 @@ theme_override_constants/separation = 10
 
 [node name="GameTitleLabel" type="Label" parent="SideNav/SideVBox" unique_id=11798164]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.85, 0.65, 1)
+theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
 theme_override_font_sizes/font_size = 19
 text = "GRAVEYARD SHIFT"
 horizontal_alignment = 1
@@ -399,6 +582,12 @@ layout_mode = 2
 [node name="TopNav" type="VBoxContainer" parent="SideNav/SideVBox" unique_id=1814215306]
 layout_mode = 2
 theme_override_constants/separation = 6
+
+[node name="UndercroftNavButton" type="Button" parent="SideNav/SideVBox/TopNav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Undercroft"
 
 [node name="ShopNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=545983059]
 unique_name_in_owner = true

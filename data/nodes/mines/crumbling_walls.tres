@@ -4,9 +4,10 @@
 [ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" uid="uid://uonmmqpcjwgl" path="res://data/items/materials/stone_debris.tres" id="3_item"]
 
-[sub_resource type="Resource" id="LootDrop_main"]
+[sub_resource type="Resource" id="Common0"]
 script = ExtResource("2_loot")
 item = ExtResource("3_item")
+weight = 100.0
 
 [resource]
 script = ExtResource("1_node")
@@ -15,5 +16,5 @@ name = "Crumbling Walls"
 description = "The catacomb walls shed stone at every strike."
 required_skill = 2
 required_tool_type = 2
-loot_pool = Array[ExtResource("2_loot")]([SubResource("LootDrop_main")])
+common_pool = Array[ExtResource("2_loot")]([SubResource("Common0")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

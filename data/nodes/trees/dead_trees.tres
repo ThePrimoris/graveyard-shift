@@ -4,9 +4,10 @@
 [ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" uid="uid://ksu4t8m1s" path="res://data/items/materials/rotten_logs.tres" id="3_item"]
 
-[sub_resource type="Resource" id="LootDrop_main"]
+[sub_resource type="Resource" id="Common0"]
 script = ExtResource("2_loot")
 item = ExtResource("3_item")
+weight = 100.0
 
 [resource]
 script = ExtResource("1_node")
@@ -15,5 +16,6 @@ name = "Dead Trees"
 description = "A stand of lifeless trunks at the graveyard's edge."
 required_skill = 1
 required_tool_type = 1
-loot_pool = Array[ExtResource("2_loot")]([SubResource("LootDrop_main")])
+dig_sections = 2
+common_pool = Array[ExtResource("2_loot")]([SubResource("Common0")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

@@ -36,7 +36,7 @@ func _ready() -> void:
 			missing_icons.append(item_id)
 	check(missing_icons.is_empty(), "every item has an icon" + ("" if missing_icons.is_empty() else " (missing: %s)" % str(missing_icons)))
 
-	# --- The three nodes drop exactly one resource each ---
+	# --- Every harvest lands exactly one common-table row ---
 	var expectations = {
 		"fresh_grave": ["graverobbing", "flesh"],
 		"dead_trees": ["lumbering", "rotten_logs"],
@@ -48,55 +48,97 @@ func _ready() -> void:
 		var drop = expectations[node_id][1]
 		check(node != null and GameManager.get_skill_key(node) == skill, "%s belongs to %s" % [node_id, skill])
 		var xp_before = GameManager.skills[skill]["xp"]
-		var guaranteed_every_time = true
-		for i in range(5):
-			if not GameManager.resolve_harvest(node, false).has(drop):
-				guaranteed_every_time = false
-		check(guaranteed_every_time, "%s always drops %s" % [node_id, drop])
-		check(InventoryManager.get_item_count(drop) >= 5, "%s banked in inventory" % drop)
+		var every_harvest_paid = true
+		var saw_expected = false
+		for i in range(15):
+			var g = GameManager.resolve_harvest(node, false)
+			if g.is_empty(): every_harvest_paid = false
+			if g.has(drop): saw_expected = true
+		check(every_harvest_paid, "%s pays out on every harvest" % node_id)
+		check(saw_expected, "%s drops %s" % [node_id, drop])
+		check(InventoryManager.get_item_count(drop) >= 1, "%s banked in inventory" % drop)
 		check(GameManager.skills[skill]["xp"] > xp_before or GameManager.skills[skill]["level"] > 1, "%s grants %s XP" % [node_id, skill])
 
-	# The player-authored Fresh Graves pool: flesh 100%, bones 45%, blood 20%
+	# The player-authored Fresh Graves tables: 3 commons, 2 rares at 1%
 	var fg = GameManager.find_node_by_id("fresh_grave")
-	check(fg.loot_pool.size() == 3, "fresh graves pool holds 3 entries")
+	check(fg.common_pool.size() == 3, "fresh graves common table holds 3 rows")
+	check(fg.rare_pool.size() == 2 and is_equal_approx(fg.rare_chance, 0.01), "fresh graves rare table holds 2 rows at 1%")
 
-	# --- Loot pool: each entry rolls independently against its own chance ---
+	# --- Weighted tables: one common row per harvest, weight 0 never lands ---
 	var pool_node: HarvestNode = GameManager.find_node_by_id("fresh_grave").duplicate()
 	pool_node.id = "test_pool"
 	var d1 = LootDrop.new()
 	d1.item = GameManager.find_item_by_id("flesh")
-	d1.chance = 1.0
+	d1.weight = 1.0
 	var d2 = LootDrop.new()
 	d2.item = GameManager.find_item_by_id("rotten_logs")
-	d2.chance = 0.5
+	d2.weight = 1.0
 	var d3 = LootDrop.new()
 	d3.item = GameManager.find_item_by_id("stone_debris")
-	d3.chance = 0.0
+	d3.weight = 0.0
 	var pool: Array[LootDrop] = [d1, d2, d3]
-	pool_node.loot_pool = pool
-	var always = 0
-	var sometimes = 0
+	pool_node.common_pool = pool
+	pool_node.rare_chance = 0.0
+	var flesh_hits = 0
+	var log_hits = 0
 	var never = 0
 	for i in range(60):
 		var g = GameManager.resolve_harvest(pool_node, false)
-		if g.has("flesh"): always += 1
-		if g.has("rotten_logs"): sometimes += 1
+		var rows = 0
+		for item_id in ["flesh", "rotten_logs", "stone_debris"]:
+			if g.has(item_id): rows += 1
+		if rows != 1: never += 999  # more or fewer than one common row is a failure
+		if g.has("flesh"): flesh_hits += 1
+		if g.has("rotten_logs"): log_hits += 1
 		if g.has("stone_debris"): never += 1
-	check(always == 60, "100% entries drop every harvest")
-	check(sometimes > 0 and sometimes < 60, "mid-chance entries drop sometimes (%d/60)" % sometimes)
-	check(never == 0, "0% entries never drop")
+	check(flesh_hits + log_hits == 60 and never == 0, "each harvest lands exactly one weighted row (%d + %d)" % [flesh_hits, log_hits])
+	check(flesh_hits > 0 and log_hits > 0, "equal weights land on both sides (%d / %d)" % [flesh_hits, log_hits])
 
-	# Only the first 5 pool entries are honoured
+	# Amount ranges respect min..max (plus any tool yield bonus on commons)
+	var bonus = 0
+	var pool_tool = GameManager.get_equipped_tool(pool_node.required_tool_type)
+	if pool_tool: bonus = pool_tool.yield_bonus
+	d1.weight = 1.0
+	d1.min_amount = 2
+	d1.max_amount = 4
+	d2.weight = 0.0
+	var amounts_ok = true
+	for i in range(20):
+		var amt = GameManager.resolve_harvest(pool_node, false).get("flesh", 0)
+		if amt < 2 + bonus or amt > 4 + bonus: amounts_ok = false
+	check(amounts_ok, "common amounts roll within min..max")
+	d1.min_amount = 1
+	d1.max_amount = 1
+
+	# Rare table: 100% chance always pays, 0% never does
+	var r1 = LootDrop.new()
+	r1.item = GameManager.find_item_by_id("stone_debris")
+	r1.weight = 1.0
+	var rares: Array[LootDrop] = [r1]
+	pool_node.rare_pool = rares
+	pool_node.rare_chance = 1.0
+	var rare_always = true
+	for i in range(10):
+		if not GameManager.resolve_harvest(pool_node, false).has("stone_debris"): rare_always = false
+	check(rare_always, "a 100% rare chance rolls the rare table every harvest")
+	pool_node.rare_chance = 0.0
+	var rare_never = true
+	for i in range(10):
+		if GameManager.resolve_harvest(pool_node, false).has("stone_debris"): rare_never = false
+	check(rare_never, "a 0% rare chance never rolls the rare table")
+
+	# Only the first 5 table rows are honoured
 	var six: Array[LootDrop] = []
 	for i in range(6):
 		var e = LootDrop.new()
 		e.item = GameManager.find_item_by_id("flesh")
-		e.chance = 1.0
+		e.weight = 0.0
 		six.append(e)
 	six[5].item = GameManager.find_item_by_id("rotten_logs")
-	pool_node.loot_pool = six
+	six[5].weight = 100.0
+	pool_node.common_pool = six
 	var g6 = GameManager.resolve_harvest(pool_node, false)
-	check(g6.get("flesh", 0) >= 5 and not g6.has("rotten_logs"), "loot pool caps at 5 entries")
+	check(not g6.has("rotten_logs"), "drop tables cap at 5 rows")
 
 	# --- XP curve and cap ---
 	check(int(GameManager.get_xp_needed(1)) == 83, "RS curve: level 1->2 costs 83 XP")
@@ -110,7 +152,10 @@ func _ready() -> void:
 		check(GameManager.get_equipped_tool(t) != null, "%s slot filled at start" % ToolData.ToolType.keys()[t].to_lower())
 	var grave = GameManager.find_node_by_id("fresh_grave")
 	var base_dur = GameManager.get_effective_duration(grave)
-	check(base_dur > 0.0 and base_dur <= 3.0, "effective duration applies skill mod (%.2fs)" % base_dur)
+	if GameManager.SPEED_BONUSES_ENABLED:
+		check(base_dur > 0.0 and base_dur <= grave.base_duration, "effective duration applies speed bonuses (%.2fs)" % base_dur)
+	else:
+		check(base_dur == grave.base_duration, "speed bonuses parked: duration equals base (%.2fs)" % base_dur)
 
 	# --- Notifications free themselves and never block input ---
 	var notif = NOTIFICATION_SCENE.instantiate()
@@ -173,14 +218,27 @@ func _ready() -> void:
 	for n in gv.display_nodes: grave_ids.append(n.id)
 	check(grave_ids.has("fresh_grave"), "Fresh Graves is in the starting zone")
 	check(gv.cards[0].bars.size() == 1 and gv.cards[0].bars[0].value == 0.0, "digging bar starts empty and fills")
-	var expected_rows = 0
-	for entry in gv.display_nodes[0].loot_pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
-		if entry != null and entry.item != null and entry.chance > 0.0: expected_rows += 1
-	check(gv.cards[0].drops_box.get_child_count() == expected_rows, "card lists every pool drop (%d)" % expected_rows)
+	# The drop ledger: one Common row per table entry, rare column + header %.
+	check(gv.cards[0].common_box.get_child_count() == 3, "Common column lists all 3 fresh grave rows")
+	check(gv.cards[0].rare_col.visible and gv.cards[0].rare_box.get_child_count() == 2, "Rare column lists both rare rows")
+	check(gv.cards[0].rare_header.text == "Rare — 1%", "rare header carries the hit chance (%s)" % gv.cards[0].rare_header.text)
+	check(gv.cards[0].divider.visible, "ledger divider splits the two tables")
 
 	check(gv.header_title != null and gv.header_title.text.begins_with("Graverobbing"), "page header shows the skill")
 	var fv = main.find_child("ForestView", true, false)
-	check(fv.cards.size() >= 1 and fv.cards[0].bars.size() >= 2, "dead trees use chop segment bars")
+	check(fv.cards.size() >= 1 and fv.cards[0].bars.size() == 1 and fv.cards[0].bars[0].value == 0.0, "dead trees use a single fill bar")
+	check(not fv.cards[0].rare_col.visible and not fv.cards[0].divider.visible, "no rare column when a node has no rare table")
+	# Lumbering keeps the dig-layer meter: 2 sections on Dead Trees
+	check(GameManager.find_node_by_id("dead_trees").dig_sections == 2, "Dead Trees chops in 2 sections")
+	check(fv.cards[0].segments.size() == 2 and fv.cards[0].segment_box.visible, "lumbering card shows a 2-section layer meter")
+	check(fv.cards[0].segment_box is VBoxContainer, "layer meter is vertical")
+	# A full sweep of the bottom bar removes one section (top first).
+	fv.cards[0].update_progress(0.75, 3.0)  # 25% -> bar mid-sweep, no section removed yet
+	check(fv.cards[0].segments[0].modulate.a > 0.5 and fv.cards[0].bars[0].value > 0.0, "bottom bar sweeps within the current section")
+	fv.cards[0].update_progress(1.5, 3.0)   # halfway -> top section gone
+	check(fv.cards[0].segments[0].modulate.a < 0.5 and fv.cards[0].segments[1].modulate.a > 0.5, "a full sweep removes the top section")
+	fv.cards[0].reset_progress()
+	check(fv.cards[0].segments[0].modulate.a > 0.5, "reset restores all sections")
 	var qv = main.find_child("QuarryView", true, false)
 	check(qv.cards.size() >= 1 and qv.cards[0].bars[0].value == 1.0, "crumbling walls bar starts full and depletes")
 	# Zone selector: one starter zone per skill, left of the node grid
@@ -191,33 +249,28 @@ func _ready() -> void:
 	check(qv.zones.size() == 1 and qv.zones[0].name == "Mineshaft", "spelunking zone is Mineshaft")
 	check(gv.zone_buttons[0].text == "Humboldt Graves" and gv.zone_buttons[0].button_pressed, "zone selector shows the active zone")
 	var grid = main.find_child("GraveClickers", true, false)
-	check(grid.custom_minimum_size.x == 814, "node grid wraps at three cards per row")
+	check(grid.size_flags_horizontal == Control.SIZE_EXPAND_FILL and grid.custom_minimum_size.x == 0,
+		"node grid fills the window width and wraps to fit")
 
-	# Graverobbing dig-layer segment bars, per the node's dig_sections
-	check(GameManager.find_node_by_id("fresh_grave").dig_sections == 2, "Fresh Graves digs in 2 sections")
-	check(GameManager.find_node_by_id("forgotten_graves").dig_sections == 4, "Forgotten Graves digs in 4 sections")
-	check(gv.cards[0].segments.size() == 2 and gv.cards[0].segment_box.visible, "graverobbing card shows a 2-section dig meter")
-	check(gv.cards[0].segment_box is VBoxContainer, "dig meter is vertical")
-	# A full sweep of the horizontal bar removes one section (top first).
-	gv.cards[0].update_progress(0.75, 3.0)  # 25% -> mid first section, none removed yet
-	check(gv.cards[0].segments[0].modulate.a > 0.5 and gv.cards[0].bars[0].value > 0.0, "horizontal bar fills within the current section")
-	gv.cards[0].update_progress(1.5, 3.0)   # first 1.5s done -> one section gone
-	check(gv.cards[0].segments[0].modulate.a < 0.5 and gv.cards[0].segments[1].modulate.a > 0.5, "a full sweep removes the top section")
+	# Graverobbing: plain single bar, no layer meter
+	check(gv.cards[0].segments.is_empty() and not gv.cards[0].segment_box.visible, "graverobbing cards have no layer meter")
+	gv.cards[0].update_progress(1.5, 3.0)
+	check(gv.cards[0].bars[0].value > 0.4 and gv.cards[0].pct_label.text == "50%", "bottom bar and % label track the harvest")
 	gv.cards[0].reset_progress()
-	check(gv.cards[0].segments[0].modulate.a > 0.5, "reset restores all sections")
-	# Lumbering/Spelunking cards have no dig sections
-	check(fv.cards[0].segments.is_empty() and qv.cards[0].segments.is_empty(), "only graverobbing has dig-layer sections")
+	check(gv.cards[0].bars[0].value == 0.0 and gv.cards[0].pct_label.text == "0%", "reset empties the digging bar")
+	# Escalating rare chances across the grave nodes
+	check(is_equal_approx(GameManager.find_node_by_id("forgotten_graves").rare_chance, 0.05), "deeper graves carry richer rare chances")
 
 	# Humboldt Graves: 5 nodes ending in the boss crypt
 	check(gv.display_nodes.size() == 5, "Humboldt Graves holds 5 nodes (%d)" % gv.display_nodes.size())
 	var crypt = GameManager.find_node_by_id("old_crypt")
 	check(crypt != null and crypt.is_boss, "The Old Crypt is a boss node")
-	check(crypt.loot_pool.is_empty(), "boss node has no harvest loot")
+	check(crypt.common_pool.is_empty() and crypt.rare_pool.is_empty(), "boss node has no harvest loot")
 	# Boss card: level it up so the crypt is accessible, then confirm boss framing
 	GameManager.skills["graverobbing"]["level"] = 20
 	gv.update_ui()
 	var crypt_card = gv.cards[4]
-	check(crypt_card.action_button.text == "Confront" and not crypt_card.progress_stack.visible, "unlocked boss card shows Confront, no progress bar")
+	check(crypt_card.action_button.text == "Confront" and not crypt_card.bottom_row.visible, "unlocked boss card shows Confront, no progress bar")
 	check(crypt_card.custom_minimum_size.x >= 520, "boss crypt card spans two node slots (%.0fpx)" % crypt_card.custom_minimum_size.x)
 	crypt_card.action_triggered.emit()  # placeholder confront should not crash / not harvest
 	check(GameManager.active_action_source != crypt_card, "confronting the boss doesn't start a harvest")
@@ -244,13 +297,102 @@ func _ready() -> void:
 	check(InventoryManager.slots.size() == slots_before + 1, "purchased slot expands the backpack")
 	check(InventoryManager.get_next_slot_cost() > cost1, "slot cost scales up")
 
-	# Selling pays gold
+	# Selling pays gold: select, slide to "All", sell
 	var inv_view = main.find_child("InventoryView", true, false)
 	InventoryManager.add_item(GameManager.find_item_by_id("flesh"), 5)
 	inv_view._on_item_selected(GameManager.find_item_by_id("flesh"))
+	inv_view.sell_slider.value = inv_view.sell_slider.max_value
 	var gold_before = GameManager.gold_coins
-	inv_view._on_sell_all_pressed()
-	check(GameManager.gold_coins > gold_before, "Sell All pays gold")
+	inv_view._on_sell_pressed()
+	check(GameManager.gold_coins > gold_before, "selling the whole stack pays gold")
+	check(InventoryManager.get_item_count("flesh") == 0, "sell-all quantity empties the stack")
+
+	# --- Minions: raise, slot, earn XP, skill points ---
+	check(MinionManager.minion_db.size() >= 2 and MinionManager.find_minion_by_id("zombie") != null, "minion database loads (%d)" % MinionManager.minion_db.size())
+	MinionManager.reset_state()
+	var zombie: Minion = MinionManager.find_minion_by_id("zombie")
+
+	# The rite fails without materials...
+	for item_id in zombie.raise_cost:
+		var held = InventoryManager.get_item_count(item_id)
+		if held > 0: InventoryManager.remove_item(item_id, held)
+	check(not MinionManager.raise_minion("zombie"), "raising fails without materials")
+	# ...and succeeds once they're paid, consuming them
+	for item_id in zombie.raise_cost:
+		InventoryManager.add_item(GameManager.find_item_by_id(item_id), zombie.raise_cost[item_id])
+	check(MinionManager.raise_minion("zombie"), "raising succeeds with materials")
+	for item_id in zombie.raise_cost:
+		check(InventoryManager.get_item_count(item_id) == 0, "rite consumed all %s" % item_id)
+	check(not MinionManager.raise_minion("zombie"), "a minion can only be raised once")
+	check(MinionManager.get_hp("zombie") == 20 and MinionManager.get_atk("zombie") == 2.0, "fresh zombie has base stats")
+
+	# Undercroft UI
+	var uv = main.find_child("UndercroftView", true, false)
+	check(uv != null and uv.cards.size() == MinionManager.minion_db.size(), "undercroft builds a card per minion type")
+	check(main.find_child("UndercroftNavButton", true, false) != null, "undercroft nav button present")
+
+	# Plots: slot, show occupant, earn harvest XP only while slotted
+	check(MinionManager.assign_to_plot("zombie", 0), "zombie takes plot 1")
+	check(plots_bar.plot_buttons[0].text == "Z", "plot button shows its occupant")
+	var mxp = MinionManager.roster["zombie"]["xp"]
+	GameManager.resolve_harvest(grave, false)
+	check(MinionManager.roster["zombie"]["xp"] > mxp, "slotted minion earns a share of harvest XP")
+	MinionManager.vacate_plot(0)
+	mxp = MinionManager.roster["zombie"]["xp"]
+	GameManager.resolve_harvest(grave, false)
+	check(MinionManager.roster["zombie"]["xp"] == mxp, "idle minions earn nothing")
+	MinionManager.assign_to_plot("zombie", 0)
+	MinionManager.assign_to_plot("zombie", 1)
+	check(MinionManager.plots[0] == "" and MinionManager.plots[1] == "zombie", "a minion holds only one plot at a time")
+
+	# Skill points: 1 per level, prerequisites enforced, passives need a plot
+	check(MinionManager.get_skill_points("zombie") == 0 and not MinionManager.can_unlock_ability("zombie", "gravekeepers_vigor"), "no skill points at level 1")
+	MinionManager.add_xp("zombie", MinionManager.get_xp_needed(1) - MinionManager.roster["zombie"]["xp"])
+	check(MinionManager.roster["zombie"]["level"] == 2 and MinionManager.get_skill_points("zombie") == 1, "leveling grants a skill point")
+	check(not MinionManager.can_unlock_ability("zombie", "carrion_nose"), "prerequisites gate deeper abilities")
+	check(MinionManager.unlock_ability("zombie", "gravekeepers_vigor"), "ability unlocks with a point")
+	check(MinionManager.get_skill_points("zombie") == 0, "unlocking spends the point")
+	check(MinionManager.get_passive_bonus("harvest_xp_pct") == 5.0, "slotted passive counts toward the bonus")
+	MinionManager.vacate_plot(1)
+	check(MinionManager.get_passive_bonus("harvest_xp_pct") == 0.0, "passives sleep while the minion is idle")
+	MinionManager.assign_to_plot("zombie", 1)
+
+	# --- The Necronomicon ---
+	check(not MinionManager.necronomicon_unlocked, "necronomicon starts locked")
+	var nav_undercroft = main.find_child("UndercroftNavButton", true, false)
+	check(nav_undercroft != null and nav_undercroft.visible, "undercroft button shows while the tome sleeps")
+	check("stirs" in DebugConsole.execute("necronomicon on"), "console wakes the necronomicon")
+	check(MinionManager.necronomicon_unlocked, "unlock flag flips on")
+	check(not nav_undercroft.visible, "the book replaces the undercroft button")
+
+	var book = load("res://scripts/ui/NecronomiconPanel.gd").new()
+	add_child(book)
+	await get_tree().process_frame
+	check(book.minion_ids.size() == MinionManager.minion_db.size(), "book indexes every minion type")
+	check(book.chapter == "minions" and book.page == 0, "book opens on the index spread")
+	book.open_minion("zombie")
+	check(book.page == book.minion_ids.find("zombie") + 1, "index jumps to a minion's spread")
+	await get_tree().process_frame
+	var spread_col = book.right_page.get_child(0)
+	var sigil_tree = spread_col.get_child(1)
+	check(sigil_tree.rune_centers.size() == 3, "sigil fan lays out every rune (%d)" % sigil_tree.rune_centers.size())
+	sigil_tree.rune_selected.emit("carrion_nose")
+	check(book.selected_ability.get("zombie", "") == "carrion_nose", "touching a rune selects it")
+
+	# The offering rite: burn materials, feed the minion
+	book._switch_chapter("altar")
+	check(book.chapter == "altar", "altar tab turns to the altar spread")
+	book.altar_target = "zombie"
+	InventoryManager.add_item(GameManager.find_item_by_id("flesh"), 5)
+	var zxp_before = MinionManager.roster["zombie"]["xp"]
+	var zlvl_before = MinionManager.roster["zombie"]["level"]
+	var gained_xp = MinionManager.offer_materials("zombie", "flesh", 5)
+	check(gained_xp > 0.0 and InventoryManager.get_item_count("flesh") == 0, "offering burns the materials")
+	check(MinionManager.roster["zombie"]["xp"] > zxp_before or MinionManager.roster["zombie"]["level"] > zlvl_before, "offering feeds the minion XP")
+	check(MinionManager.offer_materials("zombie", "flesh", 5) == 0.0, "empty pack means no rite")
+	check(MinionManager.offer_materials("zombie", "rusty_shovel", 1) == 0.0, "tools cannot be offered")
+	book.queue_free()
+	await get_tree().process_frame
 
 	# Save / load round trip + node resume
 	GameManager.active_node_data = grave
@@ -261,12 +403,16 @@ func _ready() -> void:
 	GameManager.active_action_source = null
 	GameManager.active_node_data = null
 	InventoryManager.purchased_slots = 0
+	MinionManager.reset_state()
 	SaveManager.load_game()
 	check(GameManager.gold_coins == gold_saved, "gold restored from save")
 	check(GameManager.skills["graverobbing"]["level"] == grob_level, "skills restored from save")
 	check(InventoryManager.purchased_slots == 1, "purchased slots restored from save")
 	check(GameManager.get_equipped_tool(ToolData.ToolType.HATCHET) == hatchet, "equipped tools restored from save")
 	check(GameManager.active_node_data == grave, "active node resumes automatically after load")
+	check(MinionManager.get_level("zombie") >= 2 and MinionManager.has_ability("zombie", "gravekeepers_vigor"), "minion roster restored from save")
+	check(MinionManager.plots[1] == "zombie", "plot assignments restored from save")
+	check(MinionManager.necronomicon_unlocked, "necronomicon unlock persists across save/load")
 
 	# --- Tutorial: Mortimer walks the three grounds ---
 	# No save existed at boot, so the tutorial should have started on its own.
@@ -311,6 +457,8 @@ func _ready() -> void:
 	check(GameManager.skills["graverobbing"]["level"] == 1, "hard reset resets skills")
 	check(InventoryManager.slots.size() == InventoryManager.BASE_SLOTS, "hard reset restores base inventory size")
 	check(GameManager.get_equipped_tool(ToolData.ToolType.SHOVEL) != null, "hard reset re-equips starting tools")
+	check(MinionManager.roster.is_empty() and MinionManager.plots == ["", "", "", ""], "hard reset dismisses all minions")
+	check(not MinionManager.necronomicon_unlocked, "hard reset puts the tome back to sleep")
 	check(TutorialManager.active and not TutorialManager.tutorial_complete, "hard reset restarts the tutorial")
 	TutorialManager.finish(true)
 

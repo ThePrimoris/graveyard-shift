@@ -2,25 +2,42 @@
 
 [ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
 [ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
-[ext_resource type="Resource" uid="uid://bphkb3ah54w7u" path="res://data/items/materials/bones.tres" id="3_abwmi"]
 [ext_resource type="Resource" path="res://data/items/materials/flesh.tres" id="3_item"]
+[ext_resource type="Resource" uid="uid://bphkb3ah54w7u" path="res://data/items/materials/bones.tres" id="3_abwmi"]
 [ext_resource type="Resource" uid="uid://bwx3jbyv6phwq" path="res://data/items/materials/blood.tres" id="4_15dru"]
+[ext_resource type="Resource" path="res://data/items/materials/cracked_skull.tres" id="5_r0"]
+[ext_resource type="Resource" path="res://data/items/materials/grave_dust.tres" id="6_r1"]
 
-[sub_resource type="Resource" id="LootDrop_main"]
+[sub_resource type="Resource" id="Common0"]
 script = ExtResource("2_loot")
 item = ExtResource("3_item")
+weight = 55.0
+min_amount = 1
+max_amount = 2
 
-[sub_resource type="Resource" id="Resource_8l6qr"]
+[sub_resource type="Resource" id="Common1"]
 script = ExtResource("2_loot")
 item = ExtResource("3_abwmi")
-chance = 0.45
-metadata/_custom_type_script = "uid://behtbxade6hbe"
+weight = 30.0
+min_amount = 1
+max_amount = 3
 
-[sub_resource type="Resource" id="Resource_gkdl2"]
+[sub_resource type="Resource" id="Common2"]
 script = ExtResource("2_loot")
 item = ExtResource("4_15dru")
-chance = 0.2
-metadata/_custom_type_script = "uid://behtbxade6hbe"
+weight = 15.0
+
+[sub_resource type="Resource" id="Rare0"]
+script = ExtResource("2_loot")
+item = ExtResource("5_r0")
+weight = 70.0
+
+[sub_resource type="Resource" id="Rare1"]
+script = ExtResource("2_loot")
+item = ExtResource("6_r1")
+weight = 30.0
+min_amount = 1
+max_amount = 2
 
 [resource]
 script = ExtResource("1_node")
@@ -28,6 +45,7 @@ id = "fresh_grave"
 name = "Fresh Graves"
 description = "Recently turned earth, ripe for the robbing."
 base_duration = 3.0
-dig_sections = 2
-loot_pool = Array[ExtResource("2_loot")]([SubResource("LootDrop_main"), SubResource("Resource_8l6qr"), SubResource("Resource_gkdl2")])
+common_pool = Array[ExtResource("2_loot")]([SubResource("Common0"), SubResource("Common1"), SubResource("Common2")])
+rare_chance = 0.01
+rare_pool = Array[ExtResource("2_loot")]([SubResource("Rare0"), SubResource("Rare1")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

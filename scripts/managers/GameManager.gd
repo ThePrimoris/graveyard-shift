@@ -206,10 +206,19 @@ func get_tool_bonus(type_enum: ToolData.ToolType) -> float:
 	if tool: return tool.speed_multiplier
 	return 1.0
 
+## Speed gained per skill level beyond the first (level 1 = no bonus).
+const SKILL_SPEED_PER_LEVEL: float = 0.01
+
+## Master switch: tool & skill speed bonuses are parked for now. The card
+## chips still display them; flip this back on to make them count again.
+const SPEED_BONUSES_ENABLED: bool = false
+
 ## The real time one harvest of this node takes, after tool speed and skill level.
 func get_effective_duration(node: HarvestNode) -> float:
+	if not SPEED_BONUSES_ENABLED:
+		return node.base_duration
 	var skill_key = get_skill_key(node)
-	var skill_mod = 1.0 + (skills[skill_key]["level"] * 0.02)
+	var skill_mod = 1.0 + ((skills[skill_key]["level"] - 1) * SKILL_SPEED_PER_LEVEL)
 	return node.base_duration / (get_tool_bonus(node.required_tool_type) * skill_mod)
 
 # --- Skills / XP ---
@@ -258,8 +267,28 @@ func register_activity(calling_node: Node, node_data: HarvestNode = null) -> boo
 # --- Harvest Resolution ---
 # One code path resolves every harvest, so future bonuses apply consistently.
 
+## One weighted roll on a drop table. Returns the winning row, or null for
+## an empty/weightless table. Row share = weight / total table weight.
+func roll_drop_table(pool: Array) -> LootDrop:
+	var entries = pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES)
+	var total := 0.0
+	for entry in entries:
+		if entry != null and entry.item != null and entry.weight > 0.0:
+			total += entry.weight
+	if total <= 0.0:
+		return null
+	var roll = randf() * total
+	for entry in entries:
+		if entry == null or entry.item == null or entry.weight <= 0.0:
+			continue
+		roll -= entry.weight
+		if roll <= 0.0:
+			return entry
+	return null
+
 ## Resolves a completed harvest of `node`. Returns { item_id: amount } gained.
-## Every loot pool entry rolls independently against its own chance.
+## Exactly one common row drops every harvest; a rare_chance roll may then
+## grant one row from the rare table on top.
 func resolve_harvest(node: HarvestNode, notify: bool = true) -> Dictionary:
 	var gains: Dictionary = {}
 
@@ -268,16 +297,17 @@ func resolve_harvest(node: HarvestNode, notify: bool = true) -> Dictionary:
 	if equipped:
 		yield_bonus = equipped.yield_bonus
 
-	var entries = node.loot_pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES)
-	for entry in entries:
-		if entry == null or entry.item == null or entry.chance <= 0.0:
-			continue
-		if randf() <= entry.chance:
-			var amount = 1
-			# Tool yield bonuses boost the guaranteed core drops, not rare finds
-			if entry.chance >= 1.0:
-				amount += yield_bonus
-			gains[entry.item.id] = gains.get(entry.item.id, 0) + amount
+	var common = roll_drop_table(node.common_pool)
+	if common:
+		# Tool yield bonuses boost the everyday haul, not rare finds.
+		var amount = randi_range(common.min_amount, maxi(common.min_amount, common.max_amount)) + yield_bonus
+		gains[common.item.id] = gains.get(common.item.id, 0) + amount
+
+	if node.rare_chance > 0.0 and randf() <= node.rare_chance:
+		var rare = roll_drop_table(node.rare_pool)
+		if rare:
+			var amount = randi_range(rare.min_amount, maxi(rare.min_amount, rare.max_amount))
+			gains[rare.item.id] = gains.get(rare.item.id, 0) + amount
 
 	for item_id in gains:
 		var item = find_item_by_id(item_id)

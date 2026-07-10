@@ -10,12 +10,17 @@ const SETTINGS_PANEL_SCRIPT = preload("res://scripts/ui/SettingsPanel.gd")
 @onready var quarry_view: PanelContainer = %QuarryView
 @onready var inventory_view: PanelContainer = %InventoryView
 @onready var shop_view: PanelContainer = %ShopView
+@onready var undercroft_view: PanelContainer = %UndercroftView
 
 var open_settings_panel: Node = null
 
 func _ready() -> void:
 	add_to_group("ui_updates")
 	add_to_group("view_manager")
+
+	# Layout reflows with the window (cards re-wrap, panels stretch); this
+	# floor just stops the window shrinking past the point where UI would squish.
+	get_window().min_size = Vector2i(1160, 660)
 
 	if timer.timeout.is_connected(_on_game_tick):
 		timer.timeout.disconnect(_on_game_tick)
@@ -43,6 +48,7 @@ func switch_view(target_view: String) -> void:
 	if quarry_view: quarry_view.visible = (target_view == "quarry")
 	if inventory_view: inventory_view.visible = (target_view == "inventory")
 	if shop_view: shop_view.visible = (target_view == "shop")
+	if undercroft_view: undercroft_view.visible = (target_view == "undercroft")
 
 	get_tree().call_group("ui_updates", "update_ui")
 

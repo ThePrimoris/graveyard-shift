@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="Minion" format=3]
+
+[ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
+[ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+
+[sub_resource type="Resource" id="Ability0"]
+script = ExtResource("2_ability")
+id = "bone_diligence"
+name = "Bone Diligence"
+description = "No lungs, no breaks. Bonus skill XP from every harvest while slotted."
+kind = 0
+tier = 1
+cost = 1
+effect = "harvest_xp_pct"
+magnitude = 4.0
+
+[sub_resource type="Resource" id="Ability1"]
+script = ExtResource("2_ability")
+id = "marrow_memory"
+name = "Marrow Memory"
+description = "Old bones remember where treasures were buried. Adds to every node's rare table chance while slotted."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["bone_diligence"])
+effect = "rare_chance_pct"
+magnitude = 0.75
+
+[sub_resource type="Resource" id="Ability2"]
+script = ExtResource("2_ability")
+id = "rattling_volley"
+name = "Rattling Volley"
+description = "It throws its own ribs. Alarmingly accurate. Reserved for combat."
+kind = 1
+tier = 2
+cost = 2
+effect = "active_rattling_volley"
+magnitude = 0.0
+
+[resource]
+script = ExtResource("1_minion")
+id = "skeleton"
+name = "Skeleton"
+description = "Dry, clean, and eager. What it lacks in muscle it makes up in spite."
+base_hp = 12
+base_atk = 3.0
+hp_per_level = 3
+atk_per_level = 0.7
+raise_cost = Dictionary[String, int]({
+"bones": 8,
+"cracked_skull": 2
+})
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2")])
+metadata/_custom_type_script = "res://data/MinionData.gd"

@@ -49,11 +49,13 @@ func execute(command: String) -> String:
 	var response := ""
 	match parts[0].to_lower():
 		"help":
-			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  help" % ", ".join(GameManager.skills.keys())
+			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  necronomicon <on|off> — toggle the dread tome\n  help" % ", ".join(GameManager.skills.keys())
 		"level":
 			response = _cmd_level(parts)
 		"spawn":
 			response = _cmd_spawn(parts)
+		"necronomicon":
+			response = _cmd_necronomicon(parts)
 		_:
 			response = "Unknown command '%s'. Try 'help'." % parts[0]
 
@@ -87,6 +89,16 @@ func _cmd_spawn(parts: PackedStringArray) -> String:
 	if leftover > 0:
 		return "Spawned %d x %s (%d didn't fit — inventory full)." % [amount - leftover, item.name, leftover]
 	return "Spawned %d x %s." % [amount, item.name]
+
+func _cmd_necronomicon(parts: PackedStringArray) -> String:
+	if parts.size() < 2 or not parts[1].to_lower() in ["on", "off"]:
+		return "Usage: necronomicon <on|off>"
+	MinionManager.necronomicon_unlocked = parts[1].to_lower() == "on"
+	MinionManager.minions_updated.emit()
+	get_tree().call_group("ui_updates", "update_ui")
+	if MinionManager.necronomicon_unlocked:
+		return "The Necronomicon stirs. The circle at the graveyard's heart will open it."
+	return "The tome sleeps once more."
 
 func _log(text: String) -> void:
 	log_lines.append(text)

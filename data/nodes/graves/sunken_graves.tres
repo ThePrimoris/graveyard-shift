@@ -5,20 +5,37 @@
 [ext_resource type="Resource" path="res://data/items/materials/rancid_sinew.tres" id="3_i0"]
 [ext_resource type="Resource" path="res://data/items/materials/flesh.tres" id="3_i1"]
 [ext_resource type="Resource" path="res://data/items/materials/grave_dust.tres" id="3_i2"]
+[ext_resource type="Resource" path="res://data/items/materials/bone_marrow.tres" id="3_i3"]
+[ext_resource type="Resource" path="res://data/items/materials/withered_heart.tres" id="3_i4"]
 
-[sub_resource type="Resource" id="Drop0"]
+[sub_resource type="Resource" id="Common0"]
 script = ExtResource("2_loot")
 item = ExtResource("3_i0")
+weight = 50.0
+min_amount = 1
+max_amount = 2
 
-[sub_resource type="Resource" id="Drop1"]
+[sub_resource type="Resource" id="Common1"]
 script = ExtResource("2_loot")
 item = ExtResource("3_i1")
-chance = 0.55
+weight = 30.0
+min_amount = 1
+max_amount = 2
 
-[sub_resource type="Resource" id="Drop2"]
+[sub_resource type="Resource" id="Common2"]
 script = ExtResource("2_loot")
 item = ExtResource("3_i2")
-chance = 0.25
+weight = 20.0
+
+[sub_resource type="Resource" id="Rare0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i3")
+weight = 70.0
+
+[sub_resource type="Resource" id="Rare1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_i4")
+weight = 30.0
 
 [resource]
 script = ExtResource("1_node")
@@ -30,6 +47,7 @@ required_skill = 0
 required_tool_type = 0
 base_duration = 3.0
 base_xp = 9.0
-dig_sections = 3
-loot_pool = Array[ExtResource("2_loot")]([SubResource("Drop0"), SubResource("Drop1"), SubResource("Drop2")])
+common_pool = Array[ExtResource("2_loot")]([SubResource("Common0"), SubResource("Common1"), SubResource("Common2")])
+rare_chance = 0.03
+rare_pool = Array[ExtResource("2_loot")]([SubResource("Rare0"), SubResource("Rare1")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

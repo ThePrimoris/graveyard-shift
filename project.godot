@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 GameManager="*uid://jk3bg457umjn"
 InventoryManager="*uid://cdnjxuvd1yyb6"
 NotificationManager="*uid://dpv6heio3df0b"
+MinionManager="*res://scripts/managers/MinionManager.gd"
 SaveManager="*res://scripts/managers/SaveManager.gd"
 TutorialManager="*res://scripts/managers/TutorialManager.gd"
 DebugConsole="*res://scripts/managers/DebugConsole.gd"
@@ -41,4 +42,4 @@ theme/custom="res://theme/graveyard_theme.tres"
 [rendering]
 
 rendering_device/driver.windows="d3d12"
-environment/defaults/default_clear_color=Color(0.055, 0.075, 0.1, 1)
+environment/defaults/default_clear_color=Color(0.043, 0.039, 0.063, 1)

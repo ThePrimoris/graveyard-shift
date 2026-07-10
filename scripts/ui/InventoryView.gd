@@ -1,15 +1,29 @@
 # InventoryView.gd
+# Bank-style inventory: header strip (slots used, total value, equipped tools),
+# the item grid in an elevated panel, and a persistent "Selected Item" card on
+# the right with a quantity slider + presets for selling, Melvor-style.
 extends PanelContainer
 
 @export var inventory_slot_scene: PackedScene # Assign your InventorySlot.tscn here in Inspector
 
+@onready var slots_used_label: Label = %SlotsUsedLabel
+@onready var bank_value_label: Label = %BankValueLabel
+
 @onready var details_panel: VBoxContainer = %DetailsPanel
 @onready var details_content: VBoxContainer = %DetailsContent
+@onready var no_selection_label: Label = %NoSelectionLabel
 @onready var item_name_label: Label = %ItemNameLabel
+@onready var item_count_label: Label = %ItemCountLabel
 @onready var item_icon_rect: TextureRect = %ItemIconRect
 @onready var item_description_label: Label = %ItemDescriptionLabel
+@onready var stack_value_label: Label = %StackValueLabel
+
+@onready var sell_panel: PanelContainer = %SellPanel
+@onready var sell_slider: HSlider = %SellSlider
+@onready var qty_label: Label = %QtyLabel
+@onready var all_but1_button: Button = %AllBut1Button
+@onready var all_button: Button = %AllButton
 @onready var sell_button: Button = %SellButton
-@onready var sell_all_button: Button = %SellAllButton
 @onready var equip_button: Button = %EquipButton
 @onready var destroy_button: Button = %DestroyButton
 
@@ -30,16 +44,19 @@ func _ready() -> void:
 	add_to_group("ui_updates")
 
 	sell_button.pressed.connect(_on_sell_pressed)
-	sell_all_button.pressed.connect(_on_sell_all_pressed)
 	equip_button.pressed.connect(_on_equip_pressed)
 	destroy_button.pressed.connect(_on_destroy_pressed)
+	sell_slider.value_changed.connect(_on_sell_qty_changed)
+	all_but1_button.pressed.connect(func(): sell_slider.value = maxf(1.0, sell_slider.max_value - 1.0))
+	all_button.pressed.connect(func(): sell_slider.value = sell_slider.max_value)
 
 	for i in range(tool_slot_buttons.size()):
 		tool_slot_buttons[i].pressed.connect(_on_tool_slot_pressed.bind(i))
 
-	# The panel keeps its reserved width at all times so selecting an item
+	# The card keeps its reserved width at all times so selecting an item
 	# never shifts the rest of the layout; only its content toggles.
 	details_content.visible = false
+	no_selection_label.visible = true
 
 	# Rebuild the grid only when the inventory actually changes, not on every UI tick
 	InventoryManager.inventory_updated.connect(refresh_inventory_grid)
@@ -50,6 +67,7 @@ func _ready() -> void:
 # This is the "Engine" that builds the slots from the InventoryManager data
 func refresh_inventory_grid() -> void:
 	for child in inventory_grid.get_children():
+		inventory_grid.remove_child(child)
 		child.queue_free()
 
 	for i in range(InventoryManager.slots.size()):
@@ -71,6 +89,7 @@ func refresh_inventory_grid() -> void:
 
 func update_ui() -> void:
 	_refresh_tool_slots()
+	_refresh_bank_header()
 
 	if selected_item:
 		if selected_is_equipped:
@@ -83,6 +102,26 @@ func update_ui() -> void:
 			_clear_selection()
 		else:
 			_display_item_details(selected_item)
+
+## Header chips: slots used and the sell value of everything carried.
+func _refresh_bank_header() -> void:
+	var used := 0
+	var total_value := 0
+	for slot_data in InventoryManager.slots:
+		if slot_data != null:
+			used += 1
+			var item: Item = slot_data["item"]
+			if item.is_sellable:
+				total_value += _get_unit_sell_value(item) * int(slot_data["quantity"])
+	slots_used_label.text = "%d / %d" % [used, InventoryManager.slots.size()]
+	bank_value_label.text = "Value: %s g" % _fmt_gold(total_value)
+
+func _fmt_gold(value: int) -> String:
+	if value >= 1000000:
+		return "%.1fM" % (value / 1000000.0)
+	if value >= 10000:
+		return "%.1fK" % (value / 1000.0)
+	return str(value)
 
 func _refresh_tool_slots() -> void:
 	for i in range(tool_slot_buttons.size()):
@@ -113,6 +152,8 @@ func _on_tool_slot_pressed(type_index: int) -> void:
 func _on_item_selected(item: Item) -> void:
 	selected_item = item
 	selected_is_equipped = false
+	# Fresh selection starts at "sell 1"
+	sell_slider.value = 1
 	_display_item_details(item)
 
 func _get_unit_sell_value(item: Item) -> int:
@@ -120,8 +161,15 @@ func _get_unit_sell_value(item: Item) -> int:
 
 func _display_item_details(item: Item) -> void:
 	details_content.visible = true
+	no_selection_label.visible = false
 	item_name_label.text = item.name
 	item_icon_rect.texture = item.icon
+
+	var count := InventoryManager.get_item_count(item.id)
+	if selected_is_equipped:
+		item_count_label.text = "Equipped"
+	else:
+		item_count_label.text = "Owned: %d" % count
 
 	if item.description != "":
 		item_description_label.text = item.description
@@ -132,19 +180,33 @@ func _display_item_details(item: Item) -> void:
 	equip_button.visible = is_tool
 	if is_tool:
 		equip_button.text = "Unequip" if selected_is_equipped else "Equip"
-	sell_button.visible = item.is_sellable and not selected_is_equipped
-	sell_all_button.visible = item.is_sellable and not selected_is_equipped
 	destroy_button.visible = not selected_is_equipped and not is_tool
 
+	var can_sell = item.is_sellable and not selected_is_equipped and count > 0
+	sell_panel.visible = can_sell
+	stack_value_label.get_parent().visible = item.is_sellable
 	if item.is_sellable:
-		var unit_value = _get_unit_sell_value(item)
-		sell_button.text = "Sell (%d g)" % unit_value
-		sell_all_button.text = "Sell All (%d g)" % (unit_value * InventoryManager.get_item_count(item.id))
+		stack_value_label.text = "%s g" % _fmt_gold(_get_unit_sell_value(item) * maxi(count, 1))
+	if can_sell:
+		sell_slider.max_value = count
+		sell_slider.value = clampf(sell_slider.value, 1, count)
+		_refresh_sell_row()
+
+## Keeps the qty readout and the sell button's total in step with the slider.
+func _refresh_sell_row() -> void:
+	if selected_item == null: return
+	var qty := int(sell_slider.value)
+	qty_label.text = str(qty)
+	sell_button.text = "Sell %d for %s g" % [qty, _fmt_gold(_get_unit_sell_value(selected_item) * qty)]
+
+func _on_sell_qty_changed(_value: float) -> void:
+	_refresh_sell_row()
 
 func _clear_selection() -> void:
 	selected_item = null
 	selected_is_equipped = false
 	details_content.visible = false
+	no_selection_label.visible = true
 
 func _on_sell_pressed() -> void:
 	if selected_item and selected_item.is_sellable and not selected_is_equipped:
@@ -152,17 +214,9 @@ func _on_sell_pressed() -> void:
 		# when the last copy leaves the inventory.
 		var item = selected_item
 		var value = _get_unit_sell_value(item)
-		if InventoryManager.remove_item(item.id, 1):
-			GameManager.gold_coins += value
-		get_tree().call_group("ui_updates", "update_ui")
-
-func _on_sell_all_pressed() -> void:
-	if selected_item and selected_item.is_sellable and not selected_is_equipped:
-		var item = selected_item
-		var value = _get_unit_sell_value(item)
-		var count = InventoryManager.get_item_count(item.id)
-		if count > 0 and InventoryManager.remove_item(item.id, count):
-			GameManager.gold_coins += value * count
+		var qty = mini(int(sell_slider.value), InventoryManager.get_item_count(item.id))
+		if qty > 0 and InventoryManager.remove_item(item.id, qty):
+			GameManager.gold_coins += value * qty
 		get_tree().call_group("ui_updates", "update_ui")
 
 func _on_equip_pressed() -> void:

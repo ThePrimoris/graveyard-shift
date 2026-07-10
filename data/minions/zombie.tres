@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="Minion" format=3]
+
+[ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
+[ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+
+[sub_resource type="Resource" id="Ability0"]
+script = ExtResource("2_ability")
+id = "gravekeepers_vigor"
+name = "Gravekeeper's Vigor"
+description = "The zombie turns earth alongside you. Bonus skill XP from every harvest while slotted."
+kind = 0
+tier = 1
+cost = 1
+effect = "harvest_xp_pct"
+magnitude = 5.0
+
+[sub_resource type="Resource" id="Ability1"]
+script = ExtResource("2_ability")
+id = "carrion_nose"
+name = "Carrion Nose"
+description = "It can smell the good rot. Adds to every node's rare table chance while slotted."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["gravekeepers_vigor"])
+effect = "rare_chance_pct"
+magnitude = 0.5
+
+[sub_resource type="Resource" id="Ability2"]
+script = ExtResource("2_ability")
+id = "lurch"
+name = "Lurch"
+description = "A graceless, unstoppable shoulder charge. Its day will come, in combat."
+kind = 1
+tier = 2
+cost = 2
+effect = "active_lurch"
+magnitude = 0.0
+
+[resource]
+script = ExtResource("1_minion")
+id = "zombie"
+name = "Zombie"
+description = "A shambling knot of flesh and stubbornness. Slow to fall, slower to think."
+base_hp = 20
+base_atk = 2.0
+hp_per_level = 5
+atk_per_level = 0.5
+raise_cost = Dictionary[String, int]({
+"blood": 5,
+"flesh": 3
+})
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2")])
+metadata/_custom_type_script = "res://data/MinionData.gd"

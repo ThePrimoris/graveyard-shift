@@ -27,10 +27,13 @@ func _ready() -> void:
 
 	var panel = PanelContainer.new()
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.11, 0.145, 0.98)
+	style.bg_color = Color(0.078, 0.071, 0.11, 0.98)
 	style.set_corner_radius_all(12)
-	style.border_color = Color(0.29, 0.42, 0.52)
-	style.set_border_width_all(2)
+	style.border_color = Color(0.83, 0.64, 0.27, 0.55)
+	style.set_border_width_all(1)
+	style.shadow_color = Color(0, 0, 0, 0.45)
+	style.shadow_size = 14
+	style.shadow_offset = Vector2(0, 4)
 	panel.add_theme_stylebox_override("panel", style)
 	center.add_child(panel)
 

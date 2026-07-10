@@ -13,6 +13,8 @@ const ACTION_CARD_SCENE = preload("res://scenes/cards/ActionCard.tscn")
 var action_verb: String = "Harvest"
 var progress_color: Color = Color("#c8a24d")
 var progress_mode: int = ActionCard.ProgressMode.FILL
+## Ambient page tint behind the cards, one flavour per skill.
+var ambience: Color = Color(0.043, 0.039, 0.063)
 
 var current_zone: int = 0
 var display_nodes: Array = []
@@ -24,17 +26,29 @@ var cards: Array = []
 var header_title: Label
 var header_bar: ProgressBar
 var header_xp_label: Label
-
-## Subclasses may vary bar count per node (used by SEGMENTS mode).
-func _segments_for(_node: HarvestNode) -> int:
-	return 1
+var header_level_label: Label
 
 func _ready() -> void:
 	add_to_group("ui_updates")
 	add_to_group("harvest_views")
+	_apply_ambience()
 	_build_header()
 	_build_zone_selector()
 	_select_zone(0)
+
+## Tints the whole page in the skill's flavour so the cards sit on a
+## scene-coloured backdrop instead of flat chrome. Preserves the view's
+## content margins (sidebar clearance, plots bar clearance).
+func _apply_ambience() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = ambience
+	var previous := get_theme_stylebox("panel")
+	if previous:
+		style.content_margin_left = previous.content_margin_left
+		style.content_margin_top = previous.content_margin_top
+		style.content_margin_right = previous.content_margin_right
+		style.content_margin_bottom = previous.content_margin_bottom
+	add_theme_stylebox_override("panel", style)
 
 func _get_skill_key() -> String:
 	for zone in zones:
@@ -111,11 +125,11 @@ func _build_cards() -> void:
 		flow.add_child(card)
 
 		card.setup_card(node_data.name, node_data.description, action_verb, node_data.base_duration)
-		var entries = _drop_entries(node_data)
+		var entries = _table_entries(node_data.common_pool)
 		if not entries.is_empty():
 			card.set_icon(entries[0]["item"].icon)
 		card.set_progress_color(progress_color)
-		card.set_progress_mode(progress_mode, _segments_for(node_data))
+		card.set_progress_mode(progress_mode)
 		card.set_dig_sections(node_data.dig_sections)
 		if node_data.is_boss:
 			card.set_large()
@@ -134,50 +148,88 @@ func _build_cards() -> void:
 func _on_boss_confront(node_data: HarvestNode) -> void:
 	NotificationManager.show_item("%s stirs... but combat isn't ready yet. Soon." % node_data.name, 1)
 
-## Page header: skill icon, name, level, XP bar.
+## Page header, Melvor-style: dark strip with the skill icon and name on the
+## left, a level badge on the right, and a thin XP bar with a readout below.
 func _build_header() -> void:
 	var vbox = get_node_or_null("VBoxContainer")
 	if vbox == null: return
 
 	var header = PanelContainer.new()
+	var hstyle := StyleBoxFlat.new()
+	hstyle.bg_color = Color(0.078, 0.071, 0.11, 0.97)
+	hstyle.set_border_width_all(1)
+	hstyle.border_width_left = 4
+	hstyle.border_color = Color(progress_color.r * 0.6, progress_color.g * 0.6, progress_color.b * 0.6)
+	hstyle.set_corner_radius_all(10)
+	hstyle.shadow_color = Color(0, 0, 0, 0.35)
+	hstyle.shadow_size = 8
+	hstyle.shadow_offset = Vector2(0, 3)
+	header.add_theme_stylebox_override("panel", hstyle)
+
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	header.add_child(margin)
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 5)
+	margin.add_child(col)
 
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
+	col.add_child(row)
 
 	var skill_key = _get_skill_key()
 	var icon_path = "res://icons/skills/%s.png" % skill_key
 	if ResourceLoader.exists(icon_path):
 		var icon = TextureRect.new()
 		icon.texture = load(icon_path)
-		icon.custom_minimum_size = Vector2(44, 44)
+		icon.custom_minimum_size = Vector2(38, 38)
 		icon.expand_mode = 1
 		icon.stretch_mode = 5
 		row.add_child(icon)
 
-	var col = VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.add_theme_constant_override("separation", 6)
-	row.add_child(col)
-
 	header_title = Label.new()
-	header_title.add_theme_font_size_override("font_size", 22)
-	col.add_child(header_title)
+	header_title.theme_type_variation = &"HeaderLabel"
+	header_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(header_title)
+
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+
+	var badge = PanelContainer.new()
+	var bstyle := StyleBoxFlat.new()
+	bstyle.bg_color = Color(0.055, 0.047, 0.082)
+	bstyle.border_color = progress_color
+	bstyle.set_border_width_all(1)
+	bstyle.set_corner_radius_all(11)
+	bstyle.content_margin_left = 12
+	bstyle.content_margin_right = 12
+	bstyle.content_margin_top = 3
+	bstyle.content_margin_bottom = 3
+	badge.add_theme_stylebox_override("panel", bstyle)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header_level_label = Label.new()
+	header_level_label.add_theme_font_size_override("font_size", 16)
+	header_level_label.add_theme_color_override("font_color", progress_color)
+	badge.add_child(header_level_label)
+	row.add_child(badge)
 
 	header_bar = ProgressBar.new()
-	header_bar.custom_minimum_size = Vector2(0, 14)
+	header_bar.custom_minimum_size = Vector2(0, 10)
 	header_bar.show_percentage = false
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = progress_color
+	fill.set_corner_radius_all(5)
+	header_bar.add_theme_stylebox_override("fill", fill)
 	col.add_child(header_bar)
 
 	header_xp_label = Label.new()
-	header_xp_label.add_theme_font_size_override("font_size", 12)
-	header_xp_label.add_theme_color_override("font_color", Color(0.65, 0.7, 0.72))
+	header_xp_label.theme_type_variation = &"MutedLabel"
+	header_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	col.add_child(header_xp_label)
 
 	vbox.add_child(header)
@@ -189,7 +241,8 @@ func _update_header() -> void:
 	if skill_key == "": return
 
 	var skill = GameManager.skills[skill_key]
-	header_title.text = "%s — Level %d / %d" % [skill_key.capitalize(), skill["level"], GameManager.MAX_LEVEL]
+	header_title.text = skill_key.capitalize()
+	header_level_label.text = "%d / %d" % [skill["level"], GameManager.MAX_LEVEL]
 
 	if skill["level"] >= GameManager.MAX_LEVEL:
 		header_bar.max_value = 1
@@ -199,7 +252,7 @@ func _update_header() -> void:
 		var needed = GameManager.get_xp_needed(skill["level"])
 		header_bar.max_value = needed
 		header_bar.value = skill["xp"]
-		header_xp_label.text = "%.0f / %.0f XP to next level" % [skill["xp"], needed]
+		header_xp_label.text = "%.0f / %.0f XP" % [skill["xp"], needed]
 
 ## Called by SaveManager after loading: restart the node that was being worked,
 ## switching to its zone if needed.
@@ -240,18 +293,36 @@ func _process(delta: float) -> void:
 				node_progress[node_data.id] = 0.0
 				card.reset_progress()
 
-## Drop rows for the card, most common first.
-func _drop_entries(node: HarvestNode) -> Array:
+## Ledger rows for one weighted drop table, biggest share first.
+## Each row: { "item", "pct" (0..100), "min_amount", "max_amount" }.
+func _table_entries(pool: Array) -> Array:
+	var valid: Array = []
+	var total := 0.0
+	for entry in pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
+		if entry != null and entry.item != null and entry.weight > 0.0:
+			valid.append(entry)
+			total += entry.weight
 	var entries: Array = []
-	for entry in node.loot_pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
-		if entry != null and entry.item != null and entry.chance > 0.0:
-			entries.append({"item": entry.item, "chance": entry.chance})
-	entries.sort_custom(func(a, b): return a["chance"] > b["chance"])
+	for entry in valid:
+		entries.append({
+			"item": entry.item,
+			"pct": entry.weight / total * 100.0,
+			"min_amount": entry.min_amount,
+			"max_amount": entry.max_amount,
+		})
+	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
 	return entries
 
 func update_ui() -> void:
 	_update_header()
 	_update_zone_buttons()
+
+	var skill_key = _get_skill_key()
+	var skill_level = GameManager.skills[skill_key]["level"] if skill_key in GameManager.skills else 1
+	var skill_icon: Texture2D = null
+	var skill_icon_path = "res://icons/skills/%s.png" % skill_key
+	if ResourceLoader.exists(skill_icon_path):
+		skill_icon = load(skill_icon_path)
 
 	for i in range(cards.size()):
 		var card = cards[i]
@@ -269,6 +340,10 @@ func update_ui() -> void:
 				card.action_button.disabled = false
 			else:
 				card.show_unlocked()
-				card.set_stats(node.base_xp, GameManager.get_effective_duration(node))
-				card.set_drops(_drop_entries(node))
+				card.set_stats(node.base_xp, GameManager.get_effective_duration(node), node.base_duration)
+				card.set_drops(_table_entries(node.common_pool), _table_entries(node.rare_pool), node.rare_chance)
+				var tool = GameManager.equipped_tools.get(node.required_tool_type, null)
+				var tool_pct = int(round((GameManager.get_tool_bonus(node.required_tool_type) - 1.0) * 100))
+				card.set_bonuses(tool.icon if tool else null, tool_pct, skill_icon,
+					int(round((skill_level - 1) * GameManager.SKILL_SPEED_PER_LEVEL * 100)))
 				card.action_button.disabled = false
