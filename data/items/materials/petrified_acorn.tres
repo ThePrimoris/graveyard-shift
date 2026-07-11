@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "petrified_acorn"
+name = "Petrified Acorn"
+description = "An acorn turned to grey stone, yet somehow still whole."
+sell_value = 85

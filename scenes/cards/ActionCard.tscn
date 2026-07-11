@@ -2,57 +2,69 @@
 
 [ext_resource type="Script" uid="uid://dxhdk47hkgxge" path="res://scripts/cards/ActionCard.gd" id="1_0akts"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_flat"]
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_divider"]
 bg_color = Color(0.165, 0.141, 0.22, 1)
 
-[node name="ActionCard" type="PanelContainer"]
-custom_minimum_size = Vector2(470, 0)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dmgtrack"]
+bg_color = Color(0.047, 0.039, 0.094, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.165, 0.141, 0.22, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_flat"]
+
+[node name="ActionCard" type="PanelContainer" unique_id=1409771831]
+custom_minimum_size = Vector2(500, 0)
 offset_right = 40.0
 offset_bottom = 40.0
 theme_type_variation = &"CardPanel"
 script = ExtResource("1_0akts")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=240561102]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="Root" type="VBoxContainer" parent="MarginContainer"]
+[node name="Root" type="VBoxContainer" parent="MarginContainer" unique_id=620726274]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TopRow" type="HBoxContainer" parent="MarginContainer/Root"]
+[node name="TopRow" type="HBoxContainer" parent="MarginContainer/Root" unique_id=1674623523]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ChipsRow" type="HBoxContainer" parent="MarginContainer/Root/TopRow"]
+[node name="ChipsRow" type="HBoxContainer" parent="MarginContainer/Root/TopRow" unique_id=948787843]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="TopSpacer" type="Control" parent="MarginContainer/Root/TopRow"]
+[node name="TopSpacer" type="Control" parent="MarginContainer/Root/TopRow" unique_id=2038724700]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="XPChip" type="PanelContainer" parent="MarginContainer/Root/TopRow"]
+[node name="XPChip" type="PanelContainer" parent="MarginContainer/Root/TopRow" unique_id=598225413]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"ChipPanel"
 
-[node name="XPLabel" type="Label" parent="MarginContainer/Root/TopRow/XPChip"]
+[node name="XPLabel" type="Label" parent="MarginContainer/Root/TopRow/XPChip" unique_id=48943366]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.62, 0.85, 0.55, 1)
+theme_override_font_sizes/font_size = 12
 text = "+0 XP"
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/Root"]
+[node name="TitleLabel" type="Label" parent="MarginContainer/Root" unique_id=478333696]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
@@ -60,20 +72,20 @@ text = "Node Name"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Body" type="HBoxContainer" parent="MarginContainer/Root"]
+[node name="Body" type="HBoxContainer" parent="MarginContainer/Root" unique_id=712193799]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="InfoCol" type="VBoxContainer" parent="MarginContainer/Root/Body"]
+[node name="InfoCol" type="VBoxContainer" parent="MarginContainer/Root/Body" unique_id=639569374]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(250, 110)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="DescLabel" type="Label" parent="MarginContainer/Root/Body/InfoCol"]
+[node name="DescLabel" type="Label" parent="MarginContainer/Root/Body/InfoCol" unique_id=1761032951]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -85,27 +97,27 @@ autowrap_mode = 2
 text_overrun_behavior = 3
 max_lines_visible = 4
 
-[node name="StatsLabel" type="Label" parent="MarginContainer/Root/Body/InfoCol"]
+[node name="StatsLabel" type="Label" parent="MarginContainer/Root/Body/InfoCol" unique_id=1325419828]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Columns" type="HBoxContainer" parent="MarginContainer/Root/Body/InfoCol"]
+[node name="Columns" type="HBoxContainer" parent="MarginContainer/Root/Body/InfoCol" unique_id=57017153]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="CommonCol" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns"]
+[node name="CommonCol" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns" unique_id=315984445]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
-[node name="CommonHeader" type="Label" parent="MarginContainer/Root/Body/InfoCol/Columns/CommonCol"]
+[node name="CommonHeader" type="Label" parent="MarginContainer/Root/Body/InfoCol/Columns/CommonCol" unique_id=1574393650]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"SectionLabel"
@@ -113,25 +125,25 @@ text = "Common"
 horizontal_alignment = 1
 uppercase = true
 
-[node name="CommonBox" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns/CommonCol"]
+[node name="CommonBox" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns/CommonCol" unique_id=272101605]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="Divider" type="Panel" parent="MarginContainer/Root/Body/InfoCol/Columns"]
+[node name="Divider" type="Panel" parent="MarginContainer/Root/Body/InfoCol/Columns" unique_id=192770803]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_divider")
 
-[node name="RareCol" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns"]
+[node name="RareCol" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns" unique_id=819104014]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
-[node name="RareHeader" type="Label" parent="MarginContainer/Root/Body/InfoCol/Columns/RareCol"]
+[node name="RareHeader" type="Label" parent="MarginContainer/Root/Body/InfoCol/Columns/RareCol" unique_id=855974081]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"SectionLabel"
@@ -140,31 +152,31 @@ text = "Rare"
 horizontal_alignment = 1
 uppercase = true
 
-[node name="RareBox" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns/RareCol"]
+[node name="RareBox" type="VBoxContainer" parent="MarginContainer/Root/Body/InfoCol/Columns/RareCol" unique_id=839955385]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="RightCol" type="VBoxContainer" parent="MarginContainer/Root/Body"]
+[node name="RightCol" type="VBoxContainer" parent="MarginContainer/Root/Body" unique_id=1610045006]
 unique_name_in_owner = true
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 8
+alignment = 1
 
-[node name="IconWell" type="PanelContainer" parent="MarginContainer/Root/Body/RightCol"]
+[node name="IconWell" type="PanelContainer" parent="MarginContainer/Root/Body/RightCol" unique_id=1223926414]
 custom_minimum_size = Vector2(92, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_type_variation = &"WellPanel"
 
-[node name="IconRect" type="TextureRect" parent="MarginContainer/Root/Body/RightCol/IconWell"]
+[node name="IconRect" type="TextureRect" parent="MarginContainer/Root/Body/RightCol/IconWell" unique_id=749008493]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(76, 76)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ActionButton" type="Button" parent="MarginContainer/Root/Body/RightCol"]
+[node name="ActionButton" type="Button" parent="MarginContainer/Root/Body/RightCol" unique_id=719130935]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(92, 32)
 layout_mode = 2
@@ -173,7 +185,7 @@ theme_type_variation = &"ActionButton"
 theme_override_font_sizes/font_size = 14
 text = "Start"
 
-[node name="SegmentBox" type="VBoxContainer" parent="MarginContainer/Root/Body"]
+[node name="SegmentBox" type="VBoxContainer" parent="MarginContainer/Root/Body" unique_id=752286396]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(18, 0)
@@ -181,43 +193,62 @@ layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 3
 
-[node name="BottomRow" type="HBoxContainer" parent="MarginContainer/Root"]
+[node name="DamageMeter" type="Panel" parent="MarginContainer/Root/Body" unique_id=699329658]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dmgtrack")
+
+[node name="DamageFill" type="Panel" parent="MarginContainer/Root/Body/DamageMeter" unique_id=1706065017]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="BottomRow" type="HBoxContainer" parent="MarginContainer/Root" unique_id=211212311]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ProgressArea" type="PanelContainer" parent="MarginContainer/Root/BottomRow"]
+[node name="ProgressArea" type="PanelContainer" parent="MarginContainer/Root/BottomRow" unique_id=135978725]
 custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxEmpty_flat")
 
-[node name="ProgressStack" type="VBoxContainer" parent="MarginContainer/Root/BottomRow/ProgressArea"]
+[node name="ProgressStack" type="VBoxContainer" parent="MarginContainer/Root/BottomRow/ProgressArea" unique_id=1553560558]
 unique_name_in_owner = true
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 3
+alignment = 1
 
-[node name="PctLabel" type="Label" parent="MarginContainer/Root/BottomRow/ProgressArea"]
+[node name="PctLabel" type="Label" parent="MarginContainer/Root/BottomRow/ProgressArea" unique_id=98883677]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
 theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 13
 text = "0%"
 horizontal_alignment = 1
 vertical_alignment = 1
-mouse_filter = 2
 
-[node name="TimeChip" type="PanelContainer" parent="MarginContainer/Root/BottomRow"]
+[node name="TimeChip" type="PanelContainer" parent="MarginContainer/Root/BottomRow" unique_id=1318130130]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"ChipPanel"
 
-[node name="TimeLabel" type="Label" parent="MarginContainer/Root/BottomRow/TimeChip"]
+[node name="TimeLabel" type="Label" parent="MarginContainer/Root/BottomRow/TimeChip" unique_id=1396453873]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.6, 0.565, 0.66, 1)
+theme_override_font_sizes/font_size = 13
 text = "0.00s"

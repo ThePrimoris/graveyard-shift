@@ -41,11 +41,13 @@ magnitude = 0.0
 script = ExtResource("1_minion")
 id = "zombie"
 name = "Zombie"
+sort_order = 1
 description = "A shambling knot of flesh and stubbornness. Slow to fall, slower to think."
 base_hp = 20
 base_atk = 2.0
 hp_per_level = 5
 atk_per_level = 0.5
+speed = 0.8
 raise_cost = Dictionary[String, int]({
 "blood": 5,
 "flesh": 3

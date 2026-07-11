@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/blackthorn_timber.tres" id="i0"]
+[ext_resource type="Resource" path="res://data/items/materials/briar_blossom.tres" id="i1"]
+
+[sub_resource type="Resource" id="common0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 100.0
+max_amount = 2
+
+[sub_resource type="Resource" id="rare0"]
+script = ExtResource("2_loot")
+item = ExtResource("i1")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "blackthorn_stand"
+name = "Blackthorn Stand"
+description = "Hard, dark timber shot through with old thorns."
+required_skill = 1
+required_level = 10
+required_tool_type = 1
+base_duration = 3.5
+base_xp = 6
+dig_sections = 2
+affix = "thorn_veil"
+rare_chance = 0.06
+common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])
+rare_pool = Array[ExtResource("2_loot")]([SubResource("rare0")])

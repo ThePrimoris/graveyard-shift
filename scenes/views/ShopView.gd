@@ -5,9 +5,9 @@ extends PanelContainer
 
 # Cost to upgrade INTO each tier: gold plus Lumbering + Spelunking materials.
 const TIER_COSTS: Dictionary = {
-	ToolData.ToolTier.GALVANIZED: {"gold": 150, "materials": {"rotten_logs": 20, "stone_debris": 10}},
-	ToolData.ToolTier.REINFORCED: {"gold": 1200, "materials": {"rotten_logs": 60, "stone_debris": 40}},
-	ToolData.ToolTier.TEMPERED: {"gold": 6000, "materials": {"rotten_logs": 150, "stone_debris": 100}}
+	ToolData.ToolTier.GALVANIZED: {"gold": 100, "materials": {"rotten_logs": 15, "stone_debris": 10}},
+	ToolData.ToolTier.REINFORCED: {"gold": 500, "materials": {"rotten_logs": 45, "stone_debris": 30}},
+	ToolData.ToolTier.TEMPERED: {"gold": 1000, "materials": {"rotten_logs": 90, "stone_debris": 60}}
 }
 
 var gold_label: Label
@@ -100,7 +100,11 @@ func _build_shop() -> void:
 	pack_row.add_child(slot_button)
 
 func _tool_stats(tool: ToolData) -> String:
-	return "%.2fx speed%s" % [tool.speed_multiplier, (", +%d yield" % tool.yield_bonus) if tool.yield_bonus > 0 else ""]
+	var parts: Array[String] = []
+	var sp := int(round((tool.speed_multiplier - 1.0) * 100))
+	if sp > 0: parts.append("+%d%% speed" % sp)
+	if tool.yield_bonus > 0: parts.append("+%d%% double haul" % tool.yield_bonus)
+	return ", ".join(parts) if not parts.is_empty() else "baseline gear"
 
 func _describe_cost(cost: Dictionary) -> String:
 	var parts: Array[String] = ["%d Gold" % cost["gold"]]

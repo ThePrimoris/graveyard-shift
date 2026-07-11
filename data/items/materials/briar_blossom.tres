@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "briar_blossom"
+name = "Briar Blossom"
+description = "A rare bloom from the blackthorn, petals like dried blood."
+sell_value = 28

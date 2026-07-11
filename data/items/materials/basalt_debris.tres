@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "basalt_debris"
+name = "Basalt Debris"
+description = "Fractured volcanic basalt from the chasm walls."
+sell_value = 18

@@ -2,10 +2,10 @@
 # The minion system's home: the raisable roster, per-minion levels and XP,
 # skill-tree unlocks, and the four graveyard plots.
 #
-# The loop: pay a minion's raising rite once, slot it into a plot, and it
-# "earns its keep" — every completed harvest feeds slotted minions a share
-# of the node's XP. Levels raise HP/ATK and grant 1 skill point each.
-# Passive abilities only function while the minion sits in a plot.
+# The loop: pay a minion's raising rite once, then grow it with offerings at
+# the Ritual Altar (and, one day, combat). Levels raise HP/ATK and grant
+# 1 skill point each. Passive abilities only function while the minion sits
+# in a plot; slotted minions are the warband combat will draw on.
 extends Node
 
 signal minions_updated
@@ -14,13 +14,11 @@ const MINION_DIRS: Array[String] = ["res://data/minions/"]
 
 const PLOT_COUNT: int = 4
 const MAX_LEVEL: int = 50
-## Share of a harvested node's base XP each slotted minion receives.
-const HARVEST_XP_SHARE: float = 0.5
 ## Offering rite: minion XP granted per gold of an offered item's sell value.
-const OFFERING_XP_PER_GOLD: float = 2.0
+const OFFERING_XP_PER_GOLD: float = 1.5
 
-## Gates the Necronomicon (the circle's book UI). Once true, the book
-## replaces the Undercroft. Toggle via the console: `necronomicon on`.
+## Gates the Necronomicon — the circle's book UI and the only way to manage
+## minions. Granted by the tutorial (finished or skipped); console: `necronomicon on`.
 var necronomicon_unlocked: bool = false
 
 ## minion_id -> Minion resource, auto-loaded from MINION_DIRS.
@@ -34,7 +32,6 @@ var plots: Array = ["", "", "", ""]
 
 func _ready() -> void:
 	_build_minion_database()
-	GameManager.harvest_completed.connect(_on_harvest_completed)
 
 func reset_state() -> void:
 	roster.clear()
@@ -64,6 +61,21 @@ func _build_minion_database() -> void:
 func find_minion_by_id(minion_id: String) -> Minion:
 	return minion_db.get(minion_id, null)
 
+## Minion ids in display order: sort_order first, then name.
+## Every roster/book/picker listing should use this, not alphabetical ids.
+func sorted_ids(only_raised: bool = false) -> Array:
+	var ids: Array = []
+	for minion_id in minion_db:
+		if only_raised and not roster.has(minion_id): continue
+		ids.append(minion_id)
+	ids.sort_custom(func(a, b):
+		var ma: Minion = minion_db[a]
+		var mb: Minion = minion_db[b]
+		if ma.sort_order != mb.sort_order:
+			return ma.sort_order < mb.sort_order
+		return ma.name < mb.name)
+	return ids
+
 # --- Raising ---
 
 func is_raised(minion_id: String) -> bool:
@@ -86,15 +98,16 @@ func raise_minion(minion_id: String) -> bool:
 	roster[minion_id] = {"level": 1, "xp": 0.0, "abilities": []}
 	NotificationManager.show_item("%s rises from the earth!" % minion.name, 1)
 	minions_updated.emit()
+	TutorialManager.notify_event("minion_raised")
 	get_tree().call_group("ui_updates", "update_ui")
 	return true
 
 # --- Levels & XP ---
 
-## XP to advance FROM `level`. Gentler than the skill curve — minions level
-## from a share of harvest XP, not the whole of it.
+## XP to advance FROM `level`. Minions grow only on altar offerings (and,
+## later, combat), so this curve is tuned as a deliberate slow burn.
 func get_xp_needed(level: int) -> float:
-	return floor(40.0 * pow(level, 1.4))
+	return floor(60.0 * pow(level, 1.6))
 
 func add_xp(minion_id: String, amount: float) -> void:
 	if not roster.has(minion_id) or amount <= 0.0: return
@@ -115,16 +128,6 @@ func add_xp(minion_id: String, amount: float) -> void:
 		if minion:
 			NotificationManager.show_item("%s reached level %d" % [minion.name, state["level"]], 1)
 		minions_updated.emit()
-
-## Slotted minions earn a share of every completed harvest's base XP.
-func _on_harvest_completed(node_id: String) -> void:
-	var node = GameManager.find_node_by_id(node_id)
-	if node == null or node.base_xp <= 0.0: return
-	var seen: Array = []
-	for minion_id in plots:
-		if minion_id == "" or seen.has(minion_id): continue
-		seen.append(minion_id)
-		add_xp(minion_id, node.base_xp * HARVEST_XP_SHARE)
 
 func get_level(minion_id: String) -> int:
 	return roster[minion_id]["level"] if roster.has(minion_id) else 0
@@ -212,6 +215,7 @@ func offer_materials(minion_id: String, item_id: String, amount: int) -> float:
 	var total = xp_each * burn
 	add_xp(minion_id, total)
 	minions_updated.emit()
+	TutorialManager.notify_event("offering_made")
 	get_tree().call_group("ui_updates", "update_ui")
 	return total
 
@@ -229,6 +233,7 @@ func assign_to_plot(minion_id: String, plot_index: int) -> bool:
 		plots[previous] = ""
 	plots[plot_index] = minion_id
 	minions_updated.emit()
+	TutorialManager.notify_event("minion_slotted")
 	get_tree().call_group("ui_updates", "update_ui")
 	return true
 

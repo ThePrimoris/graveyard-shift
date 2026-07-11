@@ -7,8 +7,8 @@
 script = ExtResource("1_h4cm3")
 icon = ExtResource("9_icon")
 tool_tier = 2
-speed_multiplier = 1.5
-yield_bonus = 1
+speed_multiplier = 1.2
+yield_bonus = 10
 id = "reinforced_shovel"
 name = "Tungsten Shovel"
 type = 1

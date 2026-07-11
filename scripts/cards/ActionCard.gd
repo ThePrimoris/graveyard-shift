@@ -4,19 +4,16 @@
 # a centred title, a Common / Rare drop ledger, the node art in a well with
 # the action button beneath it, and a full-width progress bar with inline %
 # and a timer chip along the bottom.
-# Supports two harvest feels:
-#  FILL     - the bar fills smoothly (digging, chopping)
-#  DEPLETE  - a full bar loses a chunk per "hit" (mining strikes)
-# Nodes with dig_sections > 0 additionally show a vertical layer meter on the
-# right; the bottom bar then fills once per layer (used by Lumbering).
+# The horizontal bar always fills left to right, one sweep per harvest.
+# Two optional vertical meters sit at the card's right edge:
+#  dig_sections > 0  - a stacked layer meter; the bar fills once per layer
+#                      and layers pop top-first (Lumbering).
+#  hit_damage > 0    - a damage meter that fills a little per completed hit;
+#                      at full the node breaks and it resets (Spelunking).
 class_name ActionCard
 extends PanelContainer
 
 signal action_triggered
-
-enum ProgressMode { FILL, DEPLETE }
-
-const HITS_PER_BAR: int = 4
 
 # Lanternlight tokens (mirror theme/graveyard_theme.tres).
 const COL_CARD_BG := Color(0.078, 0.071, 0.11, 0.97)
@@ -24,6 +21,7 @@ const COL_TEXT_MID := Color(0.6, 0.565, 0.66)
 const COL_TEXT_HI := Color(0.91, 0.886, 0.83)
 const COL_RUST := Color(0.76, 0.353, 0.29)
 const COL_RARE_TEXT := Color(0.88, 0.64, 0.6)
+const COL_GREEN_TEXT := Color(0.55, 0.82, 0.5)
 const SEGMENT_COLOR := Color("#b5623a")
 
 # Gerund the views hand us -> the noun used in headers and on the button.
@@ -52,14 +50,27 @@ const VERB_NOUNS := {"Chopping": "Cut", "Mining": "Break", "Digging": "Dig"}
 @onready var icon_rect: TextureRect = %IconRect
 @onready var action_button: Button = %ActionButton
 @onready var segment_box: VBoxContainer = %SegmentBox
+@onready var damage_meter: Panel = %DamageMeter
+@onready var damage_fill: Panel = %DamageFill
 
 var action_verb: String = "Harvest"
 var node_title: String = ""
-var mode: int = ProgressMode.FILL
 var bar_color: Color = Color("#d4a445")
 var bars: Array = []
 var segments: Array = []
 var has_rare_table: bool = false
+var has_damage_meter: bool = false
+var damage_value: float = 0.0
+
+# Change-detection keys: update_ui runs every game tick, and rebuilding
+# children mid-hover destroys the control a tooltip is anchored to (the
+# "tooltips vanish after a second" bug). Skip rebuilds when nothing changed.
+var _drops_key: String = ""
+var _bonus_key: String = ""
+
+## The node's affix metadata (from GameManager.get_affix_info), or {} for none.
+## Rendered as the first chip in the top row by set_bonuses.
+var _affix_info: Dictionary = {}
 
 func _ready() -> void:
 	action_button.pressed.connect(_on_button_pressed)
@@ -81,6 +92,7 @@ func show_locked(desc_text: String, requirement_text: String) -> void:
 	columns.visible = false
 	bottom_row.visible = false
 	segment_box.visible = false
+	damage_meter.visible = false
 	action_button.visible = false
 	icon_rect.self_modulate = Color(0.1, 0.1, 0.12)
 
@@ -97,6 +109,7 @@ func show_unlocked() -> void:
 	rare_col.visible = has_rare_table
 	bottom_row.visible = true
 	segment_box.visible = not segments.is_empty()
+	damage_meter.visible = has_damage_meter
 	action_button.visible = true
 	icon_rect.self_modulate = Color.WHITE
 
@@ -112,6 +125,7 @@ func show_boss(desc_text: String, button_label: String) -> void:
 	top_row.visible = false
 	columns.visible = false
 	bottom_row.visible = false
+	damage_meter.visible = false
 	segment_box.visible = false
 	action_button.visible = true
 	action_button.text = button_label
@@ -133,46 +147,72 @@ func set_icon(tex: Texture2D) -> void:
 
 ## Makes this card span two normal slots (used for boss nodes like the Crypt).
 func set_large() -> void:
-	custom_minimum_size = Vector2(954, 0)
+	custom_minimum_size = Vector2(1014, 0)
 	icon_rect.custom_minimum_size = Vector2(120, 120)
 
 # --- Bonus chips (top-left row) ---
 
-## Small "icon +X%" pills for the active tool and skill speed bonuses.
-## Pass a null texture to fall back to a text tag.
-func set_bonuses(tool_icon: Texture2D, tool_pct: int, skill_icon: Texture2D, skill_pct: int) -> void:
-	_clear_children(chips_row)
-	chips_row.add_child(_make_chip(tool_icon, "Tool", "+%d%%" % tool_pct))
-	chips_row.add_child(_make_chip(skill_icon, "Skill", "+%d%%" % skill_pct))
-	chips_row.visible = columns.visible
+## Stores the node's affix metadata so the next set_bonuses renders its chip.
+## Pass {} to clear. The chip only rebuilds when the affix name changes.
+func set_affix(info: Dictionary) -> void:
+	_affix_info = info
 
-func _make_chip(icon: Texture2D, fallback: String, value_text: String) -> PanelContainer:
+## Renders one small "glyph +X%" pill per ACTIVE gather bonus, straight from
+## GameManager.get_gather_modifiers(node). Only non-zero bonuses show, so a
+## fresh-start card is bare and chips appear as the player earns them.
+func set_bonuses(mods: Dictionary) -> void:
+	var speed_pct := int(round((float(mods.get("speed_mult", 1.0)) - 1.0) * 100))
+	var double_pct := int(round(float(mods.get("double_chance", 0.0)) * 100))
+	var xp_pct := int(round((float(mods.get("xp_mult", 1.0)) - 1.0) * 100))
+	var rare_pct := float(mods.get("rare_add", 0.0)) * 100.0
+
+	var key = "%d|%d|%d|%.2f|%s" % [speed_pct, double_pct, xp_pct, rare_pct, str(_affix_info.get("name", ""))]
+	if key == _bonus_key:
+		chips_row.visible = columns.visible and chips_row.get_child_count() > 0
+		return
+	_bonus_key = key
+	_clear_children(chips_row)
+
+	if not _affix_info.is_empty():
+		var live: bool = bool(_affix_info.get("active", false))
+		chips_row.add_child(_make_stat_chip("⚠", str(_affix_info.get("name", "")),
+			COL_RUST if live else COL_TEXT_MID, str(_affix_info.get("blurb", ""))))
+
+	if speed_pct > 0:
+		chips_row.add_child(_make_stat_chip("⚡", "+%d%%" % speed_pct, COL_TEXT_HI,
+			"Harvest speed — this node finishes %d%% faster" % speed_pct))
+	if double_pct > 0:
+		chips_row.add_child(_make_stat_chip("⧉", "+%d%%" % double_pct, COL_TEXT_HI,
+			"Yield — %d%% chance for double the everyday haul" % double_pct))
+	if xp_pct > 0:
+		chips_row.add_child(_make_stat_chip("✦", "+%d%%" % xp_pct, COL_GREEN_TEXT,
+			"Bonus skill XP from slotted minions"))
+	if rare_pct > 0.0:
+		chips_row.add_child(_make_stat_chip("◆", "+%s" % _fmt_pct(rare_pct), COL_RARE_TEXT,
+			"Added rare-find chance from slotted minions"))
+
+	chips_row.visible = columns.visible and chips_row.get_child_count() > 0
+
+func _make_stat_chip(glyph: String, value_text: String, value_color: Color, tip: String) -> PanelContainer:
 	var chip = PanelContainer.new()
 	chip.theme_type_variation = &"ChipPanel"
 	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 5)
+	row.add_theme_constant_override("separation", 4)
 	chip.add_child(row)
 
-	if icon:
-		var pic = TextureRect.new()
-		pic.custom_minimum_size = Vector2(20, 20)
-		pic.expand_mode = 1
-		pic.stretch_mode = 5
-		pic.texture = icon
-		row.add_child(pic)
-	else:
-		var tag = Label.new()
-		tag.text = fallback
-		tag.add_theme_font_size_override("font_size", 12)
-		tag.add_theme_color_override("font_color", COL_TEXT_MID)
-		row.add_child(tag)
+	var tag = Label.new()
+	tag.text = glyph
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_color", COL_TEXT_MID)
+	row.add_child(tag)
 
 	var val = Label.new()
 	val.text = value_text
 	val.add_theme_font_size_override("font_size", 12)
-	val.add_theme_color_override("font_color", COL_TEXT_HI)
+	val.add_theme_color_override("font_color", value_color)
 	row.add_child(val)
-	chip.tooltip_text = "%s bonus: %s speed" % [fallback, value_text]
+
+	chip.tooltip_text = tip
 	return chip
 
 # --- Dig-layer meter (Lumbering) ---
@@ -202,35 +242,57 @@ func set_dig_sections(count: int) -> void:
 
 ## common / rare: Arrays of { "item": Item, "pct": float (0..100),
 ## "min_amount": int, "max_amount": int }, already sorted by share.
-## rare_chance (0..1) feeds the rare column header, e.g. "Rare — 1%".
-func set_drops(common: Array, rare: Array, rare_chance: float = 0.0) -> void:
+## Default columns: "Common" and "Rare — X%" (rare_chance feeds the header).
+## break_mode (Spelunking's breakable nodes) relabels them: "Hit Chance"
+## (per-hit odds, may pay nothing) and "Break" (guaranteed haul on break).
+func set_drops(common: Array, rare: Array, rare_chance: float = 0.0, break_mode: bool = false) -> void:
+	var key = "%s|%s|%.4f|%s" % [str(common), str(rare), rare_chance, str(break_mode)]
+	if key == _drops_key:
+		return
+	_drops_key = key
+
 	_clear_children(common_box)
 	_clear_children(rare_box)
+
+	if break_mode:
+		common_header.text = "Hit Chance"
+		common_header.tooltip_text = "Each completed %s has these odds to shake loot loose" \
+			% String(VERB_NOUNS.get(action_verb, "harvest")).to_lower()
+	else:
+		common_header.text = "Common"
+		common_header.tooltip_text = ""
 
 	if common.is_empty():
 		common_box.add_child(_make_empty_row())
 	for entry in common:
-		common_box.add_child(_make_drop_row(entry, false))
+		common_box.add_child(_make_drop_row(entry, false, "chance per hit" if break_mode else "of this table's drops"))
 
-	has_rare_table = not rare.is_empty() and rare_chance > 0.0
-	if has_rare_table:
-		rare_header.text = "Rare — %s" % _fmt_pct(rare_chance * 100.0)
-		rare_header.tooltip_text = "%s chance per %s to also roll this table" \
-			% [_fmt_pct(rare_chance * 100.0), String(VERB_NOUNS.get(action_verb, "harvest")).to_lower()]
+	if break_mode:
+		has_rare_table = not rare.is_empty()
+		rare_header.text = "Break"
+		rare_header.tooltip_text = "Guaranteed haul when the node's health breaks"
 		for entry in rare:
-			rare_box.add_child(_make_drop_row(entry, true))
+			rare_box.add_child(_make_drop_row(entry, true, "of the break haul"))
+	else:
+		has_rare_table = not rare.is_empty() and rare_chance > 0.0
+		if has_rare_table:
+			rare_header.text = "Rare — %s" % _fmt_pct(rare_chance * 100.0)
+			rare_header.tooltip_text = "%s chance per %s to also roll this table" \
+				% [_fmt_pct(rare_chance * 100.0), String(VERB_NOUNS.get(action_verb, "harvest")).to_lower()]
+			for entry in rare:
+				rare_box.add_child(_make_drop_row(entry, true, "of this table's drops"))
 	divider.visible = has_rare_table and columns.visible
 	rare_col.visible = has_rare_table and columns.visible
 
 ## One ledger row: "1–3  [icon]  27%". The item name lives in the tooltip.
-func _make_drop_row(entry: Dictionary, is_rare: bool) -> Control:
+func _make_drop_row(entry: Dictionary, is_rare: bool, context: String = "of this table's drops") -> Control:
 	var item: Item = entry["item"]
 	var pct: float = entry["pct"]
 	var qty := _fmt_amount(entry.get("min_amount", 1), entry.get("max_amount", 1))
 
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	row.tooltip_text = "%s ×%s — %s of this table's drops" % [item.name, qty, _fmt_pct(pct)]
+	row.tooltip_text = "%s ×%s — %s %s" % [item.name, qty, _fmt_pct(pct), context]
 
 	var qty_lbl = Label.new()
 	qty_lbl.text = qty
@@ -312,12 +374,24 @@ func set_progress_color(color: Color) -> void:
 	s.shadow_offset = Vector2(0, 3)
 	add_theme_stylebox_override("panel", s)
 
-## Chooses the harvest feel.
-func set_progress_mode(new_mode: int) -> void:
-	mode = new_mode
-	if bars.is_empty():
-		_build_bar()
-	reset_progress()
+## Shows the vertical damage meter for breakable nodes. `hit_damage` is the
+## share of the node's health one completed bar removes (0 hides the meter).
+func set_damage_meter(hit_damage: float) -> void:
+	has_damage_meter = hit_damage > 0.0
+	damage_meter.visible = has_damage_meter and columns.visible
+	if has_damage_meter:
+		var hits = int(ceil(1.0 / hit_damage))
+		damage_meter.tooltip_text = "Node integrity — each %s deals %d%% damage; it breaks after %d and pays its break haul." \
+			% [String(VERB_NOUNS.get(action_verb, "harvest")).to_lower(), int(round(hit_damage * 100)), hits]
+
+## Fills the damage meter bottom-to-top: 0.25 dealt = the bottom 25% of the
+## track. Called by the view as hits land; a break resets it to 0.
+func update_damage(dealt: float) -> void:
+	damage_value = clampf(dealt, 0.0, 1.0)
+	if damage_fill:
+		damage_fill.anchor_top = 1.0 - damage_value
+		damage_fill.offset_top = 2.0 if damage_value >= 0.999 else 0.0
+		damage_fill.visible = damage_value > 0.0
 
 func _build_bar() -> void:
 	_clear_children(progress_stack)
@@ -330,17 +404,18 @@ func _build_bar() -> void:
 	bars.append(bar)
 	_apply_bar_styles()
 
-## Bar backgrounds come from the theme; only the fill takes the skill colour.
+## Bar backgrounds come from the theme; only the fills take the skill colour.
 func _apply_bar_styles() -> void:
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = bar_color
+	fill.set_corner_radius_all(5)
 	for bar in bars:
-		var fill := StyleBoxFlat.new()
-		fill.bg_color = bar_color
-		fill.set_corner_radius_all(5)
 		bar.add_theme_stylebox_override("fill", fill)
-
-## Chunks t (0..1) into `steps` discrete notches, so bars visibly "take hits".
-func _stepped(t: float, steps: int) -> float:
-	return floor(clampf(t, 0.0, 1.0) * steps) / float(steps)
+	if damage_fill:
+		var dmg_style := StyleBoxFlat.new()
+		dmg_style.bg_color = Color(bar_color.r, bar_color.g, bar_color.b).lightened(0.15)
+		dmg_style.set_corner_radius_all(4)
+		damage_fill.add_theme_stylebox_override("panel", dmg_style)
 
 func update_progress(elapsed: float, duration: float) -> void:
 	if duration <= 0.0: return
@@ -363,15 +438,11 @@ func update_progress(elapsed: float, duration: float) -> void:
 		return
 
 	if not bars.is_empty():
-		match mode:
-			ProgressMode.FILL:
-				bars[0].value = t
-			ProgressMode.DEPLETE:
-				bars[0].value = 1.0 - _stepped(t, HITS_PER_BAR + 1)
+		bars[0].value = t
 
 func reset_progress() -> void:
 	for bar in bars:
-		bar.value = 0.0 if mode == ProgressMode.FILL else 1.0
+		bar.value = 0.0
 	for seg in segments:
 		seg.modulate.a = 1.0
 	if pct_label:

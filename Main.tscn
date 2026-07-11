@@ -2,16 +2,24 @@
 
 [ext_resource type="Script" uid="uid://bnrlhncec7ukt" path="res://Control.gd" id="1_ctl"]
 [ext_resource type="Script" uid="uid://nrgptrpumce6" path="res://data/ZoneData.gd" id="2_zone"]
+[ext_resource type="Script" uid="uid://bv546d3kr4iqb" path="res://scenes/views/CombatView.gd" id="3_combat"]
 [ext_resource type="Script" uid="uid://d4bv83bjbxn6a" path="res://scenes/views/ForestView.gd" id="3_forest"]
 [ext_resource type="Script" uid="uid://dkh46ubvlp71m" path="res://scenes/views/GraveyardView.gd" id="3_grave"]
 [ext_resource type="Script" uid="uid://bofccwadf0acr" path="res://scripts/ui/InventoryView.gd" id="3_inv"]
 [ext_resource type="Script" uid="uid://doap4rw2v3bm2" path="res://scenes/views/QuarryView.gd" id="3_quarry"]
 [ext_resource type="Script" uid="uid://btc6ab4s1abby" path="res://scenes/views/ShopView.gd" id="3_shop"]
-[ext_resource type="Script" path="res://scenes/views/UndercroftView.gd" id="3_under"]
-[ext_resource type="Resource" uid="uid://c6eo5cc7ttn6m" path="res://data/zones/humboldt_graves.tres" id="4_zgrave"]
 [ext_resource type="Resource" uid="uid://diivt652yth16" path="res://data/zones/bedlam_asylum.tres" id="4_zbedlam"]
-[ext_resource type="Resource" uid="uid://bd8ay4ognpm78" path="res://data/zones/mineshaft.tres" id="4_zmine"]
+[ext_resource type="Resource" uid="uid://c6eo5cc7ttn6m" path="res://data/zones/humboldt_graves.tres" id="4_zgrave"]
 [ext_resource type="Resource" path="res://data/zones/shrouded_woods.tres" id="4_ztrees"]
+[ext_resource type="Resource" path="res://data/zones/thornwood_grove.tres" id="4_zl2"]
+[ext_resource type="Resource" path="res://data/zones/shrouded_ashwoods.tres" id="4_zl3"]
+[ext_resource type="Resource" path="res://data/zones/hallowed_thicket.tres" id="4_zl4"]
+[ext_resource type="Resource" path="res://data/zones/tangled_ridge.tres" id="4_zl5"]
+[ext_resource type="Resource" path="res://data/zones/verdigris_seams.tres" id="4_zm1"]
+[ext_resource type="Resource" path="res://data/zones/emberslate_fissure.tres" id="4_zm2"]
+[ext_resource type="Resource" path="res://data/zones/hollow_crag.tres" id="4_zm3"]
+[ext_resource type="Resource" path="res://data/zones/peridotite_pits.tres" id="4_zm4"]
+[ext_resource type="Resource" path="res://data/zones/obsidian_chasm.tres" id="4_zm5"]
 [ext_resource type="PackedScene" uid="uid://cxo40vvphjf5d" path="res://scenes/NavigationPanel.tscn" id="5_nav"]
 [ext_resource type="PackedScene" uid="uid://d0g704i1cfeqy" path="res://scenes/PlotsBar.tscn" id="5_plots"]
 [ext_resource type="PackedScene" uid="uid://b8lvvrgeuhmvl" path="res://scenes/inventory/InventorySlot.tscn" id="5_slot"]
@@ -107,7 +115,7 @@ grow_vertical = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
 script = ExtResource("3_forest")
-zones = Array[ExtResource("2_zone")]([ExtResource("4_ztrees")])
+zones = Array[ExtResource("2_zone")]([ExtResource("4_ztrees"), ExtResource("4_zl2"), ExtResource("4_zl3"), ExtResource("4_zl4"), ExtResource("4_zl5")])
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/ForestView" unique_id=795878218]
 layout_mode = 2
@@ -159,7 +167,7 @@ grow_vertical = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
 script = ExtResource("3_quarry")
-zones = Array[ExtResource("2_zone")]([ExtResource("4_zmine")])
+zones = Array[ExtResource("2_zone")]([ExtResource("4_zm1"), ExtResource("4_zm2"), ExtResource("4_zm3"), ExtResource("4_zm4"), ExtResource("4_zm5")])
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/QuarryView" unique_id=766891391]
 layout_mode = 2
@@ -226,55 +234,53 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_type_variation = &"CardPanel"
 
-[node name="HeaderMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader"]
+[node name="HeaderMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader" unique_id=1393369915]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 8
 
-[node name="HeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin"]
+[node name="HeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin" unique_id=1697795114]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="InvTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+[node name="InvTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=587022743]
 layout_mode = 2
-size_flags_vertical = 4
 theme_type_variation = &"HeaderLabel"
 text = "Inventory"
 
-[node name="SlotsChip" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+[node name="SlotsChip" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=1954121834]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"ChipPanel"
 tooltip_text = "Inventory slots used"
+theme_type_variation = &"ChipPanel"
 
-[node name="SlotsUsedLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow/SlotsChip"]
+[node name="SlotsUsedLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow/SlotsChip" unique_id=1897833087]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "0 / 24"
 
-[node name="ValueChip" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+[node name="ValueChip" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=2114874558]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"ChipPanel"
 tooltip_text = "Total sell value of everything you carry"
+theme_type_variation = &"ChipPanel"
 
-[node name="BankValueLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow/ValueChip"]
+[node name="BankValueLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow/ValueChip" unique_id=1010446630]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+theme_override_font_sizes/font_size = 13
 text = "Value: 0 g"
 
-[node name="HeaderSpacer" type="Control" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+[node name="HeaderSpacer" type="Control" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=1819943501]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="EquippedLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow"]
+[node name="EquippedLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/BankHeader/HeaderMargin/HeaderRow" unique_id=681801674]
 layout_mode = 2
-size_flags_vertical = 4
 theme_type_variation = &"SectionLabel"
 text = "EQUIPPED"
 
@@ -302,12 +308,12 @@ theme_override_font_sizes/font_size = 10
 text = "Pickaxe"
 expand_icon = true
 
-[node name="GridPanel" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn"]
+[node name="GridPanel" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn" unique_id=601082584]
 layout_mode = 2
 size_flags_vertical = 3
 theme_type_variation = &"CardPanel"
 
-[node name="GridMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/GridPanel"]
+[node name="GridMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/BankColumn/GridPanel" unique_id=1188362288]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
@@ -324,9 +330,9 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
-columns = 8
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
+columns = 8
 
 [node name="DetailsCard" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer" unique_id=1070461903]
 custom_minimum_size = Vector2(340, 0)
@@ -334,7 +340,7 @@ layout_mode = 2
 size_flags_vertical = 0
 theme_type_variation = &"CardPanel"
 
-[node name="DetailsMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard"]
+[node name="DetailsMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard" unique_id=1262073764]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 12
@@ -346,13 +352,13 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="DetailsTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel"]
+[node name="DetailsTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel" unique_id=906389690]
 layout_mode = 2
 theme_type_variation = &"SectionLabel"
 text = "SELECTED ITEM"
 horizontal_alignment = 1
 
-[node name="NoSelectionLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel"]
+[node name="NoSelectionLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel" unique_id=1985738363]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
@@ -365,11 +371,11 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ItemHeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent"]
+[node name="ItemHeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent" unique_id=757253617]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="IconWell" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow"]
+[node name="IconWell" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow" unique_id=644784399]
 custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 theme_type_variation = &"WellPanel"
@@ -381,11 +387,11 @@ layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="NameCol" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow"]
+[node name="NameCol" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow" unique_id=213305177]
 layout_mode = 2
 size_flags_horizontal = 3
-alignment = 1
 theme_override_constants/separation = 3
+alignment = 1
 
 [node name="ItemNameLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow/NameCol" unique_id=313014510]
 unique_name_in_owner = true
@@ -393,7 +399,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 17
 autowrap_mode = 2
 
-[node name="ItemCountLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow/NameCol"]
+[node name="ItemCountLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/ItemHeaderRow/NameCol" unique_id=1341325680]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
@@ -405,73 +411,73 @@ theme_type_variation = &"MutedLabel"
 theme_override_font_sizes/font_size = 13
 autowrap_mode = 2
 
-[node name="StackRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent"]
+[node name="StackRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent" unique_id=304942237]
 layout_mode = 2
 
-[node name="StackTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/StackRow"]
+[node name="StackTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/StackRow" unique_id=153456816]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"MutedLabel"
 theme_override_font_sizes/font_size = 13
 text = "Stack value"
 
-[node name="StackValueLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/StackRow"]
+[node name="StackValueLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/StackRow" unique_id=1603033606]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
+theme_override_font_sizes/font_size = 13
 text = "0 g"
 
-[node name="SellPanel" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent"]
+[node name="SellPanel" type="PanelContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent" unique_id=515900340]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"InsetPanel"
 
-[node name="SellMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel"]
+[node name="SellMargin" type="MarginContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel" unique_id=1157455373]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="SellVBox" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin"]
+[node name="SellVBox" type="VBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin" unique_id=1886727037]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SellHeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox"]
+[node name="SellHeaderRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox" unique_id=1632833165]
 layout_mode = 2
 
-[node name="SellTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/SellHeaderRow"]
+[node name="SellTitle" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/SellHeaderRow" unique_id=1099267856]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"SectionLabel"
 text = "SELL"
 
-[node name="QtyLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/SellHeaderRow"]
+[node name="QtyLabel" type="Label" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/SellHeaderRow" unique_id=1373161971]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "1"
 
-[node name="SellSlider" type="HSlider" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox"]
+[node name="SellSlider" type="HSlider" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox" unique_id=959350235]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
 max_value = 1.0
 value = 1.0
 
-[node name="PresetRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox"]
+[node name="PresetRow" type="HBoxContainer" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox" unique_id=47363530]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="AllBut1Button" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/PresetRow"]
+[node name="AllBut1Button" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/PresetRow" unique_id=2099129841]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 text = "All but 1"
 
-[node name="AllButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/PresetRow"]
+[node name="AllButton" type="Button" parent="MainViewContainer/InventoryView/HBoxContainer/DetailsCard/DetailsMargin/DetailsPanel/DetailsContent/SellPanel/SellMargin/SellVBox/PresetRow" unique_id=1081892688]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -520,7 +526,7 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_plain")
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="UndercroftView" type="PanelContainer" parent="MainViewContainer"]
+[node name="CombatView" type="PanelContainer" parent="MainViewContainer" unique_id=466554620]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -531,22 +537,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
-script = ExtResource("3_under")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MainViewContainer/UndercroftView"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="ScrollContainer" type="ScrollContainer" parent="MainViewContainer/UndercroftView/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="MinionGrid" type="HFlowContainer" parent="MainViewContainer/UndercroftView/VBoxContainer/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 0
-theme_override_constants/h_separation = 14
-theme_override_constants/v_separation = 14
+script = ExtResource("3_combat")
 
 [node name="SideNav" type="PanelContainer" parent="." unique_id=11798162]
 layout_mode = 1
@@ -583,12 +574,6 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="UndercroftNavButton" type="Button" parent="SideNav/SideVBox/TopNav"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-text = "Undercroft"
-
 [node name="ShopNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=545983059]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
@@ -600,6 +585,12 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Inventory"
+
+[node name="GroundsNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=295689451]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Grounds"
 
 [node name="SettingsNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=797493566]
 unique_name_in_owner = true

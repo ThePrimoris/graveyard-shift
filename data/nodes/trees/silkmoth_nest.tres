@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/silken_husk.tres" id="i0"]
+
+[sub_resource type="Resource" id="common0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "silkmoth_nest"
+name = "Silkmoth Nest"
+description = "A high bough hung with silken cocoons. A careful harvest."
+required_skill = 1
+required_level = 23
+required_tool_type = 1
+base_duration = 11.2
+base_xp = 9
+dig_sections = 0
+affix = "sticky_sap"
+common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])

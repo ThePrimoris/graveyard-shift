@@ -49,13 +49,15 @@ func execute(command: String) -> String:
 	var response := ""
 	match parts[0].to_lower():
 		"help":
-			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  necronomicon <on|off> — toggle the dread tome\n  help" % ", ".join(GameManager.skills.keys())
+			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  necronomicon <on|off> — toggle the dread tome\n  combat [boss] — stage a test battle\n  help" % ", ".join(GameManager.skills.keys())
 		"level":
 			response = _cmd_level(parts)
 		"spawn":
 			response = _cmd_spawn(parts)
 		"necronomicon":
 			response = _cmd_necronomicon(parts)
+		"combat":
+			response = _cmd_combat(parts)
 		_:
 			response = "Unknown command '%s'. Try 'help'." % parts[0]
 
@@ -99,6 +101,15 @@ func _cmd_necronomicon(parts: PackedStringArray) -> String:
 	if MinionManager.necronomicon_unlocked:
 		return "The Necronomicon stirs. The circle at the graveyard's heart will open it."
 	return "The tome sleeps once more."
+
+func _cmd_combat(parts: PackedStringArray) -> String:
+	var combat_view = get_tree().get_first_node_in_group("combat_views")
+	if combat_view == null:
+		return "No combat view found — is the main scene running?"
+	var boss = parts.size() > 1 and parts[1].to_lower() == "boss"
+	combat_view.start_test_encounter(boss)
+	get_tree().call_group("view_manager", "switch_view", "combat")
+	return "A test battle begins%s." % (" — the Warden stirs" if boss else "")
 
 func _log(text: String) -> void:
 	log_lines.append(text)

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Enemy" format=3]
+
+[ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/jagged_fangs.tres" id="3_l0"]
+
+[sub_resource type="Resource" id="Loot0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l0")
+weight = 25.0
+
+[resource]
+script = ExtResource("1_enemy")
+id = "grave_rat"
+name = "Grave Rat"
+glyph = "🐀"
+description = "Fat on things best not considered."
+base_hp = 8
+atk = 2.0
+speed = 1.2
+xp_reward = 8.0
+gold_min = 1
+gold_max = 4
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0")])
+metadata/_custom_type_script = "res://data/EnemyData.gd"

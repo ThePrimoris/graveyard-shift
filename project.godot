@@ -17,10 +17,12 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+SettingsManager="*res://scripts/managers/SettingsManager.gd"
 GameManager="*uid://jk3bg457umjn"
 InventoryManager="*uid://cdnjxuvd1yyb6"
 NotificationManager="*uid://dpv6heio3df0b"
 MinionManager="*res://scripts/managers/MinionManager.gd"
+GroundsManager="*res://scripts/managers/GroundsManager.gd"
 SaveManager="*res://scripts/managers/SaveManager.gd"
 TutorialManager="*res://scripts/managers/TutorialManager.gd"
 DebugConsole="*res://scripts/managers/DebugConsole.gd"
@@ -30,6 +32,8 @@ DebugConsole="*res://scripts/managers/DebugConsole.gd"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=2
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [gui]
 

@@ -30,9 +30,10 @@ func purchase_slot() -> bool:
 	refresh_capacity()
 	return true
 
-## Grows the slot array to match purchases; never destroys occupied slots.
+## Grows the slot array to match purchases + built storage structures;
+## never destroys occupied slots.
 func refresh_capacity() -> void:
-	var target = BASE_SLOTS + purchased_slots
+	var target = BASE_SLOTS + purchased_slots + GroundsManager.get_inventory_slot_bonus()
 	while slots.size() < target:
 		slots.append(null)
 	while slots.size() > target and slots[slots.size() - 1] == null:

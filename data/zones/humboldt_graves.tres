@@ -3,9 +3,9 @@
 [ext_resource type="Script" uid="uid://nrgptrpumce6" path="res://data/ZoneData.gd" id="1_zone"]
 [ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="2_hnode"]
 [ext_resource type="Resource" uid="uid://dhbm3xwg6yyj3" path="res://data/nodes/graves/fresh_grave.tres" id="3_n1"]
-[ext_resource type="Resource" path="res://data/nodes/graves/old_graves.tres" id="3_n2"]
-[ext_resource type="Resource" path="res://data/nodes/graves/sunken_graves.tres" id="3_n3"]
-[ext_resource type="Resource" path="res://data/nodes/graves/forgotten_graves.tres" id="3_n4"]
+[ext_resource type="Resource" uid="uid://b76d3tw01qek4" path="res://data/nodes/graves/old_graves.tres" id="3_n2"]
+[ext_resource type="Resource" uid="uid://co1677ti53812" path="res://data/nodes/graves/sunken_graves.tres" id="3_n3"]
+[ext_resource type="Resource" uid="uid://c5y1f1432xubr" path="res://data/nodes/graves/forgotten_graves.tres" id="3_n4"]
 [ext_resource type="Resource" path="res://data/nodes/graves/old_crypt.tres" id="3_n5"]
 
 [resource]

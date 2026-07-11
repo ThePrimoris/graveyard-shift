@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Structure" format=3]
+
+[ext_resource type="Script" path="res://data/StructureData.gd" id="1_struct"]
+[ext_resource type="Script" path="res://data/StructureTierData.gd" id="2_tier"]
+
+[sub_resource type="Resource" id="T0"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"blood": 15, "flesh": 15})
+magnitude = 5.0
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"blood": 50, "bones": 60, "amber_droplet": 8})
+magnitude = 5.0
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"rancid_sinew": 40, "briar_blossom": 10, "silken_husk": 8})
+magnitude = 5.0
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"withered_heart": 20, "petrified_acorn": 10, "quartz_geode": 15})
+magnitude = 5.0
+
+[sub_resource type="Resource" id="T4"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"raven_quill": 12, "imperial_jade_knot": 10, "obsidian_shard": 12})
+magnitude = 5.0
+
+[resource]
+script = ExtResource("1_struct")
+id = "chapel"
+name = "The Chapel"
+description = "A deconsecrated chapel where the old rites still teach. Study speeds every craft."
+sort_order = 2
+effect = "harvest_xp_pct"
+effect_unit = "%"
+effect_label = "harvest XP"
+tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

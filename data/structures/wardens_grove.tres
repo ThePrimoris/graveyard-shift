@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Structure" format=3]
+
+[ext_resource type="Script" path="res://data/StructureData.gd" id="1_struct"]
+[ext_resource type="Script" path="res://data/StructureTierData.gd" id="2_tier"]
+
+[sub_resource type="Resource" id="T0"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"rotten_logs": 30, "brittle_branches": 20})
+magnitude = 3.0
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"blackthorn_timber": 60, "poison_thorns": 40, "briar_blossom": 8})
+magnitude = 3.0
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"ash_burl": 100, "pale_lichen": 60, "silken_husk": 10})
+magnitude = 3.0
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"angel_oak": 150, "velvet_moss": 80, "petrified_acorn": 12})
+magnitude = 3.0
+
+[sub_resource type="Resource" id="T4"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"sable_walnut_heartwood": 200, "nightshade_vine": 100, "raven_quill": 15})
+magnitude = 3.0
+
+[resource]
+script = ExtResource("1_struct")
+id = "wardens_grove"
+name = "The Wardens' Grove"
+description = "A planted ring of grave-wardens. Their quiet watch coaxes a richer haul from the ground."
+sort_order = 3
+effect = "double_drop_pct"
+effect_unit = "%"
+effect_label = "double-harvest"
+tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

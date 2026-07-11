@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/slate_slab.tres" id="i0"]
+[ext_resource type="Resource" path="res://data/items/materials/quartz_geode.tres" id="i1"]
+
+[sub_resource type="Resource" id="hit0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 60.0
+
+[sub_resource type="Resource" id="break0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 85.0
+min_amount = 2
+max_amount = 4
+
+[sub_resource type="Resource" id="break1"]
+script = ExtResource("2_loot")
+item = ExtResource("i1")
+weight = 15.0
+
+[resource]
+script = ExtResource("1_node")
+id = "emberslate_face"
+name = "Emberslate Face"
+description = "Ember-streaked slate, flaking off in plates."
+required_skill = 2
+required_level = 10
+required_tool_type = 2
+base_duration = 3.0
+base_xp = 6
+hit_damage = 0.2
+affix = "unstable_seams"
+hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0")])
+break_pool = Array[ExtResource("2_loot")]([SubResource("break0"), SubResource("break1")])

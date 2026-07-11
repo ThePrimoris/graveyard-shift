@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "sable_walnut_heartwood"
+name = "Sable Walnut Heartwood"
+description = "Near-black heartwood, dense as iron and twice as stubborn."
+sell_value = 18

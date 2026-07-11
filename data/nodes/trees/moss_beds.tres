@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/velvet_moss.tres" id="i0"]
+[ext_resource type="Resource" path="res://data/items/materials/petrified_acorn.tres" id="i1"]
+
+[sub_resource type="Resource" id="common0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 100.0
+max_amount = 2
+
+[sub_resource type="Resource" id="rare0"]
+script = ExtResource("2_loot")
+item = ExtResource("i1")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "moss_beds"
+name = "Moss Beds"
+description = "Deep, cushioning moss carpeting the thicket floor."
+required_skill = 1
+required_level = 35
+required_tool_type = 1
+base_duration = 4.4
+base_xp = 11
+dig_sections = 2
+affix = "blind_canopies"
+rare_chance = 0.06
+common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])
+rare_pool = Array[ExtResource("2_loot")]([SubResource("rare0")])

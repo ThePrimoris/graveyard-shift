@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/basalt_debris.tres" id="i0"]
+[ext_resource type="Resource" path="res://data/items/materials/obsidian_shard.tres" id="i1"]
+
+[sub_resource type="Resource" id="hit0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 20.0
+
+[sub_resource type="Resource" id="break0"]
+script = ExtResource("2_loot")
+item = ExtResource("i1")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "obsidian_vug"
+name = "Obsidian Vug"
+description = "A glass-lined vug. Shatter it for a blade-sharp shard."
+required_skill = 2
+required_level = 58
+required_tool_type = 2
+base_duration = 4.5
+base_xp = 22
+hit_damage = 0.1
+affix = "volcanic_gas"
+hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0")])
+break_pool = Array[ExtResource("2_loot")]([SubResource("break0")])

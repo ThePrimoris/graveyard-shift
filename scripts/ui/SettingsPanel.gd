@@ -63,6 +63,26 @@ func _ready() -> void:
 
 	vbox.add_child(HSeparator.new())
 
+	# Display: the window mode/size dropdown, persisted across launches
+	var display_row = HBoxContainer.new()
+	display_row.add_theme_constant_override("separation", 12)
+	vbox.add_child(display_row)
+
+	var display_label = Label.new()
+	display_label.text = "Window size"
+	display_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	display_row.add_child(display_label)
+
+	var window_dropdown = OptionButton.new()
+	window_dropdown.custom_minimum_size = Vector2(190, 36)
+	for label in SettingsManager.get_choice_labels():
+		window_dropdown.add_item(label)
+	window_dropdown.select(SettingsManager.get_choice_index(SettingsManager.window_choice))
+	window_dropdown.item_selected.connect(SettingsManager.set_window_choice_by_index)
+	display_row.add_child(window_dropdown)
+
+	vbox.add_child(HSeparator.new())
+
 	var save_btn = Button.new()
 	save_btn.text = "Save Now"
 	save_btn.custom_minimum_size = Vector2(0, 40)

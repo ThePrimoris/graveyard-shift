@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://co1677ti53812"]
 
 [ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
 [ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
@@ -12,14 +12,12 @@
 script = ExtResource("2_loot")
 item = ExtResource("3_i0")
 weight = 50.0
-min_amount = 1
 max_amount = 2
 
 [sub_resource type="Resource" id="Common1"]
 script = ExtResource("2_loot")
 item = ExtResource("3_i1")
 weight = 30.0
-min_amount = 1
 max_amount = 2
 
 [sub_resource type="Resource" id="Common2"]
@@ -43,11 +41,8 @@ id = "sunken_graves"
 name = "Sunken Graves"
 description = "The low, waterlogged corner where coffins have collapsed. The damp keeps the flesh and sinew grimly intact."
 required_level = 6
-required_skill = 0
-required_tool_type = 0
-base_duration = 3.0
 base_xp = 9.0
 common_pool = Array[ExtResource("2_loot")]([SubResource("Common0"), SubResource("Common1"), SubResource("Common2")])
-rare_chance = 0.03
+rare_chance = 0.15
 rare_pool = Array[ExtResource("2_loot")]([SubResource("Rare0"), SubResource("Rare1")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

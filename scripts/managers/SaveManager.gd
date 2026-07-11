@@ -6,6 +6,11 @@ const SAVE_PATH: String = "user://graveyard_shift_save.json"
 const SAVE_VERSION: int = 2
 const AUTOSAVE_INTERVAL: float = 30.0
 
+## Offline progress: free window everyone gets, plus a minimum gap before it's
+## worth granting. The Grave-Lantern structure extends the cap (offline_hours).
+const OFFLINE_BASE_HOURS: float = 1.0
+const OFFLINE_MIN_SECONDS: float = 60.0
+
 var _autosave_accum: float = 0.0
 var _loaded: bool = false
 
@@ -36,6 +41,7 @@ func hard_reset() -> void:
 	InventoryManager.reset_state()
 	GameManager.reset_state()
 	MinionManager.reset_state()
+	GroundsManager.reset_state()
 	TutorialManager.reset_state()
 	save_game()
 	get_tree().call_group("ui_updates", "update_ui")
@@ -55,7 +61,8 @@ func save_game() -> void:
 		"purchased_slots": InventoryManager.purchased_slots,
 		"tutorial_complete": TutorialManager.tutorial_complete,
 		"inventory": InventoryManager.get_save_data(),
-		"minions": MinionManager.get_save_data()
+		"minions": MinionManager.get_save_data(),
+		"grounds": GroundsManager.get_save_data()
 	}
 
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -128,14 +135,43 @@ func load_game() -> void:
 	InventoryManager.restore_from_save(data.get("inventory", []))
 	InventoryManager.refresh_capacity()
 	MinionManager.restore_from_save(data.get("minions", {}))
+	GroundsManager.restore_from_save(data.get("grounds", {}))
 	_ensure_default_equipment()
 
 	# Pick the previous node back up so the player doesn't have to re-click it
 	var last_node_id = str(data.get("active_node_id", ""))
 	if last_node_id != "":
 		get_tree().call_group("harvest_views", "resume_node", last_node_id)
+		_accrue_offline(last_node_id, int(data.get("timestamp", 0)))
 
 	get_tree().call_group("ui_updates", "update_ui")
+
+## Grants offline harvesting for the node the player left running, capped by
+## the base window plus any Grave-Lantern tiers built.
+func _accrue_offline(node_id: String, saved_ts: int) -> void:
+	if saved_ts <= 0: return
+	var node = GameManager.find_node_by_id(node_id)
+	if node == null: return
+	var elapsed = Time.get_unix_time_from_system() - float(saved_ts)
+	if elapsed < OFFLINE_MIN_SECONDS: return
+	var cap_hours = OFFLINE_BASE_HOURS + GroundsManager.get_bonus("offline_hours")
+	var capped = clampf(elapsed, 0.0, cap_hours * 3600.0)
+
+	var result = GameManager.accrue_offline(node, capped)
+	if result.is_empty() or int(result.get("harvests", 0)) <= 0: return
+
+	var total_items := 0
+	for item_id in result["gains"]:
+		total_items += int(result["gains"][item_id])
+	NotificationManager.show_item("Welcome back — the grounds worked %s while you were gone: +%d materials, +%d XP" \
+		% [_fmt_duration(capped), total_items, int(result["xp"])], 1)
+
+func _fmt_duration(seconds: float) -> String:
+	var h = int(seconds) / 3600
+	var m = (int(seconds) % 3600) / 60
+	if h > 0:
+		return "%dh %dm" % [h, m]
+	return "%dm" % maxi(m, 1)
 
 ## Fills any empty equipment slot with an owned tool of that type,
 ## and makes sure no tool sits in both an equipment slot and the grid.

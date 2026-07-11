@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "pale_lichen"
+name = "Pale Lichen"
+description = "Ghost-white lichen scraped from ashen bark."
+sell_value = 7

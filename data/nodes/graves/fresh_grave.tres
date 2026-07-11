@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
 [ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
-[ext_resource type="Resource" path="res://data/items/materials/flesh.tres" id="3_item"]
 [ext_resource type="Resource" uid="uid://bphkb3ah54w7u" path="res://data/items/materials/bones.tres" id="3_abwmi"]
+[ext_resource type="Resource" path="res://data/items/materials/flesh.tres" id="3_item"]
 [ext_resource type="Resource" uid="uid://bwx3jbyv6phwq" path="res://data/items/materials/blood.tres" id="4_15dru"]
 [ext_resource type="Resource" path="res://data/items/materials/cracked_skull.tres" id="5_r0"]
 [ext_resource type="Resource" path="res://data/items/materials/grave_dust.tres" id="6_r1"]
@@ -12,14 +12,12 @@
 script = ExtResource("2_loot")
 item = ExtResource("3_item")
 weight = 55.0
-min_amount = 1
 max_amount = 2
 
 [sub_resource type="Resource" id="Common1"]
 script = ExtResource("2_loot")
 item = ExtResource("3_abwmi")
 weight = 30.0
-min_amount = 1
 max_amount = 3
 
 [sub_resource type="Resource" id="Common2"]
@@ -36,7 +34,6 @@ weight = 70.0
 script = ExtResource("2_loot")
 item = ExtResource("6_r1")
 weight = 30.0
-min_amount = 1
 max_amount = 2
 
 [resource]
@@ -44,8 +41,8 @@ script = ExtResource("1_node")
 id = "fresh_grave"
 name = "Fresh Graves"
 description = "Recently turned earth, ripe for the robbing."
-base_duration = 3.0
+base_xp = 3.0
 common_pool = Array[ExtResource("2_loot")]([SubResource("Common0"), SubResource("Common1"), SubResource("Common2")])
-rare_chance = 0.01
+rare_chance = 0.25
 rare_pool = Array[ExtResource("2_loot")]([SubResource("Rare0"), SubResource("Rare1")])
 metadata/_custom_type_script = "uid://dtsbj2qd3j6wd"

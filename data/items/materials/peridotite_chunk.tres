@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "peridotite_chunk"
+name = "Peridotite Chunk"
+description = "Cold green mantle-rock from the deep pits."
+sell_value = 11

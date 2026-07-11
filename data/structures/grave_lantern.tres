@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Structure" format=3]
+
+[ext_resource type="Script" path="res://data/StructureData.gd" id="1_struct"]
+[ext_resource type="Script" path="res://data/StructureTierData.gd" id="2_tier"]
+
+[sub_resource type="Resource" id="T0"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"rotten_logs": 25, "stone_debris": 20, "amber_droplet": 5})
+magnitude = 2.0
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"blackthorn_timber": 60, "granite_cobble": 50, "briar_blossom": 8})
+magnitude = 3.0
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"ash_burl": 100, "tungsten_lump": 50, "silken_husk": 10})
+magnitude = 3.0
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"angel_oak": 150, "nickel_granule": 60, "quartz_geode": 12})
+magnitude = 4.0
+
+[sub_resource type="Resource" id="T4"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"sable_walnut_heartwood": 200, "obsidian_shard": 15, "raven_quill": 12})
+magnitude = 4.0
+
+[resource]
+script = ExtResource("1_struct")
+id = "grave_lantern"
+name = "The Grave-Lantern"
+description = "A great lantern raised over the grounds. Its cold light keeps the work going long after you've gone — the dead don't sleep, and now neither do the tools."
+sort_order = 4
+effect = "offline_hours"
+effect_unit = "h"
+effect_label = "offline time"
+tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

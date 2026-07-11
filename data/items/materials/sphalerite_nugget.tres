@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "sphalerite_nugget"
+name = "Sphalerite Nugget"
+description = "A resinous ore nugget, zinc-bright at the fracture."
+sell_value = 4

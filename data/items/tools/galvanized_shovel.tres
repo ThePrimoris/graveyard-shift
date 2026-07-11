@@ -7,7 +7,7 @@
 script = ExtResource("1_3ifa5")
 icon = ExtResource("9_icon")
 tool_tier = 1
-speed_multiplier = 1.25
+speed_multiplier = 1.1
 id = "galvanized_shovel"
 name = "Steel Shovel"
 type = 1

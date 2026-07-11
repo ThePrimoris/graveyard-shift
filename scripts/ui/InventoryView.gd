@@ -133,10 +133,12 @@ func _refresh_tool_slots() -> void:
 			# Icon-only, sized like a regular inventory slot; details go in the tooltip
 			btn.text = "" if tool.icon else tool.name.left(6)
 			btn.icon = tool.icon
-			btn.tooltip_text = "%s — %.2fx speed%s\nClick to inspect / unequip." % [
-				tool.name, tool.speed_multiplier,
-				(", +%d yield" % tool.yield_bonus) if tool.yield_bonus > 0 else ""
-			]
+			var bits: Array[String] = []
+			var sp := int(round((tool.speed_multiplier - 1.0) * 100))
+			if sp > 0: bits.append("+%d%% speed" % sp)
+			if tool.yield_bonus > 0: bits.append("+%d%% double haul" % tool.yield_bonus)
+			var stat_line := ", ".join(bits) if not bits.is_empty() else "baseline"
+			btn.tooltip_text = "%s — %s\nClick to inspect / unequip." % [tool.name, stat_line]
 		else:
 			btn.text = type_name
 			btn.icon = null

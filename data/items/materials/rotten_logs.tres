@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_item")
 id = "rotten_logs"
-name = "Rotten Logs"
+name = "Gravewood Log"
 icon = ExtResource("9_icon")
-description = "Soft, damp timber from long-dead trees."
+description = "Soft, damp timber from the withered trees at the grounds' edge. The everyday cut."
 metadata/_custom_type_script = "uid://lm34okuvj3hr"

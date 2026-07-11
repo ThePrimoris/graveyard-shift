@@ -36,11 +36,22 @@ func _ready() -> void:
 			missing_icons.append(item_id)
 	check(missing_icons.is_empty(), "every item has an icon" + ("" if missing_icons.is_empty() else " (missing: %s)" % str(missing_icons)))
 
+	# --- Player settings: the window choice persists in its own file ---
+	var prev_window_choice = SettingsManager.window_choice
+	SettingsManager.window_choice = "1280x720"
+	SettingsManager.save_settings()
+	SettingsManager.window_choice = "maximized"
+	SettingsManager.load_settings()
+	check(SettingsManager.window_choice == "1280x720", "window choice persists to the settings file")
+	check(SettingsManager.get_choice_index("bogus") == 1, "unknown window choices fall back to maximized")
+	SettingsManager.window_choice = prev_window_choice
+	SettingsManager.save_settings()
+
 	# --- Every harvest lands exactly one common-table row ---
 	var expectations = {
 		"fresh_grave": ["graverobbing", "flesh"],
-		"dead_trees": ["lumbering", "rotten_logs"],
-		"crumbling_walls": ["spelunking", "stone_debris"],
+		"withered_trees": ["lumbering", "rotten_logs"],
+		"verdigris_seams": ["spelunking", "stone_debris"],
 	}
 	for node_id in expectations:
 		var node = GameManager.find_node_by_id(node_id)
@@ -54,7 +65,10 @@ func _ready() -> void:
 			var g = GameManager.resolve_harvest(node, false)
 			if g.is_empty(): every_harvest_paid = false
 			if g.has(drop): saw_expected = true
-		check(every_harvest_paid, "%s pays out on every harvest" % node_id)
+		if node.hit_damage > 0.0:
+			check(not node.hit_pool.is_empty(), "%s rolls a hit chance table" % node_id)
+		else:
+			check(every_harvest_paid, "%s pays out on every harvest" % node_id)
 		check(saw_expected, "%s drops %s" % [node_id, drop])
 		check(InventoryManager.get_item_count(drop) >= 1, "%s banked in inventory" % drop)
 		check(GameManager.skills[skill]["xp"] > xp_before or GameManager.skills[skill]["level"] > 1, "%s grants %s XP" % [node_id, skill])
@@ -141,7 +155,11 @@ func _ready() -> void:
 	check(not g6.has("rotten_logs"), "drop tables cap at 5 rows")
 
 	# --- XP curve and cap ---
-	check(int(GameManager.get_xp_needed(1)) == 83, "RS curve: level 1->2 costs 83 XP")
+	check(int(GameManager.get_xp_needed(1)) == 83, "level 1 runs at the brisk RS pace (83 XP)")
+	var raw_40 = floor((40.0 + 300.0 * pow(2.0, 40.0 / 7.0)) / 4.0)
+	check(GameManager.get_xp_needed(40) >= raw_40 * GameManager.SKILL_XP_SCALE_LATE * 0.99, "late levels carry the full slow-burn scale")
+	check(GameManager.get_xp_needed(15) > floor((15.0 + 300.0 * pow(2.0, 15.0 / 7.0)) / 4.0), "the ramp is already stretching mid levels")
+	check(MinionManager.get_xp_needed(2) > MinionManager.get_xp_needed(1) * 2.0, "minion curve steepens per level")
 	GameManager.skills["lumbering"]["level"] = 99
 	GameManager.add_xp("lumbering", 99999999.0)
 	check(GameManager.skills["lumbering"]["level"] == 100, "levels cap at 100")
@@ -226,10 +244,10 @@ func _ready() -> void:
 
 	check(gv.header_title != null and gv.header_title.text.begins_with("Graverobbing"), "page header shows the skill")
 	var fv = main.find_child("ForestView", true, false)
-	check(fv.cards.size() >= 1 and fv.cards[0].bars.size() == 1 and fv.cards[0].bars[0].value == 0.0, "dead trees use a single fill bar")
-	check(not fv.cards[0].rare_col.visible and not fv.cards[0].divider.visible, "no rare column when a node has no rare table")
-	# Lumbering keeps the dig-layer meter: 2 sections on Dead Trees
-	check(GameManager.find_node_by_id("dead_trees").dig_sections == 2, "Dead Trees chops in 2 sections")
+	check(fv.cards.size() >= 1 and fv.cards[0].bars.size() == 1 and fv.cards[0].bars[0].value == 0.0, "withered trees use a single fill bar")
+	check(fv.cards[0].rare_col.visible and fv.cards[0].divider.visible, "rare column shows for a node with a rare table")
+	# Lumbering keeps the dig-layer meter: 2 sections on Withered Trees
+	check(GameManager.find_node_by_id("withered_trees").dig_sections == 2, "Withered Trees chops in 2 sections")
 	check(fv.cards[0].segments.size() == 2 and fv.cards[0].segment_box.visible, "lumbering card shows a 2-section layer meter")
 	check(fv.cards[0].segment_box is VBoxContainer, "layer meter is vertical")
 	# A full sweep of the bottom bar removes one section (top first).
@@ -240,7 +258,46 @@ func _ready() -> void:
 	fv.cards[0].reset_progress()
 	check(fv.cards[0].segments[0].modulate.a > 0.5, "reset restores all sections")
 	var qv = main.find_child("QuarryView", true, false)
-	check(qv.cards.size() >= 1 and qv.cards[0].bars[0].value == 1.0, "crumbling walls bar starts full and depletes")
+	check(qv.cards.size() >= 1 and qv.cards[0].bars[0].value == 0.0, "verdigris seams bar starts empty and fills")
+
+	# --- Spelunking durability: hits deal damage, a full meter breaks the node ---
+	var wall = GameManager.find_node_by_id("verdigris_seams")
+	check(is_equal_approx(wall.hit_damage, 0.25), "verdigris seams take 25% damage per hit")
+	check(qv.cards[0].damage_meter.visible, "quarry card shows the vertical damage meter")
+	check(not gv.cards[0].damage_meter.visible and not fv.cards[0].damage_meter.visible, "graves and trees have no damage meter")
+	qv.node_damage.clear()
+	for i in range(3):
+		qv._register_hit(wall, qv.cards[0])
+	check(is_equal_approx(qv.node_damage["verdigris_seams"], 0.75), "three hits leave the wall at 75 percent damage")
+	check(is_equal_approx(qv.cards[0].damage_value, 0.75), "damage meter mirrors the dealt damage")
+	check(is_equal_approx(qv.cards[0].damage_fill.anchor_top, 0.25), "meter fills from the bottom: 75% dealt leaves the top quarter empty")
+	var stone_before = InventoryManager.get_item_count("stone_debris")
+	var flake_before = InventoryManager.get_item_count("malachite_flake")
+	qv._register_hit(wall, qv.cards[0])
+	check(InventoryManager.get_item_count("stone_debris") > stone_before or InventoryManager.get_item_count("malachite_flake") > flake_before,
+		"the break always pays its haul")
+	check(is_equal_approx(qv.node_damage["verdigris_seams"], 0.0) and qv.cards[0].damage_value == 0.0, "a broken node resets instantly")
+	# The quarry ledger reads Hit Chance / Break, not Common / Rare
+	check(qv.cards[0].common_header.text == "Hit Chance" and qv.cards[0].rare_header.text == "Break", "quarry ledger reads Hit Chance / Break")
+	check(qv.cards[0].rare_col.visible, "break column always shows on breakable nodes")
+	check(gv.cards[0].common_header.text == "Common", "grave ledger keeps Common / Rare")
+	# Break-only nodes: an empty hit table pays nothing per hit
+	var break_only: HarvestNode = wall.duplicate()
+	break_only.id = "test_break_only"
+	var no_hits: Array[LootDrop] = []
+	break_only.hit_pool = no_hits
+	check(GameManager.resolve_harvest(break_only, false).is_empty(), "break-only nodes drop nothing per hit")
+	check(not GameManager.resolve_break(break_only, false).is_empty(), "the break haul is guaranteed")
+	# Hit weights are literal percentages: 100 always pays, the shortfall misses
+	var sure_hit = LootDrop.new()
+	sure_hit.item = GameManager.find_item_by_id("stone_debris")
+	sure_hit.weight = 100.0
+	var sure_pool: Array[LootDrop] = [sure_hit]
+	break_only.hit_pool = sure_pool
+	var always_hit = true
+	for i in range(10):
+		if not GameManager.resolve_harvest(break_only, false).has("stone_debris"): always_hit = false
+	check(always_hit, "a 100-weight hit row pays every hit")
 	# Zone selector: one starter zone per skill, left of the node grid
 	check(gv.zones.size() == 2 and gv.zones[0].name == "Humboldt Graves", "graverobbing opens in Humboldt Graves")
 	check(gv.zones[1].name == "Bedlam Asylum" and gv.zone_buttons.size() == 2, "Bedlam Asylum is the second graverobbing zone")
@@ -326,22 +383,23 @@ func _ready() -> void:
 	check(not MinionManager.raise_minion("zombie"), "a minion can only be raised once")
 	check(MinionManager.get_hp("zombie") == 20 and MinionManager.get_atk("zombie") == 2.0, "fresh zombie has base stats")
 
-	# Undercroft UI
-	var uv = main.find_child("UndercroftView", true, false)
-	check(uv != null and uv.cards.size() == MinionManager.minion_db.size(), "undercroft builds a card per minion type")
-	check(main.find_child("UndercroftNavButton", true, false) != null, "undercroft nav button present")
+	# The Undercroft is gone — the Necronomicon is the only minion UI
+	check(main.find_child("UndercroftView", true, false) == null, "no undercroft view remains")
+	check(main.find_child("UndercroftNavButton", true, false) == null, "no undercroft nav button remains")
+	check(MinionManager.sorted_ids() == ["zombie", "skeleton", "undead_hound", "ghoul"], "four minions order by sort_order (%s)" % str(MinionManager.sorted_ids()))
+	# The warband roster: one minion per plot once all four are raised
+	var hound: Minion = MinionManager.find_minion_by_id("undead_hound")
+	var ghoul: Minion = MinionManager.find_minion_by_id("ghoul")
+	check(hound != null and hound.raise_cost.get("jagged_fangs", 0) > 0, "undead hound rite costs fangs")
+	check(ghoul != null and ghoul.raise_cost.get("withered_heart", 0) > 0, "ghoul rite costs withered hearts")
+	check(MinionManager.minion_db.size() == MinionManager.PLOT_COUNT, "one minion type per graveyard plot")
 
-	# Plots: slot, show occupant, earn harvest XP only while slotted
+	# Plots: slot and show the occupant. Harvesting feeds minions nothing —
+	# offerings (and later combat) are their only XP.
 	check(MinionManager.assign_to_plot("zombie", 0), "zombie takes plot 1")
 	check(plots_bar.plot_buttons[0].text == "Z", "plot button shows its occupant")
-	var mxp = MinionManager.roster["zombie"]["xp"]
 	GameManager.resolve_harvest(grave, false)
-	check(MinionManager.roster["zombie"]["xp"] > mxp, "slotted minion earns a share of harvest XP")
-	MinionManager.vacate_plot(0)
-	mxp = MinionManager.roster["zombie"]["xp"]
-	GameManager.resolve_harvest(grave, false)
-	check(MinionManager.roster["zombie"]["xp"] == mxp, "idle minions earn nothing")
-	MinionManager.assign_to_plot("zombie", 0)
+	check(MinionManager.roster["zombie"]["xp"] == 0.0, "harvesting grants slotted minions no XP")
 	MinionManager.assign_to_plot("zombie", 1)
 	check(MinionManager.plots[0] == "" and MinionManager.plots[1] == "zombie", "a minion holds only one plot at a time")
 
@@ -359,11 +417,8 @@ func _ready() -> void:
 
 	# --- The Necronomicon ---
 	check(not MinionManager.necronomicon_unlocked, "necronomicon starts locked")
-	var nav_undercroft = main.find_child("UndercroftNavButton", true, false)
-	check(nav_undercroft != null and nav_undercroft.visible, "undercroft button shows while the tome sleeps")
 	check("stirs" in DebugConsole.execute("necronomicon on"), "console wakes the necronomicon")
 	check(MinionManager.necronomicon_unlocked, "unlock flag flips on")
-	check(not nav_undercroft.visible, "the book replaces the undercroft button")
 
 	var book = load("res://scripts/ui/NecronomiconPanel.gd").new()
 	add_child(book)
@@ -393,6 +448,75 @@ func _ready() -> void:
 	check(MinionManager.offer_materials("zombie", "rusty_shovel", 1) == 0.0, "tools cannot be offered")
 	book.queue_free()
 	await get_tree().process_frame
+
+	# --- Combat view (presentational pass) ---
+	var cv = main.find_child("CombatView", true, false)
+	check(cv != null, "combat view exists")
+	check("battle" in DebugConsole.execute("combat").to_lower(), "console stages a test battle")
+	check(cv.visible and not cv.is_boss_fight and cv.enemies.size() == 3, "group encounter fields 3 foes")
+	var enemy_cards := 0
+	for child in cv.enemy_holder.get_child(0).get_children():
+		if child is Button: enemy_cards += 1
+	check(enemy_cards == 3, "one enemy card per foe")
+	check(cv.party.size() == 1 and cv.party[0]["minion_id"] == "zombie", "the slotted zombie musters as the warband")
+	check(cv.party[0]["max_hp"] == MinionManager.get_hp("zombie"), "combat HP comes from minion stats")
+	DebugConsole.execute("combat boss")
+	check(cv.is_boss_fight and cv.enemies.size() == 1, "boss command stages a single boss")
+	check(cv.enemy_holder.get_child(0) is PanelContainer, "the boss renders as a banner, not a card")
+	check(not cv.auto_mode and cv.paused, "combat opens paused with auto off")
+
+	# --- The turn engine ---
+	DebugConsole.execute("combat")
+	cv.enemies[0]["hp"] = 1
+	cv._execute_attack(0, 0, 1.0, "")
+	check(cv.enemies[0]["hp"] == 0, "an attack fells a 1 HP foe")
+	check(cv.party[0]["charge"] == 0.0, "acting resets the charge gauge")
+	check(cv.fight_state == "active", "the fight continues while foes remain")
+	# Guard halves incoming damage
+	cv.party[0]["hp"] = cv.party[0]["max_hp"]
+	cv.party[0]["guarding"] = true
+	var guarded = cv._apply_party_damage(cv.party[0], 10.0)
+	check(guarded <= 6, "guarding halves incoming damage (%d)" % guarded)
+	cv.party[0]["guarding"] = false
+	var unguarded = cv._apply_party_damage(cv.party[0], 10.0)
+	check(unguarded >= 8, "unguarded blows land full (%d)" % unguarded)
+	# Victory pays gold, a loot roll per foe, and minion XP to survivors
+	var gold_before_fight = GameManager.gold_coins
+	var zxp_before_fight = MinionManager.roster["zombie"]["xp"]
+	var zlvl_before_fight = MinionManager.roster["zombie"]["level"]
+	cv.party[0]["hp"] = cv.party[0]["max_hp"]
+	for foe in cv.enemies:
+		foe["hp"] = 0
+	cv._enter_victory()
+	check(cv.fight_state == "victory", "an empty field is a victory")
+	check(GameManager.gold_coins > gold_before_fight, "victory pays gold")
+	check(MinionManager.roster["zombie"]["xp"] > zxp_before_fight or MinionManager.roster["zombie"]["level"] > zlvl_before_fight,
+		"survivors earn minion XP")
+	# A fallen warband is a defeat
+	DebugConsole.execute("combat")
+	for member in cv.party:
+		member["hp"] = 0
+	cv._enter_defeat()
+	check(cv.fight_state == "defeat", "a fallen warband is a defeat")
+	# Bosses enrage as their health quarters break
+	DebugConsole.execute("combat boss")
+	cv.enemies[0]["hp"] = int(cv.enemies[0]["max_hp"] * 0.4)
+	cv._check_boss_enrage(cv.enemies[0])
+	check(cv.enemies[0]["segments_broken"] == 2 and cv.enemies[0]["rage"] > 1.0, "broken quarters enrage the boss")
+	# Active runes spend once per battle
+	cv.used_actives = {"zombie": ["lurch"]}
+	check(cv._active_used("zombie", "lurch") and not cv._active_used("zombie", "carrion_nose"),
+		"active runes spend once per battle")
+	# Confront descends into the crypt now that a warband exists
+	GameManager.skills["graverobbing"]["level"] = 20
+	gv.update_ui()
+	gv.cards[4].action_triggered.emit()
+	check(cv.visible and cv.is_boss_fight and "Warden" in cv.enemies[0]["name"], "Confront descends into the crypt")
+	GameManager.skills["graverobbing"] = {"level": 1, "xp": 0.0}
+	cv.fight_state = "idle"
+
+	get_tree().call_group("view_manager", "switch_view", "graveyard")
+	check(not cv.visible, "leaving combat returns to the grounds")
 
 	# Save / load round trip + node resume
 	GameManager.active_node_data = grave
@@ -432,13 +556,28 @@ func _ready() -> void:
 	get_tree().call_group("view_manager", "switch_view", "forest")
 	check(TutorialManager.current_step().get("id", "") == "chop", "opening Lumbering advances the tutorial")
 	for i in range(TutorialManager.current_step().get("count", 1)):
-		GameManager.resolve_harvest(GameManager.find_node_by_id("dead_trees"), false)
+		GameManager.resolve_harvest(GameManager.find_node_by_id("withered_trees"), false)
 	check(TutorialManager.current_step().get("id", "") == "to_quarry", "felling trees advances the tutorial")
 	get_tree().call_group("view_manager", "switch_view", "quarry")
 	check(TutorialManager.current_step().get("id", "") == "mine", "opening Spelunking advances the tutorial")
 	for i in range(TutorialManager.current_step().get("count", 1)):
-		GameManager.resolve_harvest(GameManager.find_node_by_id("crumbling_walls"), false)
-	check(TutorialManager.current_step().get("id", "") == "outro", "mining stone advances to the farewell")
+		GameManager.resolve_harvest(GameManager.find_node_by_id("verdigris_seams"), false)
+	check(TutorialManager.current_step().get("id", "") == "tome", "mining stone advances to the tome reward")
+
+	# The Necronomicon chapter of the tutorial
+	MinionManager.necronomicon_unlocked = false
+	TutorialManager._on_continue_pressed()
+	check(TutorialManager.current_step().get("id", "") == "open_book", "taking the tome advances to opening it")
+	check(MinionManager.necronomicon_unlocked, "the tome step unlocks the necronomicon")
+	check(TutorialManager._resolve_highlight_target() != null, "the circle is highlighted for the player")
+	TutorialManager.notify_event("book_opened")
+	# Raise and slot lessons auto-skip: this run already has a raised, slotted zombie
+	check(TutorialManager.current_step().get("id", "") == "growth", "raise and slot lessons skip when already done")
+	TutorialManager._on_continue_pressed()
+	check(TutorialManager.current_step().get("id", "") == "altar", "the growth lesson advances to the altar")
+	check(InventoryManager.get_item_count("bones") >= 5, "Mortimer leaves bones for the offering")
+	MinionManager.offer_materials("zombie", "bones", 1)
+	check(TutorialManager.current_step().get("id", "") == "outro", "an offering advances to the farewell")
 	TutorialManager._on_continue_pressed()
 	check(TutorialManager.tutorial_complete and not TutorialManager.active, "tutorial completes and dismisses")
 
@@ -451,8 +590,10 @@ func _ready() -> void:
 
 	main.queue_free()
 
-	# --- Hard reset (last: wipes everything) ---
+	# --- Hard reset (last: wipes everything except player settings) ---
+	var window_choice_before_reset = SettingsManager.window_choice
 	SaveManager.hard_reset()
+	check(SettingsManager.window_choice == window_choice_before_reset, "hard reset leaves display settings alone")
 	check(GameManager.gold_coins == 0, "hard reset zeroes gold")
 	check(GameManager.skills["graverobbing"]["level"] == 1, "hard reset resets skills")
 	check(InventoryManager.slots.size() == InventoryManager.BASE_SLOTS, "hard reset restores base inventory size")
@@ -461,6 +602,7 @@ func _ready() -> void:
 	check(not MinionManager.necronomicon_unlocked, "hard reset puts the tome back to sleep")
 	check(TutorialManager.active and not TutorialManager.tutorial_complete, "hard reset restarts the tutorial")
 	TutorialManager.finish(true)
+	check(MinionManager.necronomicon_unlocked, "skipping the tutorial still grants the necronomicon")
 
 	# Remove the test save, restore the player's original
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)

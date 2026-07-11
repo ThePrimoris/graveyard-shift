@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HarvestZone" format=3]
+
+[ext_resource type="Script" path="res://data/ZoneData.gd" id="1_zone"]
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="2_hnode"]
+[ext_resource type="Resource" path="res://data/nodes/trees/hallowed_oak.tres" id="3_n1"]
+[ext_resource type="Resource" path="res://data/nodes/trees/moss_beds.tres" id="3_n2"]
+[ext_resource type="Resource" path="res://data/nodes/trees/petrified_grove.tres" id="3_n3"]
+
+[resource]
+script = ExtResource("1_zone")
+id = "hallowed_thicket"
+name = "Hallowed Thicket"
+description = "A ring of ancient oaks whose canopy blots out the sky."
+required_level = 35
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])

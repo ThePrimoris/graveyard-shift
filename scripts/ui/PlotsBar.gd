@@ -28,7 +28,10 @@ func _ready() -> void:
 
 func _on_plot_pressed(index: int) -> void:
 	if MinionManager.roster.is_empty():
-		NotificationManager.show_item("No minions raised yet — visit the Undercroft", 1)
+		if MinionManager.necronomicon_unlocked:
+			NotificationManager.show_item("No minions raised yet — open the Necronomicon at the circle", 1)
+		else:
+			NotificationManager.show_item("The plots wait for occupants that do not yet exist", 1)
 		return
 	_open_picker(index)
 
@@ -77,9 +80,7 @@ func _open_picker(plot_index: int) -> void:
 	grid.add_theme_constant_override("v_separation", 8)
 	col.add_child(grid)
 
-	var ids = MinionManager.roster.keys()
-	ids.sort()
-	for minion_id in ids:
+	for minion_id in MinionManager.sorted_ids(true):
 		grid.add_child(_make_minion_tile(minion_id, plot_index))
 
 	if MinionManager.plots[plot_index] != "":

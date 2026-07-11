@@ -12,7 +12,6 @@ const ACTION_CARD_SCENE = preload("res://scenes/cards/ActionCard.tscn")
 
 var action_verb: String = "Harvest"
 var progress_color: Color = Color("#c8a24d")
-var progress_mode: int = ActionCard.ProgressMode.FILL
 ## Ambient page tint behind the cards, one flavour per skill.
 var ambience: Color = Color(0.043, 0.039, 0.063)
 
@@ -21,7 +20,16 @@ var display_nodes: Array = []
 var zone_buttons: Array = []
 
 var node_progress: Dictionary = {}
+## Accumulated break damage per node id (0..1), for nodes with hit_damage.
+var node_damage: Dictionary = {}
+## Unstable Seams lockout: node id -> seconds until the sealed seam reopens.
+var node_locked: Dictionary = {}
 var cards: Array = []
+
+## How long an "unstable_seams" node stays sealed after a vent break. The
+## draft calls for 10 minutes (600s); parked lower for now so the mechanic is
+## easy to feel while testing — bump toward 600 once it plays right.
+const UNSTABLE_LOCKOUT_SECONDS: float = 120.0
 
 var header_title: Label
 var header_bar: ProgressBar
@@ -125,12 +133,17 @@ func _build_cards() -> void:
 		flow.add_child(card)
 
 		card.setup_card(node_data.name, node_data.description, action_verb, node_data.base_duration)
-		var entries = _table_entries(node_data.common_pool)
+		var entries = _chance_entries(node_data.hit_pool) if node_data.hit_damage > 0.0 \
+			else _table_entries(node_data.common_pool)
+		if entries.is_empty():
+			entries = _table_entries(node_data.break_pool)
 		if not entries.is_empty():
 			card.set_icon(entries[0]["item"].icon)
 		card.set_progress_color(progress_color)
-		card.set_progress_mode(progress_mode)
 		card.set_dig_sections(node_data.dig_sections)
+		card.set_damage_meter(node_data.hit_damage)
+		card.update_damage(node_damage.get(node_data.id, 0.0))
+		card.set_affix(GameManager.get_affix_info(node_data.affix))
 		if node_data.is_boss:
 			card.set_large()
 		if not node_progress.has(node_data.id):
@@ -140,13 +153,30 @@ func _build_cards() -> void:
 			card.action_triggered.connect(_on_boss_confront.bind(node_data))
 		else:
 			card.action_triggered.connect(func():
+				if _is_locked(node_data.id):
+					NotificationManager.show_item("%s is sealed — the vent must settle." % node_data.name, 1)
+					return
 				GameManager.register_activity(card, node_data)
 			)
 		cards.append(card)
 
-## Placeholder until combat is implemented.
+## True while an Unstable Seams node is sealed shut after a vent break.
+func _is_locked(node_id: String) -> bool:
+	return node_locked.get(node_id, 0.0) > 0.0
+
+## Confront launches the node's encounter, warband permitting.
 func _on_boss_confront(node_data: HarvestNode) -> void:
-	NotificationManager.show_item("%s stirs... but combat isn't ready yet. Soon." % node_data.name, 1)
+	var encounter = GameManager.find_encounter_by_id(node_data.encounter_id)
+	if encounter == null:
+		NotificationManager.show_item("%s stirs... but its hour has not come." % node_data.name, 1)
+		return
+	if MinionManager.roster.is_empty():
+		NotificationManager.show_item("You need a warband — raise minions in the Necronomicon first", 1)
+		return
+	var combat_view = get_tree().get_first_node_in_group("combat_views")
+	if combat_view == null: return
+	combat_view.start_encounter_res(encounter)
+	get_tree().call_group("view_manager", "switch_view", "combat")
 
 ## Page header, Melvor-style: dark strip with the skill icon and name on the
 ## left, a level badge on the right, and a thin XP bar with a readout below.
@@ -279,6 +309,18 @@ func _process(delta: float) -> void:
 
 		if not node_data or not card: continue
 
+		# Sealed (Unstable Seams): count the lockout down and show it on the
+		# button; a sealed node can't be worked, so skip its harvest handling.
+		if node_locked.get(node_data.id, 0.0) > 0.0:
+			node_locked[node_data.id] -= delta
+			if node_locked[node_data.id] <= 0.0:
+				node_locked.erase(node_data.id)
+				card.set_button_text(false)
+			else:
+				card.action_button.disabled = true
+				card.action_button.text = "Sealed %ds" % int(ceil(node_locked[node_data.id]))
+			continue
+
 		if GameManager.active_action_source == card:
 			node_progress[node_data.id] += delta
 
@@ -286,12 +328,32 @@ func _process(delta: float) -> void:
 			if node_progress[node_data.id] >= duration:
 				node_progress[node_data.id] = 0.0
 				GameManager.resolve_harvest(node_data)
+				_register_hit(node_data, card)
 
 			card.update_progress(node_progress[node_data.id], duration)
 		else:
 			if node_progress[node_data.id] > 0.0:
 				node_progress[node_data.id] = 0.0
 				card.reset_progress()
+
+## One completed bar = one hit on a breakable node. Damage accrues on the
+## card's vertical meter; at full health lost, the node breaks, pays its
+## break tables, and resets instantly.
+func _register_hit(node_data: HarvestNode, card) -> void:
+	if node_data.hit_damage <= 0.0: return
+	var dealt: float = node_damage.get(node_data.id, 0.0) + node_data.hit_damage
+	if dealt >= 0.999:
+		GameManager.resolve_break(node_data)
+		dealt = 0.0
+		# Unstable Seams: the break vents the gas and seals the seam shut. Stop
+		# the harvest and lock the node until the countdown clears.
+		if node_data.affix == "unstable_seams":
+			node_locked[node_data.id] = UNSTABLE_LOCKOUT_SECONDS
+			if GameManager.active_action_source == card:
+				GameManager.register_activity(card)
+			NotificationManager.show_item("%s vents and seals shut!" % node_data.name, 1)
+	node_damage[node_data.id] = dealt
+	card.update_damage(dealt)
 
 ## Ledger rows for one weighted drop table, biggest share first.
 ## Each row: { "item", "pct" (0..100), "min_amount", "max_amount" }.
@@ -313,16 +375,24 @@ func _table_entries(pool: Array) -> Array:
 	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
 	return entries
 
+## Ledger rows for a Hit Chance table — weights ARE the percentages, and
+## they may sum below 100 (the remainder is the chance a hit pays nothing).
+func _chance_entries(pool: Array) -> Array:
+	var entries: Array = []
+	for entry in pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
+		if entry != null and entry.item != null and entry.weight > 0.0:
+			entries.append({
+				"item": entry.item,
+				"pct": entry.weight,
+				"min_amount": entry.min_amount,
+				"max_amount": entry.max_amount,
+			})
+	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
+	return entries
+
 func update_ui() -> void:
 	_update_header()
 	_update_zone_buttons()
-
-	var skill_key = _get_skill_key()
-	var skill_level = GameManager.skills[skill_key]["level"] if skill_key in GameManager.skills else 1
-	var skill_icon: Texture2D = null
-	var skill_icon_path = "res://icons/skills/%s.png" % skill_key
-	if ResourceLoader.exists(skill_icon_path):
-		skill_icon = load(skill_icon_path)
 
 	for i in range(cards.size()):
 		var card = cards[i]
@@ -340,10 +410,11 @@ func update_ui() -> void:
 				card.action_button.disabled = false
 			else:
 				card.show_unlocked()
-				card.set_stats(node.base_xp, GameManager.get_effective_duration(node), node.base_duration)
-				card.set_drops(_table_entries(node.common_pool), _table_entries(node.rare_pool), node.rare_chance)
-				var tool = GameManager.equipped_tools.get(node.required_tool_type, null)
-				var tool_pct = int(round((GameManager.get_tool_bonus(node.required_tool_type) - 1.0) * 100))
-				card.set_bonuses(tool.icon if tool else null, tool_pct, skill_icon,
-					int(round((skill_level - 1) * GameManager.SKILL_SPEED_PER_LEVEL * 100)))
-				card.action_button.disabled = false
+				var mods = GameManager.get_gather_modifiers(node)
+				card.set_stats(node.base_xp * mods.xp_mult, GameManager.get_effective_duration(node), node.base_duration)
+				if node.hit_damage > 0.0:
+					card.set_drops(_chance_entries(node.hit_pool), _table_entries(node.break_pool), 1.0, true)
+				else:
+					card.set_drops(_table_entries(node.common_pool), _table_entries(node.rare_pool), node.rare_chance + mods.rare_add)
+				card.set_bonuses(mods)
+				card.action_button.disabled = _is_locked(node.id)

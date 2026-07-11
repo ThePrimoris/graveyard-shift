@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/pale_lichen.tres" id="i0"]
+[ext_resource type="Resource" path="res://data/items/materials/silken_husk.tres" id="i1"]
+
+[sub_resource type="Resource" id="common0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 100.0
+max_amount = 2
+
+[sub_resource type="Resource" id="rare0"]
+script = ExtResource("2_loot")
+item = ExtResource("i1")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "lichen_bark"
+name = "Lichen Bark"
+description = "Bark furred with ghost-white lichen."
+required_skill = 1
+required_level = 20
+required_tool_type = 1
+base_duration = 3.6
+base_xp = 7
+dig_sections = 2
+affix = "sticky_sap"
+rare_chance = 0.06
+common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])
+rare_pool = Array[ExtResource("2_loot")]([SubResource("rare0")])

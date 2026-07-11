@@ -2,6 +2,7 @@
 extends Node
 
 signal harvest_completed(node_id: String)
+signal node_broken(node_id: String)
 
 @export_group("Game Meta")
 @export var game_title: String = "Graveyard Shift"
@@ -27,6 +28,7 @@ const NODE_DIRS: Array[String] = [
 	"res://data/nodes/trees/",
 	"res://data/nodes/mines/"
 ]
+const ENCOUNTER_DIRS: Array[String] = ["res://data/encounters/"]
 
 var active_action_source: Node = null
 var active_node_data: HarvestNode = null
@@ -37,6 +39,7 @@ var gold_coins: int = 0
 var item_db: Dictionary = {}          # item_id -> Item resource
 var node_db: Dictionary = {}          # node_id -> HarvestNode resource
 var nodes_by_skill: Dictionary = {}   # skill_key -> Array[HarvestNode]
+var encounter_db: Dictionary = {}     # encounter_id -> Encounter resource
 
 enum SkillType { GRAVEROBBING, LUMBERING, SPELUNKING }
 
@@ -51,6 +54,7 @@ var skills: Dictionary = {
 func _ready() -> void:
 	_build_item_database()
 	_build_node_registry()
+	_build_encounter_registry()
 	call_deferred("_setup_starting_equipment")
 
 ## Wipes all run progress back to a fresh start (used by the Settings hard reset).
@@ -101,6 +105,16 @@ func _load_resources_in_dir(dir_path: String) -> Array:
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	return result
+
+func _build_encounter_registry() -> void:
+	encounter_db.clear()
+	for dir_path in ENCOUNTER_DIRS:
+		for res in _load_resources_in_dir(dir_path):
+			if res is Encounter and res.id != "":
+				encounter_db[res.id] = res
+
+func find_encounter_by_id(encounter_id: String) -> Encounter:
+	return encounter_db.get(encounter_id, null)
 
 func find_item_by_id(item_id: String) -> Item:
 	return item_db.get(item_id, null)
@@ -201,31 +215,150 @@ func unequip_tool(type_enum: int) -> bool:
 	get_tree().call_group("ui_updates", "update_ui")
 	return true
 
-func get_tool_bonus(type_enum: ToolData.ToolType) -> float:
-	var tool = equipped_tools.get(type_enum, null)
-	if tool: return tool.speed_multiplier
-	return 1.0
+# === Gather bonuses (the "Access & Yield" model) =====================
+# Every source pushes a DIFFERENT lever, and speed sources stack ADDITIVELY
+# (1 + a + b) rather than multiplicatively, so combining them never explodes:
+#   Tools  -> a little speed + a chance to double the haul (yield).
+#   Levels -> a small, diminishing speed bump (unlocks are the real reward).
+#   Minions-> pure spice: bonus XP and rare-find chance, never speed.
+# The whole loop's rhythm is meant to stay recognisable end to end, so total
+# speed is capped hard and the pieces are deliberately modest.
 
-## Speed gained per skill level beyond the first (level 1 = no bonus).
-const SKILL_SPEED_PER_LEVEL: float = 0.01
+## Master switch. Flip off to park every gather bonus (used to isolate bugs).
+const SPEED_BONUSES_ENABLED: bool = true
 
-## Master switch: tool & skill speed bonuses are parked for now. The card
-## chips still display them; flip this back on to make them count again.
-const SPEED_BONUSES_ENABLED: bool = false
+## Hard ceiling on assembled speed: a node can never harvest faster than this
+## multiple of its base rate, no matter how much is stacked. Keeps old nodes
+## brisk-but-not-trivial once you outgrow them.
+const SPEED_CAP: float = 1.6
 
-## The real time one harvest of this node takes, after tool speed and skill level.
+## Level speed: a diminishing curve that approaches LEVEL_SPEED_MAX. Front
+## loaded (half the bonus is banked by ~level 26) then flattens, so leveling
+## always helps a touch without ever running away.
+const LEVEL_SPEED_MAX: float = 0.25
+const LEVEL_SPEED_HALFLIFE: float = 25.0
+
+## Speed can never sink below this share of base (sticky affixes bite, but a
+## node stays workable).
+const SPEED_FLOOR: float = 0.3
+
+# --- Node affixes ------------------------------------------------------
+# `active` affixes change harvesting here and now (handled below / in the
+# harvest view). The rest are FLAVOUR: they read as threats on the card but do
+# nothing yet, because they target minions deployed onto nodes — a system that
+# doesn't exist yet. They're a ready-made spec for that future feature.
+#   power: sticky_sap = speed lost; others use their own handlers.
+const AFFIXES: Dictionary = {
+	"sticky_sap": {
+		"name": "Sticky Sap", "active": true, "power": 0.3,
+		"blurb": "Resin clings to the blade — every harvest here drags slower.",
+	},
+	"blind_canopies": {
+		"name": "Blind Canopies", "active": true, "power": 0.0,
+		"blurb": "The choking canopy hides the richest boughs — no double hauls here.",
+	},
+	"unstable_seams": {
+		"name": "Unstable Seams", "active": true, "power": 0.0,
+		"blurb": "Volatile gas builds with every strike; a break vents it and seals the seam for a spell.",
+	},
+	"thorn_veil": {
+		"name": "Thorn Veil", "active": false, "power": 0.0,
+		"blurb": "Barbs lash any minion set to work here. (Awaits the rite of deployment.)",
+	},
+	"toxic_roots": {
+		"name": "Toxic Roots", "active": false, "power": 0.0,
+		"blurb": "Creeping venom stacks on deployed minions over time. (Awaits deployment.)",
+	},
+	"sonic_resonance": {
+		"name": "Sonic Resonance", "active": false, "power": 0.0,
+		"blurb": "Echoing tremors disrupt a deployed minion's automation. (Awaits deployment.)",
+	},
+	"subterranean_chill": {
+		"name": "Subterranean Chill", "active": false, "power": 0.0,
+		"blurb": "A deep cold saps deployed minions' efficiency. (Awaits deployment.)",
+	},
+	"volcanic_gas": {
+		"name": "Volcanic Gas Venting", "active": false, "power": 0.0,
+		"blurb": "Periodic fire bursts scald any deployed party. (Awaits deployment.)",
+	},
+}
+
+## Affix metadata for `affix_id`, or {} when there is no such affix.
+func get_affix_info(affix_id: String) -> Dictionary:
+	return AFFIXES.get(affix_id, {})
+
+func _level_speed_bonus(level: int) -> float:
+	if level <= 1: return 0.0
+	return LEVEL_SPEED_MAX * (1.0 - pow(0.5, (level - 1) / LEVEL_SPEED_HALFLIFE))
+
+## The single source of truth for every gather bonus applied to `node`.
+## Returns:
+##   speed_mult    - divides base_duration (>= 1.0, capped at SPEED_CAP)
+##   double_chance - 0..1 odds the common/hit haul is doubled
+##   rare_add      - flat fraction added to the node's rare_chance (0..1)
+##   xp_mult       - multiplier on harvest XP (>= 1.0)
+func get_gather_modifiers(node: HarvestNode) -> Dictionary:
+	var mods := {"speed_mult": 1.0, "double_chance": 0.0, "rare_add": 0.0, "xp_mult": 1.0}
+	if not SPEED_BONUSES_ENABLED:
+		return mods
+
+	# Tools: small additive speed, plus a double-haul chance from yield.
+	var tool = equipped_tools.get(node.required_tool_type, null)
+	if tool:
+		mods.speed_mult += maxf(0.0, tool.speed_multiplier - 1.0)
+		mods.double_chance += maxf(0.0, float(tool.yield_bonus)) / 100.0
+
+	# Levels: diminishing speed only.
+	var skill_key = get_skill_key(node)
+	var level = skills[skill_key]["level"] if skill_key in skills else 1
+	mods.speed_mult += _level_speed_bonus(level)
+
+	# Minion passives (magnitudes are percentage points): spice, no speed.
+	mods.xp_mult += MinionManager.get_passive_bonus("harvest_xp_pct") / 100.0
+	mods.rare_add += MinionManager.get_passive_bonus("rare_chance_pct") / 100.0
+	mods.double_chance += MinionManager.get_passive_bonus("double_drop_pct") / 100.0
+
+	# Graveyard structures (the Grounds): global build bonuses, same spice
+	# channels — never raw speed.
+	mods.xp_mult += GroundsManager.get_bonus("harvest_xp_pct") / 100.0
+	mods.rare_add += GroundsManager.get_bonus("rare_chance_pct") / 100.0
+	mods.double_chance += GroundsManager.get_bonus("double_drop_pct") / 100.0
+
+	# Node affix: a penalty the node imposes on the loop (applied after bonuses,
+	# so a rich tool can soften but not erase it).
+	match node.affix:
+		"sticky_sap":
+			mods.speed_mult -= float(AFFIXES["sticky_sap"]["power"])
+		"blind_canopies":
+			mods.double_chance = 0.0
+		# unstable_seams is stateful (lockout) and handled in the harvest view.
+
+	mods.speed_mult = clampf(mods.speed_mult, SPEED_FLOOR, SPEED_CAP)
+	mods.double_chance = clampf(mods.double_chance, 0.0, 1.0)
+	return mods
+
+## The real time one harvest of this node takes, after all speed bonuses.
 func get_effective_duration(node: HarvestNode) -> float:
 	if not SPEED_BONUSES_ENABLED:
 		return node.base_duration
-	var skill_key = get_skill_key(node)
-	var skill_mod = 1.0 + ((skills[skill_key]["level"] - 1) * SKILL_SPEED_PER_LEVEL)
-	return node.base_duration / (get_tool_bonus(node.required_tool_type) * skill_mod)
+	return node.base_duration / get_gather_modifiers(node).speed_mult
 
 # --- Skills / XP ---
 
-## XP to advance FROM `level`, on the classic RuneScape/Melvor curve.
+## The skill curve's slow-burn ramp: early levels run at the classic RS pace
+## (EARLY scale), then the requirement stretches linearly until it reaches
+## the LATE scale at RAMP_END_LEVEL. Early levels feel brisk; the grind
+## arrives with the mid-game.
+const SKILL_XP_SCALE_EARLY: float = 1.0
+const SKILL_XP_SCALE_LATE: float = 2.5
+const SKILL_XP_RAMP_END_LEVEL: int = 30
+
+## XP to advance FROM `level`: the classic RuneScape/Melvor curve shape,
+## scaled by the level-ramped slow-burn factor above.
 func get_xp_needed(level: int) -> float:
-	return floor((level + 300.0 * pow(2.0, level / 7.0)) / 4.0)
+	var t = clampf((level - 1) / float(SKILL_XP_RAMP_END_LEVEL - 1), 0.0, 1.0)
+	var scale = lerpf(SKILL_XP_SCALE_EARLY, SKILL_XP_SCALE_LATE, t)
+	return floor((level + 300.0 * pow(2.0, level / 7.0)) / 4.0 * scale)
 
 func add_xp(skill_name: String, amount: float) -> void:
 	if not skills.has(skill_name): return
@@ -267,6 +400,19 @@ func register_activity(calling_node: Node, node_data: HarvestNode = null) -> boo
 # --- Harvest Resolution ---
 # One code path resolves every harvest, so future bonuses apply consistently.
 
+## One roll on a Hit Chance table, where weights are literal percentages out
+## of 100. Returns the winning row, or null when the roll lands in the
+## "nothing shakes loose" remainder (or the table is empty).
+func roll_chance_table(pool: Array) -> LootDrop:
+	var roll = randf() * 100.0
+	for entry in pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
+		if entry == null or entry.item == null or entry.weight <= 0.0:
+			continue
+		roll -= entry.weight
+		if roll <= 0.0:
+			return entry
+	return null
+
 ## One weighted roll on a drop table. Returns the winning row, or null for
 ## an empty/weightless table. Row share = weight / total table weight.
 func roll_drop_table(pool: Array) -> LootDrop:
@@ -286,29 +432,27 @@ func roll_drop_table(pool: Array) -> LootDrop:
 			return entry
 	return null
 
-## Resolves a completed harvest of `node`. Returns { item_id: amount } gained.
-## Exactly one common row drops every harvest; a rare_chance roll may then
-## grant one row from the rare table on top.
-func resolve_harvest(node: HarvestNode, notify: bool = true) -> Dictionary:
+## One roll of a common + rare table pair. `double_chance` can double the
+## common haul (the everyday take); rare finds are never doubled.
+func _roll_loot(common_pool: Array, rare_chance: float, rare_pool: Array, double_chance: float) -> Dictionary:
 	var gains: Dictionary = {}
 
-	var yield_bonus = 0
-	var equipped = get_equipped_tool(node.required_tool_type)
-	if equipped:
-		yield_bonus = equipped.yield_bonus
-
-	var common = roll_drop_table(node.common_pool)
+	var common = roll_drop_table(common_pool)
 	if common:
-		# Tool yield bonuses boost the everyday haul, not rare finds.
-		var amount = randi_range(common.min_amount, maxi(common.min_amount, common.max_amount)) + yield_bonus
+		var amount = randi_range(common.min_amount, maxi(common.min_amount, common.max_amount))
+		if double_chance > 0.0 and randf() < double_chance:
+			amount *= 2
 		gains[common.item.id] = gains.get(common.item.id, 0) + amount
 
-	if node.rare_chance > 0.0 and randf() <= node.rare_chance:
-		var rare = roll_drop_table(node.rare_pool)
+	if rare_chance > 0.0 and randf() <= rare_chance:
+		var rare = roll_drop_table(rare_pool)
 		if rare:
 			var amount = randi_range(rare.min_amount, maxi(rare.min_amount, rare.max_amount))
 			gains[rare.item.id] = gains.get(rare.item.id, 0) + amount
+	return gains
 
+## Banks rolled gains into the inventory, optionally with pickup toasts.
+func _bank_gains(gains: Dictionary, notify: bool) -> void:
 	for item_id in gains:
 		var item = find_item_by_id(item_id)
 		if item:
@@ -316,6 +460,90 @@ func resolve_harvest(node: HarvestNode, notify: bool = true) -> Dictionary:
 			if notify:
 				NotificationManager.show_item(item.name, gains[item_id], item)
 
-	add_xp(get_skill_key(node), node.base_xp)
+## Resolves a completed harvest of `node`. Returns { item_id: amount } gained.
+## Normal nodes: exactly one common row plus a possible rare roll.
+## Breakable nodes (hit_damage > 0): one roll of the Hit Chance table —
+## which may pay nothing; the guaranteed haul waits for the break.
+func resolve_harvest(node: HarvestNode, notify: bool = true) -> Dictionary:
+	var mods = get_gather_modifiers(node)
+
+	var gains: Dictionary = {}
+	if node.hit_damage > 0.0:
+		var hit = roll_chance_table(node.hit_pool)
+		if hit:
+			var amount = randi_range(hit.min_amount, maxi(hit.min_amount, hit.max_amount))
+			if mods.double_chance > 0.0 and randf() < mods.double_chance:
+				amount *= 2
+			gains[hit.item.id] = amount
+	else:
+		gains = _roll_loot(node.common_pool, node.rare_chance + mods.rare_add, node.rare_pool, mods.double_chance)
+	_bank_gains(gains, notify)
+
+	add_xp(get_skill_key(node), node.base_xp * mods.xp_mult)
 	harvest_completed.emit(node.id)
 	return gains
+
+## Resolves a node breaking (its health hitting zero): one GUARANTEED roll
+## of the Break table. No XP — the hits that broke it already paid theirs.
+func resolve_break(node: HarvestNode, notify: bool = true) -> Dictionary:
+	var gains: Dictionary = {}
+	var haul = roll_drop_table(node.break_pool)
+	if haul:
+		gains[haul.item.id] = randi_range(haul.min_amount, maxi(haul.min_amount, haul.max_amount))
+	_bank_gains(gains, notify)
+	node_broken.emit(node.id)
+	return gains
+
+# --- Offline progress -------------------------------------------------
+# "The grounds don't sleep." When the player returns, whatever node they left
+# running is worked in bulk for the (capped) elapsed time. This runs the loot
+# math directly instead of resolve_harvest so it banks ONCE and never fires a
+# UI refresh per harvest. Minion/structure "grounds_yield_pct" bonuses stretch
+# the effective time worked.
+
+## Simulates `seconds` of offline harvesting on `node`. Banks the haul in one
+## pass and grants the XP. Returns { gains, xp, harvests, seconds }.
+func accrue_offline(node: HarvestNode, seconds: float) -> Dictionary:
+	var dur = get_effective_duration(node)
+	if dur <= 0.0:
+		return {}
+	var mods = get_gather_modifiers(node)
+	var yield_pct = MinionManager.get_passive_bonus("grounds_yield_pct") \
+		+ GroundsManager.get_bonus("grounds_yield_pct")
+	var effective = seconds * (1.0 + yield_pct / 100.0)
+	var harvests = int(effective / dur)
+	if harvests <= 0:
+		return {}
+
+	var gains: Dictionary = {}
+	var xp_total := 0.0
+	var damage := 0.0
+	for i in range(harvests):
+		if node.hit_damage > 0.0:
+			var hit = roll_chance_table(node.hit_pool)
+			if hit:
+				var amt = randi_range(hit.min_amount, maxi(hit.min_amount, hit.max_amount))
+				if mods.double_chance > 0.0 and randf() < mods.double_chance:
+					amt *= 2
+				gains[hit.item.id] = gains.get(hit.item.id, 0) + amt
+			damage += node.hit_damage
+			if damage >= 0.999:
+				var haul = roll_drop_table(node.break_pool)
+				if haul:
+					gains[haul.item.id] = gains.get(haul.item.id, 0) \
+						+ randi_range(haul.min_amount, maxi(haul.min_amount, haul.max_amount))
+				damage = 0.0
+		else:
+			var loot = _roll_loot(node.common_pool, node.rare_chance + mods.rare_add, node.rare_pool, mods.double_chance)
+			for item_id in loot:
+				gains[item_id] = gains.get(item_id, 0) + loot[item_id]
+		xp_total += node.base_xp * mods.xp_mult
+
+	# Bank in one pass (overflow past a full pack is simply lost — a reason to
+	# raise the Ossuary), then grant the XP once.
+	for item_id in gains:
+		var item = find_item_by_id(item_id)
+		if item:
+			InventoryManager.add_item(item, gains[item_id])
+	add_xp(get_skill_key(node), xp_total)
+	return {"gains": gains, "xp": xp_total, "harvests": harvests, "seconds": seconds}

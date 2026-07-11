@@ -7,7 +7,9 @@ extends CanvasLayer
 const MENTOR_NAME = "MORTIMER, THE LATE CARETAKER"
 const PORTRAIT_PATH = "res://icons/ui/mortimer.png"
 
-# wait kinds: "continue" (button), "harvest" (node + count), "view" (view name)
+# wait kinds: "continue" (button), "harvest" (node + count), "view" (view name),
+#             "event" (a named beat fired via notify_event — book opened,
+#             minion raised, minion slotted, offering made)
 const STEPS: Array[Dictionary] = [
 	{
 		"id": "intro", "wait": "continue", "button": "Show me around",
@@ -24,9 +26,9 @@ const STEPS: Array[Dictionary] = [
 		"text": "Well dug — the former occupants weren't using it. Now: those dead trees crowd the ground where your workshop will one day stand. Take your hatchet to the Lumbering grounds."
 	},
 	{
-		"id": "chop", "wait": "harvest", "node": "dead_trees", "count": 5,
-		"highlight": "node:dead_trees", "objective": "Dead Trees felled: %d / %d",
-		"text": "Bring one down. Rotten Logs burn poorly but build well enough — fences, coffins, scaffolds. The essentials."
+		"id": "chop", "wait": "harvest", "node": "withered_trees", "count": 5,
+		"highlight": "node:withered_trees", "objective": "Withered Trees felled: %d / %d",
+		"text": "Bring one down. Gravewood Logs burn poorly but build well enough — fences, coffins, scaffolds. The essentials."
 	},
 	{
 		"id": "to_quarry", "wait": "view", "view": "quarry",
@@ -34,13 +36,41 @@ const STEPS: Array[Dictionary] = [
 		"text": "The catacomb walls beneath us are crumbling anyway; we may as well help them along. Your pickaxe, please — down to the Spelunking tunnels."
 	},
 	{
-		"id": "mine", "wait": "harvest", "node": "crumbling_walls", "count": 5,
-		"highlight": "node:crumbling_walls", "objective": "Stone Debris mined: %d / %d",
+		"id": "mine", "wait": "harvest", "node": "verdigris_seams", "count": 5,
+		"highlight": "node:verdigris_seams", "objective": "Verdigris Seams mined: %d / %d",
 		"text": "Knock the loose stone free. Foundations want good bones — architecturally speaking."
 	},
 	{
+		"id": "tome", "wait": "continue", "button": "Take the tome",
+		"text": "You've the arms for the honest work — now for the art. From beneath the circle's stones I give you what I guarded forty years: the NECRONOMICON. Every servant you will ever raise sleeps between its covers."
+	},
+	{
+		"id": "open_book", "wait": "event", "event": "book_opened",
+		"highlight": "circle", "objective": "Open the Necronomicon at the circle",
+		"text": "The circle at the grounds' heart holds the book now — that is why it glows. Go and press your hand to the stone."
+	},
+	{
+		"id": "raise", "wait": "event", "event": "minion_raised",
+		"highlight": "book:raise:zombie", "objective": "Raise the Zombie from its Unwritten Page",
+		"text": "The index: your raised servants on the left page, the unwritten on the right. I have left Still Flesh and Coagulated Blood on the slab — find the Zombie among the unwritten and speak its rite."
+	},
+	{
+		"id": "slot", "wait": "event", "event": "minion_slotted",
+		"highlight": "plot:1", "objective": "Slot your minion into a graveyard plot",
+		"text": "It stands! Ghastly, isn't it. Now close the book and look to the plots along the grounds' edge — click one and put the creature in it. An idle minion is a wasted corpse."
+	},
+	{
+		"id": "growth", "wait": "continue", "button": "Understood",
+		"text": "A slotted minion's inked runes do their work from the plot — and when war comes, your four slotted dead are your warband. The creature itself grows on what you feed it: offerings at the altar become its experience, levels grant skill points, and points buy runes in its page of the book. Actives wait for war."
+	},
+	{
+		"id": "altar", "wait": "event", "event": "offering_made",
+		"highlight": "book:altar", "objective": "Make an offering at the Ritual Altar",
+		"text": "One final art. Open the tome to the ALTAR chapter. What you lay upon the stone becomes strength in your servants — I have left a pile of bones. Offer them, and watch the creature swell."
+	},
+	{
 		"id": "outro", "wait": "continue", "button": "Begin your shift",
-		"text": "And that is the whole of the honest work: dig, chop, mine — the grounds clear, and your stores swell. The darker chores come later. That circle at the bottom of the grounds? Patience. It is not ready. Neither, frankly, are you."
+		"text": "And that is the whole of it: dig, chop, mine — raise, slot, offer. The grounds are yours now, keeper, and the book with them. Mind the old crypt at the row's end... it has begun minding you back."
 	}
 ]
 
@@ -60,7 +90,9 @@ var highlight_rect: Panel
 var _pulse_time: float = 0.0
 
 func _ready() -> void:
-	layer = 40
+	# Above the Necronomicon (55) and settings (60) so Mortimer can keep
+	# talking while the book is open; below the debug console (100).
+	layer = 70
 	visible = false
 	add_to_group("view_manager")  # receives switch_view group calls
 	_build_ui()
@@ -88,6 +120,12 @@ func finish(skipped: bool = false) -> void:
 	tutorial_complete = true
 	active = false
 	visible = false
+	# The tome is the tutorial's reward — skipping must not lock the player
+	# out of the minion system, so it is granted either way.
+	if not MinionManager.necronomicon_unlocked:
+		MinionManager.necronomicon_unlocked = true
+		NotificationManager.show_item("The Necronomicon is yours — the circle glows", 1)
+		get_tree().call_group("ui_updates", "update_ui")
 	if not skipped:
 		NotificationManager.show_item("The grounds are yours. Mortimer will be watching.", 1)
 	SaveManager.save_game()
@@ -103,7 +141,51 @@ func _advance() -> void:
 	if step_index >= STEPS.size():
 		finish()
 		return
+	if _enter_step_effects():
+		_advance()
+		return
 	_show_step()
+
+## Runs a step's entry side effects. Returns true when the step is already
+## satisfied (e.g. a returning player raised a minion before the lesson)
+## and should be skipped outright.
+func _enter_step_effects() -> bool:
+	match current_step().get("id", ""):
+		"tome":
+			MinionManager.necronomicon_unlocked = true
+			NotificationManager.show_item("The Necronomicon is yours — the circle glows", 1)
+			get_tree().call_group("ui_updates", "update_ui")
+		"raise":
+			if not MinionManager.roster.is_empty():
+				return true
+			_grant_rite_materials("zombie")
+		"slot":
+			for occupant in MinionManager.plots:
+				if occupant != "":
+					return true
+		"altar":
+			_grant_offering_materials("bones", 5)
+	return false
+
+## Mortimer tops the pack up to a minion's full raising rite.
+func _grant_rite_materials(minion_id: String) -> void:
+	var minion = MinionManager.find_minion_by_id(minion_id)
+	if minion == null: return
+	for item_id in minion.raise_cost:
+		var missing = minion.raise_cost[item_id] - InventoryManager.get_item_count(item_id)
+		if missing > 0:
+			var item = GameManager.find_item_by_id(item_id)
+			if item:
+				InventoryManager.add_item(item, missing)
+	NotificationManager.show_item("Mortimer left materials on the slab", 1)
+
+## Mortimer leaves something worth burning at the altar.
+func _grant_offering_materials(item_id: String, amount: int) -> void:
+	var missing = amount - InventoryManager.get_item_count(item_id)
+	if missing <= 0: return
+	var item = GameManager.find_item_by_id(item_id)
+	if item:
+		InventoryManager.add_item(item, missing)
 
 # --- Step conditions ---
 
@@ -126,6 +208,14 @@ func switch_view(target_view: String) -> void:
 
 func _on_continue_pressed() -> void:
 	if current_step().get("wait", "") == "continue":
+		_advance()
+
+## Named tutorial beats fired by other systems (the book opening, a minion
+## being raised or slotted, an offering being made). Safe to call any time.
+func notify_event(event_id: String) -> void:
+	if not active: return
+	var step = current_step()
+	if step.get("wait", "") == "event" and step.get("event", "") == event_id:
 		_advance()
 
 # --- UI ---
@@ -264,6 +354,21 @@ func _resolve_highlight_target() -> Control:
 		var found = get_tree().root.find_child(h.substr(8), true, false)
 		if found is Control:
 			return found
+	elif h == "circle":
+		var circle = get_tree().root.find_child("CircleButton", true, false)
+		if circle is Control:
+			return circle
+	elif h.begins_with("plot:"):
+		var plot = get_tree().root.find_child("PlotButton" + h.substr(5), true, false)
+		if plot is Control:
+			return plot
+	elif h.begins_with("book:"):
+		# Targets inside the Necronomicon overlay; null while the book is shut,
+		# which leaves the circle un-highlighted but the objective text standing.
+		for book in get_tree().get_nodes_in_group("necronomicon"):
+			var target = book.tutorial_target(h.substr(5))
+			if target is Control:
+				return target
 	return null
 
 func _process(delta: float) -> void:

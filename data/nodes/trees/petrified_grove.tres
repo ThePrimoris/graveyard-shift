@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/petrified_acorn.tres" id="i0"]
+
+[sub_resource type="Resource" id="common0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "petrified_grove"
+name = "Petrified Grove"
+description = "Trees turned slowly to stone, shedding petrified acorns."
+required_skill = 1
+required_level = 38
+required_tool_type = 1
+base_duration = 13.8
+base_xp = 14
+dig_sections = 0
+affix = "blind_canopies"
+common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])

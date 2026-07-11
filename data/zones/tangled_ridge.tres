@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HarvestZone" format=3]
+
+[ext_resource type="Script" path="res://data/ZoneData.gd" id="1_zone"]
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="2_hnode"]
+[ext_resource type="Resource" path="res://data/nodes/trees/sable_stand.tres" id="3_n1"]
+[ext_resource type="Resource" path="res://data/nodes/trees/nightshade_tangle.tres" id="3_n2"]
+[ext_resource type="Resource" path="res://data/nodes/trees/raven_roost.tres" id="3_n3"]
+
+[resource]
+script = ExtResource("1_zone")
+id = "tangled_ridge"
+name = "Tangled Ridge"
+description = "The high ridge, roots knotted with nightshade and older poisons."
+required_level = 55
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])

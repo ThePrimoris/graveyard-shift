@@ -41,20 +41,43 @@ var minions_tab: Button
 var altar_tab: Button
 var dots_label: Label
 
+# Live references the tutorial's highlight can point at (see tutorial_target).
+var raise_buttons: Dictionary = {}   # minion_id -> Button
+var first_offer_button: Button = null
+
+## update_ui fires every game tick; rebuilding the pages destroys whatever
+## control a tooltip is hovering (rune tooltips vanished after a second).
+## Pages only rebuild when this fingerprint of the displayed state changes.
+var _ui_fingerprint: String = ""
+
 func _ready() -> void:
 	layer = 55
 	add_to_group("ui_updates")
-	minion_ids = MinionManager.minion_db.keys()
-	minion_ids.sort()
+	add_to_group("necronomicon")
+	TutorialManager.notify_event("book_opened")
+	minion_ids = MinionManager.sorted_ids()
 	if not MinionManager.roster.is_empty():
-		var raised = MinionManager.roster.keys()
-		raised.sort()
-		altar_target = raised[0]
+		altar_target = MinionManager.sorted_ids(true)[0]
 	_build_shell()
 	_rebuild()
 
 func update_ui() -> void:
+	var fingerprint = _state_fingerprint()
+	if fingerprint == _ui_fingerprint:
+		return
 	_rebuild()
+
+## Everything the open pages render that can change under them: navigation,
+## roster state, plots, and the inventory counts the index and altar show.
+func _state_fingerprint() -> String:
+	var counts: Array = []
+	for item_id in GameManager.item_db:
+		var held = InventoryManager.get_item_count(item_id)
+		if held > 0:
+			counts.append("%s:%d" % [item_id, held])
+	counts.sort()
+	return "%s|%d|%s|%s|%s|%s|%s" % [chapter, page, altar_target,
+		str(selected_ability), str(MinionManager.roster), str(MinionManager.plots), str(counts)]
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -245,6 +268,7 @@ func open_minion(minion_id: String) -> void:
 # --- Rebuild ---
 
 func _rebuild() -> void:
+	_ui_fingerprint = _state_fingerprint()
 	_tab_active(minions_tab, chapter == "minions")
 	_tab_active(altar_tab, chapter == "altar")
 	_clear(left_page)
@@ -322,6 +346,7 @@ func _build_index_right(into: PanelContainer) -> void:
 	var col = _page_col(into)
 	col.add_child(_heading("UNWRITTEN PAGES"))
 
+	raise_buttons.clear()
 	var any_unraised := false
 	for minion_id in minion_ids:
 		if MinionManager.is_raised(minion_id): continue
@@ -358,6 +383,7 @@ func _build_index_right(into: PanelContainer) -> void:
 		raise_btn.pressed.connect(func():
 			MinionManager.raise_minion(minion.id))
 		top.add_child(raise_btn)
+		raise_buttons[minion.id] = raise_btn
 
 		for item_id in minion.raise_cost:
 			var needed: int = minion.raise_cost[item_id]
@@ -449,7 +475,7 @@ func _build_minion_left(into: PanelContainer, minion: Minion) -> void:
 	col.add_child(_rule())
 
 	var plot = MinionManager.plot_of(minion.id)
-	var station = ("Plot %d — working your harvests" % (plot + 1)) if plot != -1 else "Idle — click a graveyard plot to put it to work"
+	var station = ("Plot %d — its inked runes are at work" % (plot + 1)) if plot != -1 else "Idle — click a graveyard plot to station it"
 	col.add_child(_kv_row("Station", station, MOSS if plot != -1 else INK_FAINT))
 	col.add_child(_kv_row("Skill points", "%d unspent" % MinionManager.get_skill_points(minion.id), INK_MID))
 	var owned := 0
@@ -541,15 +567,12 @@ func _build_altar_left(into: PanelContainer) -> void:
 		return
 
 	if altar_target == "" or not MinionManager.is_raised(altar_target):
-		var raised = MinionManager.roster.keys()
-		raised.sort()
-		altar_target = raised[0]
+		altar_target = MinionManager.sorted_ids(true)[0]
 
 	var targets = HBoxContainer.new()
 	targets.add_theme_constant_override("separation", 6)
 	col.add_child(targets)
-	var ids = MinionManager.roster.keys()
-	ids.sort()
+	var ids = MinionManager.sorted_ids(true)
 	for minion_id in ids:
 		var minion = MinionManager.find_minion_by_id(minion_id)
 		var b = Button.new()
@@ -589,11 +612,12 @@ func _build_altar_left(into: PanelContainer) -> void:
 		bar.max_value = MinionManager.get_xp_needed(state["level"])
 		bar.value = state["xp"]
 	col.add_child(bar)
-	col.add_child(_ink_line("Each offering yields %.0f XP per gold of its worth." % MinionManager.OFFERING_XP_PER_GOLD, INK_FAINT, 11))
+	col.add_child(_ink_line("Each offering yields %.1f XP per gold of its worth." % MinionManager.OFFERING_XP_PER_GOLD, INK_FAINT, 11))
 
 func _build_altar_right(into: PanelContainer) -> void:
 	var col = _page_col(into)
 	col.add_child(_heading("OFFERINGS"))
+	first_offer_button = null
 
 	if MinionManager.roster.is_empty():
 		col.add_child(_flavor("The stone is cold."))
@@ -652,6 +676,8 @@ func _build_altar_right(into: PanelContainer) -> void:
 				b.custom_minimum_size = Vector2(34, 26)
 				b.pressed.connect(_offer.bind(item_id, batch))
 				row.add_child(b)
+				if first_offer_button == null:
+					first_offer_button = b
 		var all_btn = _ink_button("All")
 		all_btn.custom_minimum_size = Vector2(40, 26)
 		all_btn.pressed.connect(_offer.bind(item_id, held))
@@ -665,6 +691,31 @@ func _offer(item_id: String, amount: int) -> void:
 	if gained > 0.0:
 		var minion = MinionManager.find_minion_by_id(altar_target)
 		NotificationManager.show_item("%s devours the offering — +%.0f XP" % [minion.name, gained], 1)
+
+# --- Tutorial hooks ---
+
+## The control Mortimer's highlight should pulse over, by beat name.
+## "raise:<id>": that minion's Raise button (steering to the index first).
+## "altar": the ALTAR tab, or the first offer button once the altar is open.
+func tutorial_target(kind: String) -> Control:
+	if kind.begins_with("raise"):
+		if chapter != "minions" or page != 0:
+			return minions_tab
+		var wanted = kind.substr(6) if kind.begins_with("raise:") else ""
+		var btn = raise_buttons.get(wanted, null)
+		if not is_instance_valid(btn):
+			for minion_id in raise_buttons:
+				if is_instance_valid(raise_buttons[minion_id]):
+					btn = raise_buttons[minion_id]
+					break
+		if is_instance_valid(btn):
+			return btn
+	elif kind == "altar":
+		if chapter != "altar":
+			return altar_tab
+		if is_instance_valid(first_offer_button):
+			return first_offer_button
+	return null
 
 # --- Parchment furniture helpers ---
 

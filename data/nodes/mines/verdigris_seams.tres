@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/stone_debris.tres" id="i0"]
+[ext_resource type="Resource" path="res://data/items/materials/malachite_flake.tres" id="i1"]
+
+[sub_resource type="Resource" id="hit0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 60.0
+
+[sub_resource type="Resource" id="break0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 85.0
+min_amount = 2
+max_amount = 4
+
+[sub_resource type="Resource" id="break1"]
+script = ExtResource("2_loot")
+item = ExtResource("i1")
+weight = 15.0
+
+[resource]
+script = ExtResource("1_node")
+id = "verdigris_seams"
+name = "Verdigris Seam"
+description = "Pale limestone laced with copper-green. The everyday haul."
+required_skill = 2
+required_level = 1
+required_tool_type = 2
+base_duration = 2.5
+base_xp = 3
+hit_damage = 0.25
+hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0")])
+break_pool = Array[ExtResource("2_loot")]([SubResource("break0"), SubResource("break1")])

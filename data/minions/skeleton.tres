@@ -41,11 +41,13 @@ magnitude = 0.0
 script = ExtResource("1_minion")
 id = "skeleton"
 name = "Skeleton"
+sort_order = 2
 description = "Dry, clean, and eager. What it lacks in muscle it makes up in spite."
 base_hp = 12
 base_atk = 3.0
 hp_per_level = 3
 atk_per_level = 0.7
+speed = 1.0
 raise_cost = Dictionary[String, int]({
 "bones": 8,
 "cracked_skull": 2

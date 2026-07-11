@@ -7,8 +7,8 @@
 script = ExtResource("1_dxpse")
 icon = ExtResource("9_icon")
 tool_tier = 3
-speed_multiplier = 1.8
-yield_bonus = 2
+speed_multiplier = 1.3
+yield_bonus = 20
 id = "tempered_shovel"
 name = "Cobalt Shovel"
 type = 1

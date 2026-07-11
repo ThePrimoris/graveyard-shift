@@ -1,6 +1,7 @@
 extends Control
 
 const SETTINGS_PANEL_SCRIPT = preload("res://scripts/ui/SettingsPanel.gd")
+const GROUNDS_VIEW_SCRIPT = preload("res://scenes/views/GroundsView.gd")
 
 @onready var timer: Timer = %GameTickTimer
 
@@ -10,9 +11,10 @@ const SETTINGS_PANEL_SCRIPT = preload("res://scripts/ui/SettingsPanel.gd")
 @onready var quarry_view: PanelContainer = %QuarryView
 @onready var inventory_view: PanelContainer = %InventoryView
 @onready var shop_view: PanelContainer = %ShopView
-@onready var undercroft_view: PanelContainer = %UndercroftView
+@onready var combat_view: PanelContainer = %CombatView
 
 var open_settings_panel: Node = null
+var open_grounds_panel: Node = null
 
 func _ready() -> void:
 	add_to_group("ui_updates")
@@ -28,6 +30,12 @@ func _ready() -> void:
 
 	%SettingsNavButton.pressed.connect(_on_settings_pressed)
 
+	# The Grounds nav button lives beside Shop/Inventory; guard the hookup so a
+	# missing button degrades gracefully instead of crashing the scene.
+	var grounds_btn = get_node_or_null("%GroundsNavButton")
+	if grounds_btn:
+		grounds_btn.pressed.connect(_on_grounds_pressed)
+
 	switch_view("graveyard")
 	update_ui()
 
@@ -39,6 +47,14 @@ func _on_settings_pressed() -> void:
 	open_settings_panel = SETTINGS_PANEL_SCRIPT.new()
 	add_child(open_settings_panel)
 
+func _on_grounds_pressed() -> void:
+	if is_instance_valid(open_grounds_panel):
+		open_grounds_panel.queue_free()
+		open_grounds_panel = null
+		return
+	open_grounds_panel = GROUNDS_VIEW_SCRIPT.new()
+	add_child(open_grounds_panel)
+
 func _on_game_tick() -> void:
 	get_tree().call_group("ui_updates", "update_ui")
 
@@ -48,7 +64,7 @@ func switch_view(target_view: String) -> void:
 	if quarry_view: quarry_view.visible = (target_view == "quarry")
 	if inventory_view: inventory_view.visible = (target_view == "inventory")
 	if shop_view: shop_view.visible = (target_view == "shop")
-	if undercroft_view: undercroft_view.visible = (target_view == "undercroft")
+	if combat_view: combat_view.visible = (target_view == "combat")
 
 	get_tree().call_group("ui_updates", "update_ui")
 

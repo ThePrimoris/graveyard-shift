@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/briar_blossom.tres" id="i0"]
+
+[sub_resource type="Resource" id="common0"]
+script = ExtResource("2_loot")
+item = ExtResource("i0")
+weight = 100.0
+
+[resource]
+script = ExtResource("1_node")
+id = "briar_hollow"
+name = "Briar Hollow"
+description = "A sheltered hollow where the rare briar blooms. Slow going."
+required_skill = 1
+required_level = 13
+required_tool_type = 1
+base_duration = 8.8
+base_xp = 5
+dig_sections = 0
+affix = "thorn_veil"
+common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])

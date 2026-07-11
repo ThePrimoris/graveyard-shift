@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HarvestZone" format=3]
+
+[ext_resource type="Script" path="res://data/ZoneData.gd" id="1_zone"]
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="2_hnode"]
+[ext_resource type="Resource" path="res://data/nodes/mines/emberslate_face.tres" id="3_n1"]
+[ext_resource type="Resource" path="res://data/nodes/mines/pyrite_vein.tres" id="3_n2"]
+[ext_resource type="Resource" path="res://data/nodes/mines/quartz_pocket.tres" id="3_n3"]
+
+[resource]
+script = ExtResource("1_zone")
+id = "emberslate_fissure"
+name = "Emberslate Fissure"
+description = "A hot fissure that hisses with building gas as you strike it."
+required_level = 10
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])

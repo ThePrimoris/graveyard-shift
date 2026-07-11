@@ -2,7 +2,6 @@ extends PanelContainer
 
 @onready var inv_btn: Button = %InventoryNavButton
 @onready var shop_btn: Button = %ShopNavButton
-@onready var undercroft_btn: Button = %UndercroftNavButton
 @onready var grave_btn: Button = %Graverobbing
 @onready var lumber_btn: Button = %Lumbering
 @onready var spelunk_btn: Button = %Spelunking
@@ -18,7 +17,6 @@ func _ready() -> void:
 
 	shop_btn.pressed.connect(_on_nav_pressed.bind("shop"))
 	inv_btn.pressed.connect(_on_nav_pressed.bind("inventory"))
-	undercroft_btn.pressed.connect(_on_nav_pressed.bind("undercroft"))
 	grave_btn.pressed.connect(_on_nav_pressed.bind("graveyard"))
 	lumber_btn.pressed.connect(_on_nav_pressed.bind("forest"))
 	spelunk_btn.pressed.connect(_on_nav_pressed.bind("quarry"))
@@ -29,10 +27,6 @@ func update_ui() -> void:
 	_update_row("graverobbing", grave_btn, grave_xp)
 	_update_row("lumbering", lumber_btn, lumber_xp)
 	_update_row("spelunking", spelunk_btn, spelunk_xp)
-
-	# Once the Necronomicon is found, the book replaces the Undercroft.
-	if undercroft_btn:
-		undercroft_btn.visible = not MinionManager.necronomicon_unlocked
 
 	if gold_lbl:
 		gold_lbl.text = "Gold: %d" % GameManager.gold_coins

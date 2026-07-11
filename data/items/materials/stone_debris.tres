@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_item")
 id = "stone_debris"
-name = "Stone Debris"
+name = "Dense Limestone"
 icon = ExtResource("9_icon")
-description = "Crumbled masonry and rubble from the catacomb walls."
+description = "Heavy, pale stone from the shallow verdigris seams. The everyday quarry haul."
 metadata/_custom_type_script = "uid://lm34okuvj3hr"

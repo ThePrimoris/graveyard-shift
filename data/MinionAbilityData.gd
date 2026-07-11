@@ -23,8 +23,10 @@ enum Kind { PASSIVE, ACTIVE }
 
 @export_category("Effect")
 ## What the ability does, matched in code. Current passive hooks:
-##  "harvest_xp_pct"  - bonus % skill XP from harvests
-##  "rare_chance_pct" - flat % added to nodes' rare table chance
+##  "harvest_xp_pct"   - bonus % skill XP from harvests
+##  "rare_chance_pct"  - flat % added to nodes' rare table chance
+##  "double_drop_pct"  - % chance to double a harvest's haul
+##  "grounds_yield_pct" - boosts the grounds' offline output while slotted
 ## Actives use free-form ids until combat lands.
 @export var effect: String = ""
 @export var magnitude: float = 0.0

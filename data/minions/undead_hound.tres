@@ -1,0 +1,68 @@
+[gd_resource type="Resource" script_class="Minion" format=3]
+
+[ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
+[ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+
+[sub_resource type="Resource" id="Ability0"]
+script = ExtResource("2_ability")
+id = "grave_hounds_nose"
+name = "Grave Hound's Nose"
+description = "It smells what the living miss. Adds to every node's rare table chance while slotted."
+kind = 0
+tier = 1
+cost = 1
+effect = "rare_chance_pct"
+magnitude = 0.6
+
+[sub_resource type="Resource" id="Ability1"]
+script = ExtResource("2_ability")
+id = "tireless_trot"
+name = "Tireless Trot"
+description = "It paces the rows all night and expects you to keep up. Bonus skill XP from every harvest while slotted."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["grave_hounds_nose"])
+effect = "harvest_xp_pct"
+magnitude = 4.0
+
+[sub_resource type="Resource" id="Ability2"]
+script = ExtResource("2_ability")
+id = "savage_pounce"
+name = "Savage Pounce"
+description = "Forty pounds of dead dog, airborne. A combat opener for the wars to come."
+kind = 1
+tier = 2
+cost = 2
+effect = "active_savage_pounce"
+magnitude = 0.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
+id = "restless_vigil"
+name = "Restless Vigil"
+description = "It works the rows through the long dark, whether you're watching or not. Boosts the grounds' offline output while slotted."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["tireless_trot"])
+effect = "grounds_yield_pct"
+magnitude = 15.0
+
+[resource]
+script = ExtResource("1_minion")
+id = "undead_hound"
+name = "Undead Hound"
+description = "Faithful beyond the grave, and faster than anything else in it. All fangs, no patience."
+sort_order = 3
+base_hp = 15
+base_atk = 4.0
+hp_per_level = 3
+atk_per_level = 0.9
+speed = 1.3
+raise_cost = Dictionary[String, int]({
+"bones": 6,
+"jagged_fangs": 4
+})
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3")])
+metadata/_custom_type_script = "res://data/MinionData.gd"
