@@ -41,7 +41,7 @@ var selected_item: Item = null
 var selected_is_equipped: bool = false
 
 func _ready() -> void:
-	add_to_group("ui_updates")
+	add_to_group(Ids.GROUP_UI_UPDATES)
 
 	sell_button.pressed.connect(_on_sell_pressed)
 	equip_button.pressed.connect(_on_equip_pressed)
@@ -219,7 +219,7 @@ func _on_sell_pressed() -> void:
 		var qty = mini(int(sell_slider.value), InventoryManager.get_item_count(item.id))
 		if qty > 0 and InventoryManager.remove_item(item.id, qty):
 			GameManager.gold_coins += value * qty
-		get_tree().call_group("ui_updates", "update_ui")
+		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func _on_equip_pressed() -> void:
 	if not (selected_item is ToolData): return
@@ -230,10 +230,10 @@ func _on_equip_pressed() -> void:
 	else:
 		if GameManager.equip_tool(selected_item):
 			selected_is_equipped = true
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func _on_destroy_pressed() -> void:
 	if selected_item and not selected_is_equipped:
 		var total_count = InventoryManager.get_item_count(selected_item.id)
 		InventoryManager.remove_item(selected_item.id, total_count)
-		get_tree().call_group("ui_updates", "update_ui")
+		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")

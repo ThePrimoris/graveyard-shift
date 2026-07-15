@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/trees/hallowed_oak.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/trees/moss_beds.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/trees/petrified_grove.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/trees/petrified_dryad.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "hallowed_thicket"
 name = "Hallowed Thicket"
 description = "A ring of ancient oaks whose canopy blots out the sky."
 required_level = 35
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

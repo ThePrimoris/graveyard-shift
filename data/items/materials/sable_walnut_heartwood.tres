@@ -1,10 +1,12 @@
 [gd_resource type="Resource" script_class="Item" format=3]
 
 [ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/sable_walnut_heartwood.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_item")
 id = "sable_walnut_heartwood"
 name = "Sable Walnut Heartwood"
 description = "Near-black heartwood, dense as iron and twice as stubborn."
+icon = ExtResource("2_icon")
 sell_value = 18

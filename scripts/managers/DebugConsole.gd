@@ -49,12 +49,14 @@ func execute(command: String) -> String:
 	var response := ""
 	match parts[0].to_lower():
 		"help":
-			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  necronomicon <on|off> — toggle the dread tome\n  combat [boss] — stage a test battle\n  help" % ", ".join(GameManager.skills.keys())
+			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  grounds <list|raise|max|reset> [id] — preview structures\n  necronomicon <on|off> — toggle the dread tome\n  combat [boss] — stage a test battle\n  help" % ", ".join(GameManager.skills.keys())
 		"level":
 			response = _cmd_level(parts)
 		"spawn":
 			response = _cmd_spawn(parts)
-		"necronomicon":
+		"grounds":
+			response = _cmd_grounds(parts)
+		Ids.GROUP_NECRONOMICON:
 			response = _cmd_necronomicon(parts)
 		"combat":
 			response = _cmd_combat(parts)
@@ -92,23 +94,48 @@ func _cmd_spawn(parts: PackedStringArray) -> String:
 		return "Spawned %d x %s (%d didn't fit — inventory full)." % [amount - leftover, item.name, leftover]
 	return "Spawned %d x %s." % [amount, item.name]
 
+func _cmd_grounds(parts: PackedStringArray) -> String:
+	if parts.size() < 2:
+		return "Usage: grounds <list|raise|max|reset> [id]"
+	var sub = parts[1].to_lower()
+	if sub == "list":
+		var lines: Array[String] = []
+		for structure_id in GroundsManager.sorted_ids():
+			var st = GroundsManager.find_structure(structure_id)
+			lines.append("  %s — tier %d/%d" % [structure_id, GroundsManager.get_level(structure_id), st.max_level()])
+		return "Structures:\n" + "\n".join(lines)
+	if parts.size() < 3:
+		return "Usage: grounds %s <id>" % sub
+	var sid = parts[2].to_lower()
+	var s = GroundsManager.find_structure(sid)
+	if s == null:
+		return "Unknown structure '%s'. Try 'grounds list'." % sid
+	var target: int
+	match sub:
+		"raise": target = GroundsManager.get_level(sid) + 1
+		"max": target = s.max_level()
+		"reset": target = 0
+		_: return "Usage: grounds <list|raise|max|reset> [id]"
+	var lvl = GroundsManager.debug_set_level(sid, target)
+	return "%s is now tier %d/%d." % [s.name, lvl, s.max_level()]
+
 func _cmd_necronomicon(parts: PackedStringArray) -> String:
 	if parts.size() < 2 or not parts[1].to_lower() in ["on", "off"]:
 		return "Usage: necronomicon <on|off>"
 	MinionManager.necronomicon_unlocked = parts[1].to_lower() == "on"
 	MinionManager.minions_updated.emit()
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	if MinionManager.necronomicon_unlocked:
 		return "The Necronomicon stirs. The circle at the graveyard's heart will open it."
 	return "The tome sleeps once more."
 
 func _cmd_combat(parts: PackedStringArray) -> String:
-	var combat_view = get_tree().get_first_node_in_group("combat_views")
+	var combat_view = get_tree().get_first_node_in_group(Ids.GROUP_COMBAT_VIEWS)
 	if combat_view == null:
 		return "No combat view found — is the main scene running?"
 	var boss = parts.size() > 1 and parts[1].to_lower() == "boss"
 	combat_view.start_test_encounter(boss)
-	get_tree().call_group("view_manager", "switch_view", "combat")
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_COMBAT)
 	return "A test battle begins%s." % (" — the Warden stirs" if boss else "")
 
 func _log(text: String) -> void:

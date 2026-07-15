@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/dryads_heartstone.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "dryads_heartstone"
+name = "Dryad's Heartstone"
+description = "The stone heart of a dryad turned to rock mid-scream."
+icon = ExtResource("2_icon")
+sell_value = 120
+rarity = 3

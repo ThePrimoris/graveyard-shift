@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/mines/peridot_face.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/mines/nickel_seam.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/mines/jade_vug.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/mines/jade_sentinel.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "peridotite_pits"
 name = "Peridotite Pits"
 description = "Deep green pits where the cold seeps into your bones."
 required_level = 35
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/mines/emberslate_face.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/mines/pyrite_vein.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/mines/quartz_pocket.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/mines/ember_wretches.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "emberslate_fissure"
 name = "Emberslate Fissure"
 description = "A hot fissure that hisses with building gas as you strike it."
 required_level = 10
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

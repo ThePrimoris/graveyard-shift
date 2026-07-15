@@ -98,8 +98,8 @@ func raise_minion(minion_id: String) -> bool:
 	roster[minion_id] = {"level": 1, "xp": 0.0, "abilities": []}
 	NotificationManager.show_item("%s rises from the earth!" % minion.name, 1)
 	minions_updated.emit()
-	TutorialManager.notify_event("minion_raised")
-	get_tree().call_group("ui_updates", "update_ui")
+	TutorialManager.notify_event(Ids.EVENT_MINION_RAISED)
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 # --- Levels & XP ---
@@ -136,13 +136,29 @@ func get_hp(minion_id: String) -> int:
 	var minion = find_minion_by_id(minion_id)
 	if minion == null: return 0
 	var level = maxi(get_level(minion_id), 1)
-	return minion.base_hp + (level - 1) * minion.hp_per_level
+	var base = minion.base_hp + (level - 1) * minion.hp_per_level
+	return int(round(base * (1.0 + get_minion_effect(minion_id, Ids.MINION_HP_PCT) / 100.0)))
 
 func get_atk(minion_id: String) -> float:
 	var minion = find_minion_by_id(minion_id)
 	if minion == null: return 0.0
 	var level = maxi(get_level(minion_id), 1)
-	return minion.base_atk + (level - 1) * minion.atk_per_level
+	var base = minion.base_atk + (level - 1) * minion.atk_per_level
+	return base * (1.0 + get_minion_effect(minion_id, Ids.MINION_ATK_PCT) / 100.0)
+
+## Sum of one passive effect across a SINGLE minion's own unlocked abilities.
+## Combat effects buff the minion itself, so they read per-minion — unlike
+## get_passive_bonus, which aggregates the whole slotted warband for gather.
+func get_minion_effect(minion_id: String, effect: String) -> float:
+	if not roster.has(minion_id): return 0.0
+	var minion = find_minion_by_id(minion_id)
+	if minion == null: return 0.0
+	var total := 0.0
+	for ability_id in roster[minion_id]["abilities"]:
+		var ability = minion.find_ability(ability_id)
+		if ability and ability.kind == MinionAbility.Kind.PASSIVE and ability.effect == effect:
+			total += ability.magnitude
+	return total
 
 # --- Skill tree ---
 # 1 point per level past the first; the tree UI arrives next pass, but the
@@ -174,7 +190,7 @@ func unlock_ability(minion_id: String, ability_id: String) -> bool:
 	if not can_unlock_ability(minion_id, ability_id): return false
 	roster[minion_id]["abilities"].append(ability_id)
 	minions_updated.emit()
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 ## Sum of one passive effect across every slotted minion's unlocked abilities.
@@ -215,8 +231,8 @@ func offer_materials(minion_id: String, item_id: String, amount: int) -> float:
 	var total = xp_each * burn
 	add_xp(minion_id, total)
 	minions_updated.emit()
-	TutorialManager.notify_event("offering_made")
-	get_tree().call_group("ui_updates", "update_ui")
+	TutorialManager.notify_event(Ids.EVENT_OFFERING_MADE)
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return total
 
 # --- Plots ---
@@ -233,8 +249,8 @@ func assign_to_plot(minion_id: String, plot_index: int) -> bool:
 		plots[previous] = ""
 	plots[plot_index] = minion_id
 	minions_updated.emit()
-	TutorialManager.notify_event("minion_slotted")
-	get_tree().call_group("ui_updates", "update_ui")
+	TutorialManager.notify_event(Ids.EVENT_MINION_SLOTTED)
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 func vacate_plot(plot_index: int) -> void:
@@ -242,7 +258,7 @@ func vacate_plot(plot_index: int) -> void:
 	if plots[plot_index] == "": return
 	plots[plot_index] = ""
 	minions_updated.emit()
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 # --- Save / Load ---
 

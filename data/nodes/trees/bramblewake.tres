@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+
+[resource]
+script = ExtResource("1_node")
+id = "bramblewake"
+name = "The Bramblewake"
+description = "A hollow where the brambles walk. They have been waiting for an axe to answer."
+required_skill = 1
+required_level = 18
+required_tool_type = 1
+base_duration = 3.0
+base_xp = 0.0
+is_boss = true
+encounter_id = "bramblewake"

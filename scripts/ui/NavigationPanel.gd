@@ -13,20 +13,20 @@ extends PanelContainer
 @onready var gold_lbl: Label = %GoldValueLabel
 
 func _ready() -> void:
-	add_to_group("ui_updates")
+	add_to_group(Ids.GROUP_UI_UPDATES)
 
-	shop_btn.pressed.connect(_on_nav_pressed.bind("shop"))
-	inv_btn.pressed.connect(_on_nav_pressed.bind("inventory"))
-	grave_btn.pressed.connect(_on_nav_pressed.bind("graveyard"))
-	lumber_btn.pressed.connect(_on_nav_pressed.bind("forest"))
-	spelunk_btn.pressed.connect(_on_nav_pressed.bind("quarry"))
+	shop_btn.pressed.connect(_on_nav_pressed.bind(Ids.VIEW_SHOP))
+	inv_btn.pressed.connect(_on_nav_pressed.bind(Ids.VIEW_INVENTORY))
+	grave_btn.pressed.connect(_on_nav_pressed.bind(Ids.VIEW_GRAVEYARD))
+	lumber_btn.pressed.connect(_on_nav_pressed.bind(Ids.VIEW_FOREST))
+	spelunk_btn.pressed.connect(_on_nav_pressed.bind(Ids.VIEW_QUARRY))
 
 	update_ui()
 
 func update_ui() -> void:
-	_update_row("graverobbing", grave_btn, grave_xp)
-	_update_row("lumbering", lumber_btn, lumber_xp)
-	_update_row("spelunking", spelunk_btn, spelunk_xp)
+	_update_row(Ids.SKILL_GRAVEROBBING, grave_btn, grave_xp)
+	_update_row(Ids.SKILL_LUMBERING, lumber_btn, lumber_xp)
+	_update_row(Ids.SKILL_SPELUNKING, spelunk_btn, spelunk_xp)
 
 	if gold_lbl:
 		gold_lbl.text = "Gold: %d" % GameManager.gold_coins
@@ -43,4 +43,5 @@ func _update_row(skill_id: String, btn: Button, lbl: Label) -> void:
 		lbl.tooltip_text = "%.0f / %.0f XP to next level" % [data["xp"], needed]
 
 func _on_nav_pressed(target: String) -> void:
-	get_tree().call_group("view_manager", "switch_view", target)
+	AudioManager.play_sfx(Ids.SFX_UI_CLICK)
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", target)

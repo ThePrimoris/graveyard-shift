@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/mines/crag_granite.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/mines/tungsten_seam.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/mines/beryl_pocket.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/mines/crag_lurker.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "hollow_crag"
 name = "Hollow Crag"
 description = "A vast hollow where every pick-fall rings back a hundredfold."
 required_level = 20
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

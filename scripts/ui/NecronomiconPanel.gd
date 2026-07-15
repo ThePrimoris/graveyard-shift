@@ -52,9 +52,9 @@ var _ui_fingerprint: String = ""
 
 func _ready() -> void:
 	layer = 55
-	add_to_group("ui_updates")
-	add_to_group("necronomicon")
-	TutorialManager.notify_event("book_opened")
+	add_to_group(Ids.GROUP_UI_UPDATES)
+	add_to_group(Ids.GROUP_NECRONOMICON)
+	TutorialManager.notify_event(Ids.EVENT_BOOK_OPENED)
 	minion_ids = MinionManager.sorted_ids()
 	if not MinionManager.roster.is_empty():
 		altar_target = MinionManager.sorted_ids(true)[0]

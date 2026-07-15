@@ -37,4 +37,6 @@ sort_order = 2
 effect = "harvest_xp_pct"
 effect_unit = "%"
 effect_label = "harvest XP"
+grid_cell = Vector2i(0, 0)
+footprint = Vector2i(2, 2)
 tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

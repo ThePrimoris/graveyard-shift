@@ -83,6 +83,16 @@ func _ready() -> void:
 
 	vbox.add_child(HSeparator.new())
 
+	# Audio: master / SFX / music volume — persisted and applied live
+	_add_volume_row(vbox, "Master volume", SettingsManager.master_volume,
+		AudioManager.set_master_volume, false)
+	_add_volume_row(vbox, "Sound effects", SettingsManager.sfx_volume,
+		AudioManager.set_sfx_volume, true)
+	_add_volume_row(vbox, "Music", SettingsManager.music_volume,
+		AudioManager.set_music_volume, false)
+
+	vbox.add_child(HSeparator.new())
+
 	var save_btn = Button.new()
 	save_btn.text = "Save Now"
 	save_btn.custom_minimum_size = Vector2(0, 40)
@@ -118,6 +128,31 @@ func _ready() -> void:
 	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	close_btn.pressed.connect(queue_free)
 	vbox.add_child(close_btn)
+
+## A labelled 0–100% volume slider wired live to `on_change`. When `preview` is
+## set, releasing the handle plays a short SFX so the new level is audible.
+func _add_volume_row(parent: VBoxContainer, label_text: String, value: float,
+		on_change: Callable, preview: bool) -> void:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+
+	var lbl = Label.new()
+	lbl.text = label_text
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(lbl)
+
+	var slider = HSlider.new()
+	slider.custom_minimum_size = Vector2(190, 20)
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.value = value
+	slider.value_changed.connect(on_change)
+	if preview:
+		slider.drag_ended.connect(func(_changed): AudioManager.preview_sfx_level())
+	row.add_child(slider)
 
 func _on_save_pressed() -> void:
 	SaveManager.save_game()

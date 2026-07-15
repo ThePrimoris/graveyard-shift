@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Encounter" format=3]
+
+[ext_resource type="Script" path="res://data/EncounterData.gd" id="1_enc"]
+[ext_resource type="Script" path="res://data/EnemyData.gd" id="2_enemy"]
+[ext_resource type="Resource" path="res://data/enemies/thornbound_husk.tres" id="3_e0"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "bramblewake"
+name = "The Bramblewake"
+enemies = Array[ExtResource("2_enemy")]([ExtResource("3_e0"), ExtResource("3_e0"), ExtResource("3_e0")])

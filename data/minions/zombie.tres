@@ -2,12 +2,13 @@
 
 [ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
 [ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/zombie.png" id="3_icon"]
 
 [sub_resource type="Resource" id="Ability0"]
 script = ExtResource("2_ability")
 id = "gravekeepers_vigor"
 name = "Gravekeeper's Vigor"
-description = "The zombie turns earth alongside you. Bonus skill XP from every harvest while slotted."
+description = "The zombie turns earth beside you — a little bonus skill XP from every harvest while it is slotted."
 kind = 0
 tier = 1
 cost = 1
@@ -16,33 +17,105 @@ magnitude = 5.0
 
 [sub_resource type="Resource" id="Ability1"]
 script = ExtResource("2_ability")
-id = "carrion_nose"
-name = "Carrion Nose"
-description = "It can smell the good rot. Adds to every node's rare table chance while slotted."
+id = "dead_weight"
+name = "Dead Weight"
+description = "There is simply more of it to kill. +15% max HP in battle."
 kind = 0
-tier = 2
-cost = 2
-prerequisites = Array[String](["gravekeepers_vigor"])
-effect = "rare_chance_pct"
-magnitude = 0.5
+tier = 1
+cost = 1
+effect = "minion_hp_pct"
+magnitude = 15.0
 
 [sub_resource type="Resource" id="Ability2"]
 script = ExtResource("2_ability")
+id = "rotten_resilience"
+name = "Rotten Resilience"
+description = "Flesh too stubborn to finish rotting is too stubborn to finish off. +20% max HP."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["dead_weight"])
+effect = "minion_hp_pct"
+magnitude = 20.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
+id = "slow_mend"
+name = "Slow Mend"
+description = "Torn flesh knits shut, slowly. Heals 4% of max HP on each of its turns."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["dead_weight"])
+effect = "minion_regen_pct"
+magnitude = 4.0
+
+[sub_resource type="Resource" id="Ability4"]
+script = ExtResource("2_ability")
 id = "lurch"
 name = "Lurch"
-description = "A graceless, unstoppable shoulder charge. Its day will come, in combat."
+description = "A graceless, unstoppable shoulder charge — one crushing blow, once per battle."
 kind = 1
 tier = 2
 cost = 2
 effect = "active_lurch"
 magnitude = 0.0
 
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "gravecold_hide"
+name = "Grave-Cold Hide"
+description = "Skin gone to cold leather turns the edge of a blade. +25% max HP."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["rotten_resilience"])
+effect = "minion_hp_pct"
+magnitude = 25.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "deepening_rot"
+name = "Deepening Rot"
+description = "The longer it stands, the faster it knits. +6% HP regen each turn."
+kind = 0
+tier = 3
+cost = 2
+prerequisites = Array[String](["slow_mend"])
+effect = "minion_regen_pct"
+magnitude = 6.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "dead_strength"
+name = "Dead Strength"
+description = "No nerves, no restraint — it swings with its whole dead weight. +20% attack."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["rotten_resilience"])
+effect = "minion_atk_pct"
+magnitude = 20.0
+
+[sub_resource type="Resource" id="Ability8"]
+script = ExtResource("2_ability")
+id = "the_undying"
+name = "The Undying"
+description = "It has died before; it was not impressed. Once per battle it refuses to stay down, rising again at a quarter of its health."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["gravecold_hide", "deepening_rot"])
+effect = "minion_revive"
+magnitude = 1.0
+
 [resource]
 script = ExtResource("1_minion")
 id = "zombie"
 name = "Zombie"
+icon = ExtResource("3_icon")
 sort_order = 1
-description = "A shambling knot of flesh and stubbornness. Slow to fall, slower to think."
+description = "A shambling knot of flesh and stubbornness. Slow to fall, slower to think — the tireless workhorse of the grounds and an unkillable wall in a fight."
 base_hp = 20
 base_atk = 2.0
 hp_per_level = 5
@@ -52,5 +125,4 @@ raise_cost = Dictionary[String, int]({
 "blood": 5,
 "flesh": 3
 })
-abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2")])
-metadata/_custom_type_script = "res://data/MinionData.gd"
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7"), SubResource("Ability8")])

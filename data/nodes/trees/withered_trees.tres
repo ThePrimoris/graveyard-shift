@@ -2,19 +2,26 @@
 
 [ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
-[ext_resource type="Resource" path="res://data/items/materials/rotten_logs.tres" id="i0"]
-[ext_resource type="Resource" path="res://data/items/materials/amber_droplet.tres" id="i1"]
+[ext_resource type="Resource" path="res://data/items/materials/brittle_branches.tres" id="it0"]
+[ext_resource type="Resource" path="res://data/items/materials/amber_droplet.tres" id="it1"]
+[ext_resource type="Resource" path="res://data/items/materials/rotten_logs.tres" id="it2"]
 
-[sub_resource type="Resource" id="common0"]
+[sub_resource type="Resource" id="hit0"]
 script = ExtResource("2_loot")
-item = ExtResource("i0")
-weight = 100.0
+item = ExtResource("it0")
+weight = 22.0
 max_amount = 2
 
-[sub_resource type="Resource" id="rare0"]
+[sub_resource type="Resource" id="hit1"]
 script = ExtResource("2_loot")
-item = ExtResource("i1")
+item = ExtResource("it1")
+weight = 4.0
+
+[sub_resource type="Resource" id="break2"]
+script = ExtResource("2_loot")
+item = ExtResource("it2")
 weight = 100.0
+max_amount = 2
 
 [resource]
 script = ExtResource("1_node")
@@ -28,5 +35,7 @@ base_duration = 3.0
 base_xp = 3
 dig_sections = 2
 rare_chance = 0.06
-common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])
-rare_pool = Array[ExtResource("2_loot")]([SubResource("rare0")])
+common_pool = Array[ExtResource("2_loot")]([])
+rare_pool = Array[ExtResource("2_loot")]([])
+hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0"), SubResource("hit1")])
+break_pool = Array[ExtResource("2_loot")]([SubResource("break2")])

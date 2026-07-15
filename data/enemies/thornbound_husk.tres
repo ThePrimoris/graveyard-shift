@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="Enemy" format=3]
+
+[ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/thornheart_bud.tres" id="3_l0"]
+[ext_resource type="Resource" path="res://data/items/materials/blackthorn_timber.tres" id="3_l1"]
+
+[sub_resource type="Resource" id="Loot0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l0")
+weight = 45.0
+min_amount = 1
+max_amount = 1
+
+[sub_resource type="Resource" id="Loot1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l1")
+weight = 55.0
+min_amount = 1
+max_amount = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "thornbound_husk"
+name = "Thornbound Husk"
+glyph = "🌿"
+base_hp = 38
+atk = 4.5
+speed = 0.90
+xp_reward = 22.0
+gold_min = 5
+gold_max = 12
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1")])

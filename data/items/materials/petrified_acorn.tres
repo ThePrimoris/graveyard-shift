@@ -1,10 +1,12 @@
 [gd_resource type="Resource" script_class="Item" format=3]
 
 [ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/petrified_acorn.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_item")
 id = "petrified_acorn"
 name = "Petrified Acorn"
 description = "An acorn turned to grey stone, yet somehow still whole."
+icon = ExtResource("2_icon")
 sell_value = 85

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+
+[resource]
+script = ExtResource("1_node")
+id = "ember_wretches"
+name = "The Ember Wretches"
+description = "A vent choked with smoldering husks that remember being miners."
+required_skill = 2
+required_level = 18
+required_tool_type = 2
+base_duration = 3.0
+base_xp = 0.0
+is_boss = true
+encounter_id = "ember_wretches"

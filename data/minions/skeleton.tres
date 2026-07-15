@@ -2,47 +2,108 @@
 
 [ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
 [ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/skeleton.png" id="3_icon"]
 
 [sub_resource type="Resource" id="Ability0"]
 script = ExtResource("2_ability")
 id = "bone_diligence"
 name = "Bone Diligence"
-description = "No lungs, no breaks. Bonus skill XP from every harvest while slotted."
+description = "It never tires and never sleeps — the grounds keep producing through the night while it is slotted."
 kind = 0
 tier = 1
 cost = 1
-effect = "harvest_xp_pct"
-magnitude = 4.0
+effect = "grounds_yield_pct"
+magnitude = 10.0
 
 [sub_resource type="Resource" id="Ability1"]
 script = ExtResource("2_ability")
-id = "marrow_memory"
-name = "Marrow Memory"
-description = "Old bones remember where treasures were buried. Adds to every node's rare table chance while slotted."
+id = "steady_aim"
+name = "Steady Aim"
+description = "No breath to hold, no hand to shake. +8% chance to land a critical hit."
 kind = 0
-tier = 2
-cost = 2
-prerequisites = Array[String](["bone_diligence"])
-effect = "rare_chance_pct"
-magnitude = 0.75
+tier = 1
+cost = 1
+effect = "minion_crit_pct"
+magnitude = 8.0
 
 [sub_resource type="Resource" id="Ability2"]
 script = ExtResource("2_ability")
+id = "marksmans_eye"
+name = "Marksman's Eye"
+description = "It reads the gaps in a foe's guard. +10% crit chance."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["steady_aim"])
+effect = "minion_crit_pct"
+magnitude = 10.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
 id = "rattling_volley"
 name = "Rattling Volley"
-description = "It throws its own ribs. Alarmingly accurate. Reserved for combat."
+description = "It throws its own ribs — alarmingly accurate. A cleave that strikes every foe, once per battle."
 kind = 1
 tier = 2
 cost = 2
 effect = "active_rattling_volley"
 magnitude = 0.0
 
+[sub_resource type="Resource" id="Ability4"]
+script = ExtResource("2_ability")
+id = "quick_bones"
+name = "Quick Bones"
+description = "Light and dry, it moves between blinks. +12% turn speed."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["steady_aim"])
+effect = "minion_speed_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "splintered_strikes"
+name = "Splintered Strikes"
+description = "Every jab is a jagged shard. +15% attack."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["marksmans_eye"])
+effect = "minion_atk_pct"
+magnitude = 15.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "deadeye"
+name = "Deadeye"
+description = "It has all the time in the world to aim. +14% crit chance."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["marksmans_eye"])
+effect = "minion_crit_pct"
+magnitude = 14.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "executioner"
+name = "Executioner"
+description = "It knows exactly where the marrow lives. +18% crit chance — a true glass marksman."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["deadeye", "splintered_strikes"])
+effect = "minion_crit_pct"
+magnitude = 18.0
+
 [resource]
 script = ExtResource("1_minion")
 id = "skeleton"
 name = "Skeleton"
+icon = ExtResource("3_icon")
 sort_order = 2
-description = "Dry, clean, and eager. What it lacks in muscle it makes up in spite."
+description = "Dry, precise, and endlessly patient. Fragile as kindling, but every strike goes exactly where it means to — the grounds' tireless nightshift and a deadly marksman in a fight."
 base_hp = 12
 base_atk = 3.0
 hp_per_level = 3
@@ -52,5 +113,4 @@ raise_cost = Dictionary[String, int]({
 "bones": 8,
 "cracked_skull": 2
 })
-abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2")])
-metadata/_custom_type_script = "res://data/MinionData.gd"
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7")])

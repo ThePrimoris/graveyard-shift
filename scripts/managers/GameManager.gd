@@ -46,9 +46,9 @@ enum SkillType { GRAVEROBBING, LUMBERING, SPELUNKING }
 const MAX_LEVEL: int = 100
 
 var skills: Dictionary = {
-	"graverobbing": {"level": 1, "xp": 0.0},
-	"lumbering": {"level": 1, "xp": 0.0},
-	"spelunking": {"level": 1, "xp": 0.0}
+	Ids.SKILL_GRAVEROBBING: {"level": 1, "xp": 0.0},
+	Ids.SKILL_LUMBERING: {"level": 1, "xp": 0.0},
+	Ids.SKILL_SPELUNKING: {"level": 1, "xp": 0.0}
 }
 
 func _ready() -> void:
@@ -56,6 +56,19 @@ func _ready() -> void:
 	_build_node_registry()
 	_build_encounter_registry()
 	call_deferred("_setup_starting_equipment")
+	# Debug-only: surface broken content / unknown affix + effect ids at boot so
+	# typos in a new .tres show up immediately instead of silently doing nothing.
+	# Stripped from release builds (OS.is_debug_build() is false there).
+	if OS.is_debug_build():
+		call_deferred("_validate_content_debug")
+
+## Runs the QA-2 content pass and routes any problems to the Godot warning log.
+func _validate_content_debug() -> void:
+	var errors := ContentValidator.validate()
+	for err in errors:
+		push_warning("[ContentValidator] " + err)
+	if not errors.is_empty():
+		push_warning("[ContentValidator] %d content problem(s) found — see warnings above." % errors.size())
 
 ## Wipes all run progress back to a fresh start (used by the Settings hard reset).
 func reset_state() -> void:
@@ -131,7 +144,7 @@ func get_skill_key(node: HarvestNode) -> String:
 func add_tool_to_inventory(tool: ToolData) -> void:
 	if not inventory.has(tool):
 		inventory.append(tool)
-		get_tree().call_group("ui_updates", "update_ui")
+		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func _setup_starting_equipment() -> void:
 	for path in [PATH_SHOVEL, PATH_HATCHET, PATH_PICKAXE]:
@@ -183,7 +196,7 @@ func upgrade_tool(type_enum: int) -> bool:
 
 	add_tool_to_inventory(next)
 	equipped_tools[type_enum] = next
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 ## Equips an owned tool into its type slot; any previous tool of that type
@@ -200,7 +213,7 @@ func equip_tool(tool: ToolData) -> bool:
 	equipped_tools[tool.tool_type] = tool
 	if old:
 		InventoryManager.add_item(old, 1)
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 ## Moves an equipped tool back into the backpack grid.
@@ -212,7 +225,7 @@ func unequip_tool(type_enum: int) -> bool:
 		return false
 	equipped_tools.erase(type_enum)
 	InventoryManager.add_item(tool, 1)
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 # === Gather bonuses (the "Access & Yield" model) =====================
@@ -248,6 +261,10 @@ const SPEED_FLOOR: float = 0.3
 # nothing yet, because they target minions deployed onto nodes — a system that
 # doesn't exist yet. They're a ready-made spec for that future feature.
 #   power: sticky_sap = speed lost; others use their own handlers.
+# NOTE: keys are string literals (not Ids.AFFIX_*) because this is a `const`
+# dict — keys must be constant expressions, and this is the affix registry's
+# canonical definition. Ids.AFFIX_* mirror these, and ContentValidator asserts
+# the two stay in lockstep, so a drift here still surfaces loudly.
 const AFFIXES: Dictionary = {
 	"sticky_sap": {
 		"name": "Sticky Sap", "active": true, "power": 0.3,
@@ -314,24 +331,24 @@ func get_gather_modifiers(node: HarvestNode) -> Dictionary:
 	mods.speed_mult += _level_speed_bonus(level)
 
 	# Minion passives (magnitudes are percentage points): spice, no speed.
-	mods.xp_mult += MinionManager.get_passive_bonus("harvest_xp_pct") / 100.0
-	mods.rare_add += MinionManager.get_passive_bonus("rare_chance_pct") / 100.0
-	mods.double_chance += MinionManager.get_passive_bonus("double_drop_pct") / 100.0
+	mods.xp_mult += MinionManager.get_passive_bonus(Ids.EFFECT_HARVEST_XP_PCT) / 100.0
+	mods.rare_add += MinionManager.get_passive_bonus(Ids.EFFECT_RARE_CHANCE_PCT) / 100.0
+	mods.double_chance += MinionManager.get_passive_bonus(Ids.EFFECT_DOUBLE_DROP_PCT) / 100.0
 
 	# Graveyard structures (the Grounds): global build bonuses, same spice
 	# channels — never raw speed.
-	mods.xp_mult += GroundsManager.get_bonus("harvest_xp_pct") / 100.0
-	mods.rare_add += GroundsManager.get_bonus("rare_chance_pct") / 100.0
-	mods.double_chance += GroundsManager.get_bonus("double_drop_pct") / 100.0
+	mods.xp_mult += GroundsManager.get_bonus(Ids.EFFECT_HARVEST_XP_PCT) / 100.0
+	mods.rare_add += GroundsManager.get_bonus(Ids.EFFECT_RARE_CHANCE_PCT) / 100.0
+	mods.double_chance += GroundsManager.get_bonus(Ids.EFFECT_DOUBLE_DROP_PCT) / 100.0
 
 	# Node affix: a penalty the node imposes on the loop (applied after bonuses,
-	# so a rich tool can soften but not erase it).
-	match node.affix:
-		"sticky_sap":
-			mods.speed_mult -= float(AFFIXES["sticky_sap"]["power"])
-		"blind_canopies":
-			mods.double_chance = 0.0
-		# unstable_seams is stateful (lockout) and handled in the harvest view.
+	# so a rich tool can soften but not erase it). (if/elif rather than match so
+	# the Ids.AFFIX_* constants are plain runtime comparisons, not const patterns.)
+	if node.affix == Ids.AFFIX_STICKY_SAP:
+		mods.speed_mult -= float(AFFIXES[Ids.AFFIX_STICKY_SAP]["power"])
+	elif node.affix == Ids.AFFIX_BLIND_CANOPIES:
+		mods.double_chance = 0.0
+	# unstable_seams is stateful (lockout) and handled in the harvest view.
 
 	mods.speed_mult = clampf(mods.speed_mult, SPEED_FLOOR, SPEED_CAP)
 	mods.double_chance = clampf(mods.double_chance, 0.0, 1.0)
@@ -364,6 +381,7 @@ func add_xp(skill_name: String, amount: float) -> void:
 	if not skills.has(skill_name): return
 	var skill = skills[skill_name]
 	if skill["level"] >= MAX_LEVEL: return
+	var start_level: int = skill["level"]
 	skill["xp"] += amount
 	var xp_needed = get_xp_needed(skill["level"])
 	while skill["xp"] >= xp_needed and skill["level"] < MAX_LEVEL:
@@ -372,7 +390,9 @@ func add_xp(skill_name: String, amount: float) -> void:
 		xp_needed = get_xp_needed(skill["level"])
 	if skill["level"] >= MAX_LEVEL:
 		skill["xp"] = 0.0
-	get_tree().call_group("ui_updates", "update_ui")
+	if skill["level"] > start_level:
+		AudioManager.play_sfx(Ids.SFX_LEVEL_UP)
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 # --- Node Accessibility ---
 
@@ -390,11 +410,11 @@ func register_activity(calling_node: Node, node_data: HarvestNode = null) -> boo
 	if active_action_source == calling_node:
 		active_action_source = null
 		active_node_data = null
-		get_tree().call_group("ui_updates", "update_ui")
+		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 		return false
 	active_action_source = calling_node
 	active_node_data = node_data
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
 
 # --- Harvest Resolution ---
@@ -460,15 +480,32 @@ func _bank_gains(gains: Dictionary, notify: bool) -> void:
 			if notify:
 				NotificationManager.show_item(item.name, gains[item_id], item)
 
-## Resolves a completed harvest of `node`. Returns { item_id: amount } gained.
-## Normal nodes: exactly one common row plus a possible rare roll.
-## Breakable nodes (hit_damage > 0): one roll of the Hit Chance table —
-## which may pay nothing; the guaranteed haul waits for the break.
+## Whether a node is worn down over several bars (each a "hit") before it yields
+## its guaranteed break haul, rather than paying a common/rare pull every bar.
+## Covers BOTH Spelunking breakables (hit_damage) and Lumbering dig-layers
+## (dig_sections): they share the hit-per-bar + break-on-empty model.
+func is_breakable(node: HarvestNode) -> bool:
+	return node.hit_damage > 0.0 or node.dig_sections > 0
+
+## The share of a node's integrity one completed bar removes. A dig node spends
+## 1/dig_sections per bar (so it falls after `dig_sections` chops); a hit_damage
+## node uses its authored value; a common/rare node returns 0.
+func per_hit_damage(node: HarvestNode) -> float:
+	if node.hit_damage > 0.0:
+		return node.hit_damage
+	if node.dig_sections > 0:
+		return 1.0 / float(node.dig_sections)
+	return 0.0
+
+## Resolves a completed bar on `node`. Returns { item_id: amount } gained.
+## Common/rare nodes (graves): exactly one common row plus a possible rare roll.
+## Breakable nodes (Spelunking hit_damage, Lumbering dig): one roll of the Hit
+## Chance table — which may pay nothing; the guaranteed haul waits for the break.
 func resolve_harvest(node: HarvestNode, notify: bool = true) -> Dictionary:
 	var mods = get_gather_modifiers(node)
 
 	var gains: Dictionary = {}
-	if node.hit_damage > 0.0:
+	if is_breakable(node):
 		var hit = roll_chance_table(node.hit_pool)
 		if hit:
 			var amount = randi_range(hit.min_amount, maxi(hit.min_amount, hit.max_amount))
@@ -508,8 +545,8 @@ func accrue_offline(node: HarvestNode, seconds: float) -> Dictionary:
 	if dur <= 0.0:
 		return {}
 	var mods = get_gather_modifiers(node)
-	var yield_pct = MinionManager.get_passive_bonus("grounds_yield_pct") \
-		+ GroundsManager.get_bonus("grounds_yield_pct")
+	var yield_pct = MinionManager.get_passive_bonus(Ids.EFFECT_GROUNDS_YIELD_PCT) \
+		+ GroundsManager.get_bonus(Ids.EFFECT_GROUNDS_YIELD_PCT)
 	var effective = seconds * (1.0 + yield_pct / 100.0)
 	var harvests = int(effective / dur)
 	if harvests <= 0:
@@ -518,15 +555,16 @@ func accrue_offline(node: HarvestNode, seconds: float) -> Dictionary:
 	var gains: Dictionary = {}
 	var xp_total := 0.0
 	var damage := 0.0
+	var per_hit := per_hit_damage(node)
 	for i in range(harvests):
-		if node.hit_damage > 0.0:
+		if is_breakable(node):
 			var hit = roll_chance_table(node.hit_pool)
 			if hit:
 				var amt = randi_range(hit.min_amount, maxi(hit.min_amount, hit.max_amount))
 				if mods.double_chance > 0.0 and randf() < mods.double_chance:
 					amt *= 2
 				gains[hit.item.id] = gains.get(hit.item.id, 0) + amt
-			damage += node.hit_damage
+			damage += per_hit
 			if damage >= 0.999:
 				var haul = roll_drop_table(node.break_pool)
 				if haul:

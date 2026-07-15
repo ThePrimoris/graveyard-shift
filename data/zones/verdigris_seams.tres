@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/mines/verdigris_seams.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/mines/sphalerite_pocket.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/mines/malachite_vug.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/mines/skittering_dark.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "verdigris_seams"
 name = "Verdigris Seams"
 description = "The shallow copper-green seams beneath the chapel. Soft rock, easy breaks."
 required_level = 1
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

@@ -20,6 +20,12 @@ const WINDOW_CHOICES: Array[Dictionary] = [
 
 var window_choice: String = "maximized"
 
+## Audio volumes (0..1), applied by AudioManager. Kept here so they persist in
+## the settings file and survive hard resets, alongside the window choice.
+var master_volume: float = 1.0
+var sfx_volume: float = 0.9
+var music_volume: float = 0.55
+
 func _ready() -> void:
 	load_settings()
 	call_deferred("apply_window_choice")
@@ -73,7 +79,12 @@ func save_settings() -> void:
 	if not file:
 		push_warning("SettingsManager: could not write settings file.")
 		return
-	file.store_string(JSON.stringify({"window_choice": window_choice}))
+	file.store_string(JSON.stringify({
+		"window_choice": window_choice,
+		"master_volume": master_volume,
+		"sfx_volume": sfx_volume,
+		"music_volume": music_volume,
+	}))
 	file.close()
 
 func load_settings() -> void:
@@ -85,3 +96,6 @@ func load_settings() -> void:
 	if parsed is Dictionary:
 		var stored = str(parsed.get("window_choice", "maximized"))
 		window_choice = WINDOW_CHOICES[get_choice_index(stored)]["id"]
+		master_volume = clampf(float(parsed.get("master_volume", master_volume)), 0.0, 1.0)
+		sfx_volume = clampf(float(parsed.get("sfx_volume", sfx_volume)), 0.0, 1.0)
+		music_volume = clampf(float(parsed.get("music_volume", music_volume)), 0.0, 1.0)

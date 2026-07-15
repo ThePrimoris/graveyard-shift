@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/trees/ashen_burls.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/trees/lichen_bark.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/trees/silkmoth_nest.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/trees/silk_choked.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "shrouded_ashwoods"
 name = "Shrouded Ashwoods"
 description = "Mist-choked ashwoods where the sap runs thick and slow."
 required_level = 20
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

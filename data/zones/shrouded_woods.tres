@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/nodes/trees/withered_trees.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/trees/deadfall_snags.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/trees/amber_seep.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/trees/rootbound_dead.tres" id="dungeon_node"]
 
 [resource]
 script = ExtResource("1_zone")
@@ -12,4 +13,4 @@ id = "shrouded_woods"
 name = "Shrouded Woods"
 description = "The misty timberline at the grounds' edge, where every keeper begins."
 required_level = 1
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("dungeon_node")])

@@ -17,7 +17,7 @@ var slot_label: Label
 var slot_button: Button
 
 func _ready() -> void:
-	add_to_group("ui_updates")
+	add_to_group(Ids.GROUP_UI_UPDATES)
 	_build_shop()
 	update_ui()
 
@@ -144,7 +144,7 @@ func _on_upgrade_pressed(type_enum: int) -> void:
 func _on_buy_slot_pressed() -> void:
 	if InventoryManager.purchase_slot():
 		NotificationManager.show_item("Backpack expanded (+1 slot)", 1)
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func update_ui() -> void:
 	if gold_label:

@@ -17,8 +17,8 @@ var open_settings_panel: Node = null
 var open_grounds_panel: Node = null
 
 func _ready() -> void:
-	add_to_group("ui_updates")
-	add_to_group("view_manager")
+	add_to_group(Ids.GROUP_UI_UPDATES)
+	add_to_group(Ids.GROUP_VIEW_MANAGER)
 
 	# Layout reflows with the window (cards re-wrap, panels stretch); this
 	# floor just stops the window shrinking past the point where UI would squish.
@@ -36,7 +36,7 @@ func _ready() -> void:
 	if grounds_btn:
 		grounds_btn.pressed.connect(_on_grounds_pressed)
 
-	switch_view("graveyard")
+	switch_view(Ids.VIEW_GRAVEYARD)
 	update_ui()
 
 func _on_settings_pressed() -> void:
@@ -56,17 +56,17 @@ func _on_grounds_pressed() -> void:
 	add_child(open_grounds_panel)
 
 func _on_game_tick() -> void:
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func switch_view(target_view: String) -> void:
-	if graveyard_view: graveyard_view.visible = (target_view == "graveyard")
-	if forest_view: forest_view.visible = (target_view == "forest")
-	if quarry_view: quarry_view.visible = (target_view == "quarry")
-	if inventory_view: inventory_view.visible = (target_view == "inventory")
-	if shop_view: shop_view.visible = (target_view == "shop")
-	if combat_view: combat_view.visible = (target_view == "combat")
+	if graveyard_view: graveyard_view.visible = (target_view == Ids.VIEW_GRAVEYARD)
+	if forest_view: forest_view.visible = (target_view == Ids.VIEW_FOREST)
+	if quarry_view: quarry_view.visible = (target_view == Ids.VIEW_QUARRY)
+	if inventory_view: inventory_view.visible = (target_view == Ids.VIEW_INVENTORY)
+	if shop_view: shop_view.visible = (target_view == Ids.VIEW_SHOP)
+	if combat_view: combat_view.visible = (target_view == Ids.VIEW_COMBAT)
 
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func update_ui() -> void:
 	pass

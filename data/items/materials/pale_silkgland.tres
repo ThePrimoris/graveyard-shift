@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/pale_silkgland.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "pale_silkgland"
+name = "Pale Silkgland"
+description = "The spinning gland of the silk-choked moth, still wet."
+icon = ExtResource("2_icon")
+sell_value = 45
+rarity = 3

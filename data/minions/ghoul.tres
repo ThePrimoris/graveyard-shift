@@ -2,47 +2,120 @@
 
 [ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
 [ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/ghoul.png" id="3_icon"]
 
 [sub_resource type="Resource" id="Ability0"]
 script = ExtResource("2_ability")
 id = "grave_appetite"
 name = "Grave Appetite"
-description = "It works harder when there might be leftovers. Bonus skill XP from every harvest while slotted."
+description = "It eats through a node and spits out the extras. +3% chance to double a harvest's haul while slotted."
 kind = 0
 tier = 1
 cost = 1
-effect = "harvest_xp_pct"
-magnitude = 6.0
+effect = "double_drop_pct"
+magnitude = 3.0
 
 [sub_resource type="Resource" id="Ability1"]
 script = ExtResource("2_ability")
-id = "scavengers_instinct"
-name = "Scavenger's Instinct"
-description = "Nothing hides a morsel from a ghoul. Adds to every node's rare table chance while slotted."
+id = "first_taste"
+name = "First Taste"
+description = "Every wound it opens, it drinks from. Heals 10% of the damage it deals."
 kind = 0
-tier = 2
-cost = 2
-prerequisites = Array[String](["grave_appetite"])
-effect = "rare_chance_pct"
-magnitude = 0.75
+tier = 1
+cost = 1
+effect = "minion_lifesteal_pct"
+magnitude = 10.0
 
 [sub_resource type="Resource" id="Ability2"]
 script = ExtResource("2_ability")
+id = "gorge"
+name = "Gorge"
+description = "It feeds deeper with every bite. +12% lifesteal."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["first_taste"])
+effect = "minion_lifesteal_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
 id = "rending_claws"
 name = "Rending Claws"
-description = "What it grabs, it keeps. What it keeps, it opens. Reserved for combat."
+description = "What it grabs, it keeps; what it keeps, it opens. Sunders a foe so all your minions hit it harder, once per battle."
 kind = 1
 tier = 2
 cost = 2
 effect = "active_rending_claws"
 magnitude = 0.0
 
+[sub_resource type="Resource" id="Ability4"]
+script = ExtResource("2_ability")
+id = "blood_frenzy"
+name = "Blood Frenzy"
+description = "The first kill only sharpens its hunger. +8% attack for every foe it slays this battle."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["first_taste"])
+effect = "minion_frenzy_pct"
+magnitude = 8.0
+
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "insatiable"
+name = "Insatiable"
+description = "There is no full, only less hungry. +14% lifesteal."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["gorge"])
+effect = "minion_lifesteal_pct"
+magnitude = 14.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "feral_might"
+name = "Feral Might"
+description = "Hunger becomes strength. +18% attack."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["blood_frenzy"])
+effect = "minion_atk_pct"
+magnitude = 18.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "unending_hunger"
+name = "Unending Hunger"
+description = "Each kill winds it tighter. +10% attack per foe slain this battle."
+kind = 0
+tier = 3
+cost = 2
+prerequisites = Array[String](["blood_frenzy"])
+effect = "minion_frenzy_pct"
+magnitude = 10.0
+
+[sub_resource type="Resource" id="Ability8"]
+script = ExtResource("2_ability")
+id = "the_feast"
+name = "The Feast"
+description = "A long battle only makes it stronger and whole. +20% lifesteal — it heals nearly as fast as it hurts."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["insatiable", "feral_might"])
+effect = "minion_lifesteal_pct"
+magnitude = 20.0
+
 [resource]
 script = ExtResource("1_minion")
 id = "ghoul"
 name = "Ghoul"
-description = "A hunched, ravenous thing with a gravedigger's build and a scavenger's manners."
+icon = ExtResource("3_icon")
 sort_order = 4
+description = "A hunched, ravenous thing with a gravedigger's build and a scavenger's manners. It digs up more than its share — and in battle it feeds, growing stronger and healing on every kill."
 base_hp = 34
 base_atk = 2.5
 hp_per_level = 7
@@ -52,5 +125,4 @@ raise_cost = Dictionary[String, int]({
 "rancid_sinew": 6,
 "withered_heart": 2
 })
-abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2")])
-metadata/_custom_type_script = "res://data/MinionData.gd"
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7"), SubResource("Ability8")])

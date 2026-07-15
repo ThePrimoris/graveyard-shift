@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="Enemy" format=3]
+
+[ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/dryads_heartstone.tres" id="3_l0"]
+[ext_resource type="Resource" path="res://data/items/materials/petrified_acorn.tres" id="3_l1"]
+
+[sub_resource type="Resource" id="Loot0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l0")
+weight = 55.0
+min_amount = 1
+max_amount = 2
+
+[sub_resource type="Resource" id="Loot1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l1")
+weight = 45.0
+min_amount = 2
+max_amount = 4
+
+[resource]
+script = ExtResource("1_enemy")
+id = "petrified_dryad"
+name = "The Petrified Dryad"
+glyph = "🗿"
+base_hp = 500
+atk = 15.0
+speed = 0.70
+is_boss = true
+telegraph_name = "Gaze of Stone"
+enrage_per_segment = 0.20
+xp_reward = 350.0
+gold_min = 130
+gold_max = 230
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1")])

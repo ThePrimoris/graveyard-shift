@@ -1,0 +1,1066 @@
+# CombatView.gd
+# The battle screen, Final Fantasy style: the four slotted minions cycle
+# attacks against a group of foes or a single boss.
+#
+# The engine is ATB "wait mode": every combatant has a charge gauge that
+# fills over time (speed stat scales the rate). When a minion's gauge
+# fills, time STOPS and the command menu serves them — unless AUTO is on,
+# in which case they attack on their own and time never stops. Enemies
+# act the moment their hidden gauges fill.
+#
+# Commands: Attack (ATK ± 15%), Guard (halve damage until their next
+# turn), inked active runes (heavy strike, once per fight each), Flee.
+# Bosses telegraph their all-party slam one turn ahead and enrage as
+# health quarters break. Victory pays each foe's gold, loot roll, and
+# minion XP to the survivors.
+extends PanelContainer
+
+# Lanternlight tokens
+const COL_PAGE := Color("#0e0b1c")
+const COL_STRIP := Color("#12101f")
+const COL_CARD := Color("#1a1530")
+const COL_ENEMY_CARD := Color("#1a1226")
+const COL_EDGE := Color("#3a2f52")
+const COL_ENEMY_EDGE := Color("#6d3a3a")
+const COL_TEXT_HI := Color("#e8e2d4")
+const COL_TEXT_MID := Color("#c9c2b4")
+const COL_TEXT_LOW := Color("#9a90a8")
+const COL_TEXT_GHOST := Color("#5a5470")
+const COL_TEXT_FAINT := Color("#6f6582")
+const COL_GOLD := Color("#c8a24d")
+const COL_RUST := Color("#c25a4a")
+const COL_RUST_TEXT := Color("#e8c2b8")
+const COL_GREEN := Color("#4c9a47")
+const COL_VIOLET := Color("#8a6fbe")
+const COL_VIOLET_TEXT := Color("#c9c4dd")
+const COL_CHARGE := Color("#7a6538")
+const COL_WELL := Color("#0c0a18")
+
+# Bottom cluster geometry, used to line the promoted card up with the
+# plots bar's central circle (true screen center). The view's content sits
+# right of screen center by half the sidebar margins: (264 - 16) / 2.
+const CONTENT_CENTER_BIAS := 124.0
+const MENU_W := 158.0
+const ACTIVE_W := 300.0
+const SQUAD_W := 252.0
+const CLUSTER_SEP := 10.0
+
+# Engine tuning
+const TURN_SECONDS := 2.4          ## Seconds for a speed-1.0 gauge to fill
+const BEAT_SECONDS := 0.75         ## Pause after every action: the scene
+								   ## holds on the log line, input is dead,
+								   ## and spam clicks fall on deaf ears
+const DMG_VARIANCE := 0.15         ## Attacks roll ATK ± this fraction
+const ACTIVE_RUNE_MULT := 1.6      ## Active runes hit this much harder
+const GUARD_REDUCTION := 0.5       ## Guarding halves incoming damage
+const BOSS_SLAM_MULT := 0.75       ## The telegraphed slam's per-target ATK share
+const BOSS_SLAM_CHANCE := 0.3      ## Odds the boss telegraphs a slam next
+
+## A foe: { "name", "glyph", "hp", "max_hp", "atk", "speed", "charge",
+##   "rage", "is_boss", "slam_name", "telegraph", "segments_broken",
+##   "xp", "gold_min", "gold_max", "loot_pool" }
+var enemies: Array = []
+var is_boss_fight: bool = false
+## A warband member: { "minion_id", "hp", "max_hp", "charge", "speed", "guarding" }
+var party: Array = []
+## minion_id -> Array of active ability ids already spent this fight.
+var used_actives: Dictionary = {}
+
+var fight_state: String = "idle"   # idle | active | victory | defeat
+var waiting_for_command: bool = false
+## Seconds left in the current action beat (see BEAT_SECONDS).
+var action_beat: float = 0.0
+var target_index: int = 0
+var acting_index: int = 0
+var auto_mode: bool = false
+var paused: bool = true
+
+var auto_button: Button
+var pause_label: Label
+var enemy_holder: VBoxContainer
+var log_label: Label
+var hint_label: Label
+var command_holder: VBoxContainer
+var party_row: HBoxContainer
+## Charge-bar fill panels updated per frame without rebuilding (index-aligned
+## with `party`; null when that member's bar isn't on screen).
+var charge_fills: Array = []
+## Same, for enemy turn gauges (index-aligned with `enemies`).
+var enemy_charge_fills: Array = []
+## The last promoted member, so a change of actor fades in instead of snapping.
+var _last_promoted: int = -1
+
+func _ready() -> void:
+	add_to_group(Ids.Group.COMBAT_VIEWS)
+	_apply_ambience()
+	_build_shell()
+
+## Same page-tint treatment as the harvest views, in battle-dark violet.
+func _apply_ambience() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = COL_PAGE
+	var previous := get_theme_stylebox("panel")
+	if previous:
+		style.content_margin_left = previous.content_margin_left
+		style.content_margin_top = previous.content_margin_top
+		style.content_margin_right = previous.content_margin_right
+		style.content_margin_bottom = previous.content_margin_bottom
+	add_theme_stylebox_override("panel", style)
+
+# =====================================================================
+# THE ENGINE
+# =====================================================================
+
+func _process(delta: float) -> void:
+	if fight_state != "active" or not visible:
+		return
+	_update_charge_fills()
+	# The action beat: the scene holds a moment after every action so the
+	# player can read what happened before the next thing moves.
+	if action_beat > 0.0:
+		action_beat -= delta
+		if action_beat <= 0.0:
+			_refresh_hint()
+		return
+	# Wait mode: time freezes while a minion awaits your command.
+	if waiting_for_command and not auto_mode:
+		return
+
+	# Tick every living combatant's gauge; whoever crests first acts.
+	var ready_party := -1
+	var ready_enemy := -1
+	for i in range(party.size()):
+		var member = party[i]
+		if member["hp"] <= 0: continue
+		member["charge"] = minf(member["charge"] + delta * member["speed"] / TURN_SECONDS, 1.0)
+		if member["charge"] >= 1.0 and ready_party == -1:
+			ready_party = i
+	for i in range(enemies.size()):
+		var foe = enemies[i]
+		if foe["hp"] <= 0: continue
+		foe["charge"] = minf(foe["charge"] + delta * foe["speed"] / TURN_SECONDS, 1.0)
+		if foe["charge"] >= 1.0 and ready_enemy == -1:
+			ready_enemy = i
+
+	# One action per frame keeps the log readable.
+	if ready_enemy != -1:
+		_enemy_act(ready_enemy)
+	elif ready_party != -1:
+		if auto_mode:
+			_execute_attack(ready_party, _default_target(), 1.0, "")
+		else:
+			waiting_for_command = true
+			acting_index = ready_party
+			_refresh_all()
+
+## The current target if it still stands, else the first living foe.
+func _default_target() -> int:
+	if target_index < enemies.size() and enemies[target_index]["hp"] > 0:
+		return target_index
+	for i in range(enemies.size()):
+		if enemies[i]["hp"] > 0:
+			return i
+	return -1
+
+func _roll_damage(base: float, mult: float = 1.0) -> int:
+	return maxi(1, int(round(base * mult * randf_range(1.0 - DMG_VARIANCE, 1.0 + DMG_VARIANCE))))
+
+# --- Warband actions ---
+
+func _execute_attack(member_idx: int, enemy_idx: int, mult: float, label: String) -> void:
+	if fight_state != "active" or action_beat > 0.0: return
+	if member_idx < 0 or member_idx >= party.size(): return
+	if enemy_idx < 0 or enemy_idx >= enemies.size(): return
+	var member = party[member_idx]
+	var foe = enemies[enemy_idx]
+	if member["hp"] <= 0 or foe["hp"] <= 0: return
+
+	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+	var dmg = _roll_damage(MinionManager.get_atk(minion.id), mult)
+	foe["hp"] = maxi(foe["hp"] - dmg, 0)
+
+	var verb = label if label != "" else "strikes"
+	if foe["hp"] <= 0:
+		_log("%s %s %s for %d — it falls!" % [minion.name, verb, foe["name"], dmg])
+	else:
+		_log("%s %s %s for %d." % [minion.name, verb, foe["name"], dmg])
+
+	_check_boss_enrage(foe)
+	member["charge"] = 0.0
+	member["guarding"] = false
+	waiting_for_command = false
+	acting_index = member_idx
+	if _all_enemies_down():
+		_enter_victory()
+	else:
+		action_beat = BEAT_SECONDS
+		_refresh_all()
+
+func _execute_guard(member_idx: int) -> void:
+	if fight_state != "active" or action_beat > 0.0: return
+	var member = party[member_idx]
+	if member["hp"] <= 0: return
+	member["guarding"] = true
+	member["charge"] = 0.0
+	waiting_for_command = false
+	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+	_log("%s braces behind its own bones." % minion.name)
+	action_beat = BEAT_SECONDS
+	_refresh_all()
+
+func _execute_active(member_idx: int, ability: MinionAbility) -> void:
+	if fight_state != "active": return
+	var member = party[member_idx]
+	var minion_id: String = member["minion_id"]
+	if _active_used(minion_id, ability.id): return
+	if not used_actives.has(minion_id):
+		used_actives[minion_id] = []
+	used_actives[minion_id].append(ability.id)
+	_execute_attack(member_idx, _default_target(), ACTIVE_RUNE_MULT, "unleashes %s on" % ability.name)
+
+func _active_used(minion_id: String, ability_id: String) -> bool:
+	return used_actives.has(minion_id) and used_actives[minion_id].has(ability_id)
+
+func _flee() -> void:
+	fight_state = "idle"
+	_log("The warband withdraws.")
+	get_tree().call_group(Ids.Group.VIEW_MANAGER, "switch_view", Ids.View.GRAVEYARD)
+
+# --- Enemy actions ---
+
+func _enemy_act(enemy_idx: int) -> void:
+	var foe = enemies[enemy_idx]
+	foe["charge"] = 0.0
+
+	if foe["is_boss"] and foe["telegraph"] != "":
+		# The telegraphed slam: everyone standing takes a share.
+		foe["telegraph"] = ""
+		var hits: Array = []
+		for member in party:
+			if member["hp"] <= 0: continue
+			var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"] * BOSS_SLAM_MULT)
+			hits.append(str(dmg))
+		_log("%s! The whole warband takes %s." % [foe["slam_name"], " / ".join(hits)])
+	else:
+		var living: Array = []
+		for i in range(party.size()):
+			if party[i]["hp"] > 0:
+				living.append(i)
+		if living.is_empty():
+			_enter_defeat()
+			return
+		var victim_idx: int = living[randi() % living.size()]
+		var member = party[victim_idx]
+		var minion = MinionManager.find_minion_by_id(member["minion_id"])
+		var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"])
+		if member["hp"] <= 0:
+			_log("%s savages %s for %d — it collapses!" % [foe["name"], minion.name, dmg])
+		else:
+			_log("%s claws %s for %d%s." % [foe["name"], minion.name, dmg,
+				" (guarded)" if member["guarding"] else ""])
+
+	# Bosses declare their next move; the banner shows slam warnings.
+	if foe["is_boss"] and foe["slam_name"] != "":
+		foe["telegraph"] = foe["slam_name"] if randf() < BOSS_SLAM_CHANCE else ""
+
+	if _all_party_down():
+		_enter_defeat()
+	else:
+		action_beat = BEAT_SECONDS
+		_refresh_all()
+
+## Applies damage to a member (guard halves it). Returns the damage dealt.
+func _apply_party_damage(member: Dictionary, base: float) -> int:
+	var dmg = _roll_damage(base, GUARD_REDUCTION if member["guarding"] else 1.0)
+	member["hp"] = maxi(member["hp"] - dmg, 0)
+	return dmg
+
+## Each broken quarter of a boss's health stokes its fury.
+func _check_boss_enrage(foe: Dictionary) -> void:
+	if not foe["is_boss"] or foe["hp"] <= 0: return
+	var broken = clampi(int(floor((1.0 - float(foe["hp"]) / float(foe["max_hp"])) * 4.0)), 0, 3)
+	if broken > foe["segments_broken"]:
+		foe["rage"] += foe["enrage_per_segment"] * (broken - foe["segments_broken"])
+		foe["segments_broken"] = broken
+		if foe["enrage_per_segment"] > 0.0:
+			_log("%s ENRAGES — its fury grows!" % foe["name"])
+
+func _all_enemies_down() -> bool:
+	for foe in enemies:
+		if foe["hp"] > 0: return false
+	return true
+
+func _all_party_down() -> bool:
+	for member in party:
+		if member["hp"] > 0: return false
+	return true
+
+# --- Endings ---
+
+func _enter_victory() -> void:
+	fight_state = "victory"
+	waiting_for_command = false
+
+	var gold := 0
+	var total_xp := 0.0
+	for foe in enemies:
+		gold += randi_range(foe["gold_min"], foe["gold_max"])
+		total_xp += foe["xp"]
+		var drop = GameManager.roll_chance_table(foe["loot_pool"])
+		if drop:
+			var amount = randi_range(drop.min_amount, maxi(drop.min_amount, drop.max_amount))
+			InventoryManager.add_item(drop.item, amount)
+			NotificationManager.show_item(drop.item.name, amount, drop.item)
+	GameManager.gold_coins += gold
+
+	var survivors: Array = []
+	for member in party:
+		if member["hp"] > 0:
+			MinionManager.add_xp(member["minion_id"], total_xp)
+			survivors.append(member["minion_id"])
+	if gold > 0:
+		NotificationManager.show_item("%d gold looted from the fallen" % gold, 1)
+
+	_log("VICTORY — %d gold, %.0f XP to each survivor." % [gold, total_xp])
+	get_tree().call_group(Ids.Group.UI_UPDATES, "update_ui")
+	_refresh_all()
+
+func _enter_defeat() -> void:
+	fight_state = "defeat"
+	waiting_for_command = false
+	_log("The warband is broken. The dead will rise again — at home.")
+	_refresh_all()
+
+# =====================================================================
+# ENCOUNTERS
+# =====================================================================
+
+## Starts a fight from an Encounter resource.
+func start_encounter_res(encounter: Encounter) -> void:
+	var foes: Array = []
+	for enemy in encounter.enemies:
+		if enemy != null:
+			foes.append(enemy)
+	_begin_fight(foes, encounter.is_boss_encounter())
+
+## Console-launchable fights pulled from the encounter registry.
+func start_test_encounter(boss: bool = false) -> void:
+	var encounter = GameManager.find_encounter_by_id("old_crypt" if boss else "restless_dead")
+	if encounter:
+		start_encounter_res(encounter)
+
+func _begin_fight(foes: Array, boss: bool) -> void:
+	is_boss_fight = boss
+	enemies.clear()
+	for enemy in foes:
+		enemies.append({
+			"name": enemy.name,
+			"glyph": enemy.glyph,
+			"hp": enemy.base_hp,
+			"max_hp": enemy.base_hp,
+			"atk": enemy.atk,
+			"speed": enemy.speed,
+			"charge": randf_range(0.0, 0.4),
+			"rage": 1.0,
+			"is_boss": enemy.is_boss,
+			"slam_name": enemy.telegraph_name,
+			"telegraph": enemy.telegraph_name if enemy.is_boss and enemy.telegraph_name != "" and randf() < BOSS_SLAM_CHANCE else "",
+			"enrage_per_segment": enemy.enrage_per_segment,
+			"segments_broken": 0,
+			"xp": enemy.xp_reward,
+			"gold_min": enemy.gold_min,
+			"gold_max": enemy.gold_max,
+			"loot_pool": enemy.loot_pool,
+		})
+
+	party.clear()
+	used_actives.clear()
+	var ids: Array = []
+	for minion_id in MinionManager.plots:
+		if minion_id != "" and not ids.has(minion_id):
+			ids.append(minion_id)
+	if ids.is_empty():
+		ids = MinionManager.sorted_ids(true)
+	for minion_id in ids:
+		var minion = MinionManager.find_minion_by_id(minion_id)
+		party.append({
+			"minion_id": minion_id,
+			"hp": MinionManager.get_hp(minion_id),
+			"max_hp": MinionManager.get_hp(minion_id),
+			# Low starting charge so the gauges visibly fill before the
+			# first turn — the mechanic teaches itself in the opening beat.
+			"charge": randf_range(0.0, 0.35),
+			"speed": minion.speed,
+			"guarding": false,
+		})
+
+	target_index = 0
+	# Promote whoever will reach a full gauge first, so the opening beat
+	# shows the right minion instead of teleport-swapping seconds in.
+	acting_index = 0
+	var best_eta := INF
+	for i in range(party.size()):
+		var eta = (1.0 - party[i]["charge"]) / party[i]["speed"]
+		if eta < best_eta:
+			best_eta = eta
+			acting_index = i
+	_last_promoted = -1
+	waiting_for_command = false
+	action_beat = 0.0
+	fight_state = "active" if not party.is_empty() else "idle"
+	paused = not auto_mode
+	_log("Your warband bares its teeth.")
+	_refresh_all()
+
+# =====================================================================
+# UI — static shell
+# =====================================================================
+
+func _build_shell() -> void:
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	add_child(col)
+
+	# Top right: AUTO toggle + pause state, floating free of any chrome
+	var top = HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	col.add_child(top)
+	var top_spacer = Control.new()
+	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(top_spacer)
+	auto_button = Button.new()
+	auto_button.toggle_mode = true
+	auto_button.custom_minimum_size = Vector2(96, 28)
+	auto_button.add_theme_font_size_override("font_size", 11)
+	auto_button.toggled.connect(_on_auto_toggled)
+	top.add_child(auto_button)
+	pause_label = Label.new()
+	pause_label.add_theme_font_size_override("font_size", 12)
+	top.add_child(pause_label)
+	_refresh_header_state()
+
+	# Enemy area: rebuilt per encounter (card row, or the boss banner)
+	enemy_holder = VBoxContainer.new()
+	enemy_holder.add_theme_constant_override("separation", 8)
+	col.add_child(enemy_holder)
+
+	# Center: rolling log + prompt, floating between the lines of battle.
+	# Wrapped with a counterweight so the text centers on the SCREEN's
+	# middle (the circle button's line), not the sidebar-shifted content.
+	var mid_spacer_a = Control.new()
+	mid_spacer_a.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(mid_spacer_a)
+
+	var center_wrap = HBoxContainer.new()
+	col.add_child(center_wrap)
+
+	var center_box = VBoxContainer.new()
+	center_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_box.add_theme_constant_override("separation", 6)
+	center_wrap.add_child(center_box)
+
+	log_label = Label.new()
+	log_label.text = "The dead assemble..."
+	log_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	log_label.add_theme_font_size_override("font_size", 13)
+	log_label.add_theme_color_override("font_color", COL_TEXT_FAINT)
+	center_box.add_child(log_label)
+
+	hint_label = Label.new()
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.add_theme_font_size_override("font_size", 12)
+	hint_label.add_theme_color_override("font_color", COL_TEXT_GHOST)
+	center_box.add_child(hint_label)
+
+	var center_counterweight = Control.new()
+	center_counterweight.custom_minimum_size = Vector2(CONTENT_CENTER_BIAS * 2.0, 0)
+	center_wrap.add_child(center_counterweight)
+
+	var mid_spacer_b = Control.new()
+	mid_spacer_b.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(mid_spacer_b)
+
+	# Bottom: a condensed, centered cluster — command panel | promoted
+	# card | squad panel — instead of stretching across the full width.
+	var bottom = HBoxContainer.new()
+	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
+	bottom.add_theme_constant_override("separation", 10)
+	col.add_child(bottom)
+
+	var command_panel = PanelContainer.new()
+	command_panel.custom_minimum_size = Vector2(MENU_W, 0)
+	var cstyle := StyleBoxFlat.new()
+	cstyle.bg_color = COL_STRIP
+	cstyle.set_border_width_all(1)
+	cstyle.border_color = COL_EDGE
+	cstyle.set_corner_radius_all(8)
+	cstyle.content_margin_left = 12
+	cstyle.content_margin_right = 12
+	cstyle.content_margin_top = 9
+	cstyle.content_margin_bottom = 9
+	command_panel.add_theme_stylebox_override("panel", cstyle)
+	bottom.add_child(command_panel)
+
+	command_holder = VBoxContainer.new()
+	command_holder.add_theme_constant_override("separation", 4)
+	command_panel.add_child(command_holder)
+
+	party_row = HBoxContainer.new()
+	party_row.add_theme_constant_override("separation", 10)
+	bottom.add_child(party_row)
+
+# =====================================================================
+# UI — refresh
+# =====================================================================
+
+func _refresh_all() -> void:
+	paused = not auto_mode
+	_refresh_header_state()
+	_rebuild_enemy_area()
+	_rebuild_command_panel()
+	_rebuild_party_row()
+	_refresh_hint()
+
+func _refresh_header_state() -> void:
+	if auto_button:
+		auto_button.text = "AUTO: %s" % ("ON" if auto_mode else "OFF")
+		auto_button.set_pressed_no_signal(auto_mode)
+	if pause_label:
+		if auto_mode:
+			pause_label.text = "▶ running"
+			pause_label.add_theme_color_override("font_color", COL_GREEN)
+		else:
+			pause_label.text = "❚❚ wait mode"
+			pause_label.add_theme_color_override("font_color", COL_GOLD)
+
+func _refresh_hint() -> void:
+	match fight_state:
+		"victory":
+			hint_label.text = "The field is yours."
+		"defeat":
+			hint_label.text = "Retreat, regroup, return."
+		_:
+			if party.is_empty():
+				hint_label.text = "No warband — raise minions in the Necronomicon and slot them into plots."
+			elif auto_mode:
+				hint_label.text = "The dead fight on their own. Toggle AUTO to take command."
+			elif waiting_for_command:
+				hint_label.text = "Time stops: %s's turn gauge is full. Pick a command." % _actor_name()
+			else:
+				hint_label.text = "Turn gauges fill — whoever fills first acts next…"
+
+func _actor_name() -> String:
+	if acting_index < 0 or acting_index >= party.size(): return "Nobody"
+	var minion = MinionManager.find_minion_by_id(party[acting_index]["minion_id"])
+	return minion.name if minion else "Nobody"
+
+## Per-frame gauge updates that DON'T rebuild anything (tooltips survive).
+func _update_charge_fills() -> void:
+	for i in range(charge_fills.size()):
+		if i >= party.size(): break
+		var fill = charge_fills[i]
+		if fill == null or not is_instance_valid(fill): continue
+		var charge: float = party[i]["charge"]
+		fill.anchor_right = clampf(charge, 0.0, 1.0)
+		fill.visible = charge > 0.001
+	for i in range(enemy_charge_fills.size()):
+		if i >= enemies.size(): break
+		var fill = enemy_charge_fills[i]
+		if fill == null or not is_instance_valid(fill): continue
+		var charge: float = enemies[i]["charge"]
+		fill.anchor_right = clampf(charge, 0.0, 1.0)
+		fill.visible = charge > 0.001
+
+# --- Enemy area: card row, or the boss banner ---
+
+func _rebuild_enemy_area() -> void:
+	_clear(enemy_holder)
+	enemy_charge_fills.clear()
+	for i in range(enemies.size()):
+		enemy_charge_fills.append(null)
+	if enemies.is_empty(): return
+	if is_boss_fight:
+		enemy_holder.add_child(_make_boss_banner(enemies[0]))
+	else:
+		var row = HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 18)
+		enemy_holder.add_child(row)
+		for i in range(enemies.size()):
+			row.add_child(_make_enemy_card(i))
+		# Counterweight: center the enemy line on the screen, not the content
+		var counterweight = Control.new()
+		counterweight.custom_minimum_size = Vector2(CONTENT_CENTER_BIAS * 2.0, 0)
+		row.add_child(counterweight)
+
+func _make_enemy_card(index: int) -> Button:
+	var foe = enemies[index]
+	var targeted = index == target_index
+	var dead = foe["hp"] <= 0
+	# A Button styled as a card. Buttons don't lay children out like
+	# containers, so the content VBox is anchored full-rect with margins
+	# and the button carries an explicit minimum size.
+	var card = Button.new()
+	card.custom_minimum_size = Vector2(200, 156)
+	var style := StyleBoxFlat.new()
+	style.bg_color = COL_ENEMY_CARD
+	style.border_color = COL_GOLD if targeted and not dead else COL_ENEMY_EDGE
+	style.set_border_width_all(2 if targeted and not dead else 1)
+	style.set_corner_radius_all(8)
+	var hover: StyleBoxFlat = style.duplicate()
+	if not dead:
+		hover.border_color = COL_GOLD
+	card.add_theme_stylebox_override("normal", style)
+	card.add_theme_stylebox_override("hover", hover)
+	card.add_theme_stylebox_override("pressed", style)
+	card.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	if dead:
+		card.modulate.a = 0.35
+	else:
+		card.pressed.connect(func():
+			target_index = index
+			_rebuild_enemy_area()
+			_refresh_hint())
+
+	var col = VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.offset_left = 14
+	col.offset_top = 12
+	col.offset_right = -14
+	col.offset_bottom = -14
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 8)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(col)
+
+	var glyph = Label.new()
+	glyph.text = foe["glyph"]
+	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	glyph.add_theme_font_size_override("font_size", 42)
+	glyph.add_theme_color_override("font_color", COL_RUST)
+	col.add_child(glyph)
+
+	var name_lbl = Label.new()
+	name_lbl.text = foe["name"]
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_lbl.add_theme_font_size_override("font_size", 14)
+	name_lbl.add_theme_color_override("font_color", COL_TEXT_HI if targeted else COL_TEXT_MID)
+	col.add_child(name_lbl)
+
+	col.add_child(_make_bar(float(foe["hp"]) / float(foe["max_hp"]), COL_RUST, 8))
+
+	# Its turn gauge — attacks stop coming from nowhere.
+	if not dead:
+		var turn_bar = _make_bar(foe["charge"], COL_CHARGE, 4)
+		turn_bar.tooltip_text = "Turn gauge — when it fills, %s strikes." % foe["name"]
+		enemy_charge_fills[index] = turn_bar.get_child(0)
+		col.add_child(turn_bar)
+
+	card.tooltip_text = "%s — %d / %d HP%s" % [foe["name"], foe["hp"], foe["max_hp"],
+		"" if targeted or dead else ". Click to target."]
+	return card
+
+## The boss framing: wide banner, segmented health, telegraphed next move.
+func _make_boss_banner(foe: Dictionary) -> PanelContainer:
+	var banner = PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = COL_ENEMY_CARD
+	style.set_border_width_all(1)
+	style.border_color = COL_ENEMY_EDGE
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	banner.add_theme_stylebox_override("panel", style)
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 9)
+	banner.add_child(col)
+
+	var top = HBoxContainer.new()
+	col.add_child(top)
+	var name_lbl = Label.new()
+	name_lbl.text = "%s %s" % [foe["glyph"], foe["name"]]
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.add_theme_font_size_override("font_size", 20)
+	name_lbl.add_theme_color_override("font_color", COL_RUST_TEXT)
+	top.add_child(name_lbl)
+	var boss_tag = Label.new()
+	boss_tag.text = "ENRAGED ×%.2f" % foe["rage"] if foe["rage"] > 1.0 else "BOSS"
+	boss_tag.add_theme_font_size_override("font_size", 12)
+	boss_tag.add_theme_color_override("font_color", COL_RUST)
+	top.add_child(boss_tag)
+
+	# Segmented health: four bars; each one broken enrages it.
+	var segments = HBoxContainer.new()
+	segments.add_theme_constant_override("separation", 3)
+	col.add_child(segments)
+	var seg_count := 4
+	var health: float = float(foe["hp"]) / float(foe["max_hp"])
+	for i in range(seg_count):
+		# Damage eats the RIGHTMOST gauge first: segment i holds the
+		# (i+1)-th quarter of health, so the last one drains first.
+		var seg_fill = clampf(health * seg_count - i, 0.0, 1.0)
+		var seg = _make_bar(seg_fill, COL_RUST, 16)
+		seg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		segments.add_child(seg)
+
+	var foot = HBoxContainer.new()
+	col.add_child(foot)
+	var hp_lbl = Label.new()
+	hp_lbl.text = "%d / %d — each bar broken enrages it" % [foe["hp"], foe["max_hp"]]
+	hp_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hp_lbl.add_theme_font_size_override("font_size", 11)
+	hp_lbl.add_theme_color_override("font_color", COL_TEXT_LOW)
+	foot.add_child(hp_lbl)
+	if foe["telegraph"] != "":
+		var tele = Label.new()
+		tele.text = "⚠ winding up: %s" % foe["telegraph"]
+		tele.add_theme_font_size_override("font_size", 11)
+		tele.add_theme_color_override("font_color", COL_GOLD)
+		foot.add_child(tele)
+
+	# The boss's own turn gauge: its next move is always visibly coming.
+	var turn_row = HBoxContainer.new()
+	turn_row.add_theme_constant_override("separation", 8)
+	turn_row.tooltip_text = "Turn gauge — when it fills, the boss acts."
+	col.add_child(turn_row)
+	var turn_lbl = Label.new()
+	turn_lbl.text = "NEXT MOVE"
+	turn_lbl.add_theme_font_size_override("font_size", 9)
+	turn_lbl.add_theme_color_override("font_color", COL_TEXT_GHOST)
+	turn_row.add_child(turn_lbl)
+	var turn_bar = _make_bar(foe["charge"], COL_CHARGE, 5)
+	turn_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	turn_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enemy_charge_fills[0] = turn_bar.get_child(0)
+	turn_row.add_child(turn_bar)
+	return banner
+
+# --- Bottom: the anchored command panel ---
+
+func _rebuild_command_panel() -> void:
+	_clear(command_holder)
+
+	match fight_state:
+		"victory":
+			command_holder.add_child(_menu_header("VICTORY"))
+			command_holder.add_child(_menu_row("Collect & Return", true, true, func():
+				fight_state = "idle"
+				get_tree().call_group(Ids.Group.VIEW_MANAGER, "switch_view", Ids.View.GRAVEYARD)))
+		"defeat":
+			command_holder.add_child(_menu_header("DEFEAT"))
+			command_holder.add_child(_menu_row("Retreat", true, true, func():
+				fight_state = "idle"
+				get_tree().call_group(Ids.Group.VIEW_MANAGER, "switch_view", Ids.View.GRAVEYARD)))
+		_:
+			var can_command = waiting_for_command and not auto_mode
+			command_holder.add_child(_menu_header("%s ACTS" % _actor_name().to_upper() if can_command else "AWAITING"))
+			command_holder.add_child(_menu_row("Attack", true, can_command, func():
+				_execute_attack(acting_index, _default_target(), 1.0, "")))
+			command_holder.add_child(_menu_row("Guard", false, can_command, func():
+				_execute_guard(acting_index)))
+			command_holder.add_child(_menu_row("Flee", false, true, _flee))
+
+func _menu_header(text: String) -> Label:
+	var header = Label.new()
+	header.text = text
+	header.add_theme_font_size_override("font_size", 10)
+	header.add_theme_color_override("font_color", COL_GOLD)
+	return header
+
+func _menu_row(text: String, selected: bool, enabled: bool, on_press: Callable) -> Button:
+	var b = Button.new()
+	b.text = ("▶ " if selected and enabled else "  ") + text
+	b.flat = true
+	b.disabled = not enabled
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_color_override("font_color", COL_GOLD if selected and enabled else COL_TEXT_LOW)
+	b.add_theme_color_override("font_hover_color", COL_GOLD)
+	b.add_theme_color_override("font_disabled_color", COL_TEXT_GHOST)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	if enabled:
+		b.pressed.connect(on_press)
+	return b
+
+# --- Bottom: promoted actor beside the menu, the squad panel beside it ---
+
+func _rebuild_party_row() -> void:
+	_clear(party_row)
+	charge_fills.clear()
+	for i in range(party.size()):
+		charge_fills.append(null)
+	if party.is_empty():
+		var empty = Label.new()
+		empty.text = "The plots stand empty."
+		empty.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.add_theme_font_size_override("font_size", 12)
+		empty.add_theme_color_override("font_color", COL_TEXT_GHOST)
+		party_row.add_child(empty)
+		return
+	# The acting minion is promoted: a large detail card right of the menu.
+	# A change of actor fades the new card in rather than hard-swapping.
+	if acting_index >= 0 and acting_index < party.size():
+		var promoted = _make_active_card(acting_index)
+		party_row.add_child(promoted)
+		if acting_index != _last_promoted:
+			var settled_alpha = promoted.modulate.a
+			promoted.modulate.a = 0.0
+			var tween = create_tween()
+			tween.tween_property(promoted, "modulate:a", settled_alpha, 0.35) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_last_promoted = acting_index
+	# The rest of the squad lives in its own bordered panel, AB3-style:
+	# compact name | HP bar | charge rows.
+	var squad_shown = party.size() > 1
+	if squad_shown:
+		party_row.add_child(_make_squad_panel())
+
+	# Counterweight spacer: slides the centered cluster left until the
+	# promoted card sits on the screen's center line (the circle button).
+	var cluster_w = MENU_W + CLUSTER_SEP + ACTIVE_W
+	if squad_shown:
+		cluster_w += CLUSTER_SEP + SQUAD_W
+	var card_center = MENU_W + CLUSTER_SEP + ACTIVE_W * 0.5
+	var shift = CONTENT_CENTER_BIAS + (card_center - cluster_w * 0.5)
+	if shift > 0.0:
+		var counterweight = Control.new()
+		counterweight.custom_minimum_size = Vector2(shift * 2.0, 0)
+		party_row.add_child(counterweight)
+
+## The promoted card: big, gold-edged, with level, ATK, both gauges, and
+## the minion's inked battle runes as chips.
+func _make_active_card(index: int) -> PanelContainer:
+	var member = party[index]
+	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+	var downed = member["hp"] <= 0
+
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(ACTIVE_W, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = COL_CARD
+	style.border_color = COL_GOLD
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 9
+	style.content_margin_bottom = 10
+	card.add_theme_stylebox_override("panel", style)
+	if downed:
+		card.modulate.a = 0.55
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 5)
+	card.add_child(col)
+
+	var top = HBoxContainer.new()
+	top.add_theme_constant_override("separation", 8)
+	col.add_child(top)
+	var initial = Label.new()
+	initial.text = minion.name.left(1)
+	initial.add_theme_font_size_override("font_size", 20)
+	initial.add_theme_color_override("font_color", COL_VIOLET)
+	top.add_child(initial)
+	var name_lbl = Label.new()
+	name_lbl.text = "%s — Lv %d" % [minion.name, MinionManager.get_level(minion.id)]
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_lbl.add_theme_font_size_override("font_size", 14)
+	name_lbl.add_theme_color_override("font_color", COL_TEXT_HI)
+	top.add_child(name_lbl)
+	var stats = Label.new()
+	stats.text = "%d/%d · ATK %.1f" % [member["hp"], member["max_hp"], MinionManager.get_atk(minion.id)]
+	stats.add_theme_font_size_override("font_size", 12)
+	stats.add_theme_color_override("font_color", COL_TEXT_LOW)
+	top.add_child(stats)
+
+	col.add_child(_make_bar(float(member["hp"]) / float(member["max_hp"]), _hp_color(member), 8))
+
+	# The turn gauge, labelled so it reads as "when this fills, I act"
+	var turn_row = HBoxContainer.new()
+	turn_row.add_theme_constant_override("separation", 6)
+	turn_row.tooltip_text = "Turn gauge — when it fills, %s takes its turn. Speed %.1f." \
+		% [minion.name, minion.speed]
+	col.add_child(turn_row)
+	var turn_lbl = Label.new()
+	var is_ready = waiting_for_command and index == acting_index and not downed
+	turn_lbl.text = "TURN — READY" if is_ready else "TURN"
+	turn_lbl.add_theme_font_size_override("font_size", 9)
+	turn_lbl.add_theme_color_override("font_color", COL_GOLD if is_ready else COL_TEXT_GHOST)
+	turn_row.add_child(turn_lbl)
+	var charge_bar = _make_bar(member["charge"], COL_GOLD, 5)
+	charge_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	charge_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	charge_fills[index] = charge_bar.get_child(0)
+	turn_row.add_child(charge_bar)
+
+	var actions = HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 5)
+	col.add_child(actions)
+	if downed:
+		var down = Label.new()
+		down.text = "down"
+		down.add_theme_font_size_override("font_size", 11)
+		down.add_theme_color_override("font_color", COL_RUST)
+		actions.add_child(down)
+		return card
+	if member["guarding"]:
+		var guard = Label.new()
+		guard.text = "🛡 guarding"
+		guard.add_theme_font_size_override("font_size", 11)
+		guard.add_theme_color_override("font_color", COL_GREEN)
+		actions.add_child(guard)
+	var any_active := false
+	for ability in minion.abilities:
+		if ability == null or ability.kind != MinionAbility.Kind.ACTIVE: continue
+		if not MinionManager.has_ability(minion.id, ability.id): continue
+		any_active = true
+		actions.add_child(_make_rune_chip(index, minion, ability))
+	if not any_active and not member["guarding"]:
+		var ready = Label.new()
+		ready.text = "ready — no battle runes inked" if waiting_for_command else "charging…"
+		ready.add_theme_font_size_override("font_size", 11)
+		ready.add_theme_color_override("font_color", COL_GOLD if waiting_for_command else COL_TEXT_GHOST)
+		actions.add_child(ready)
+	return card
+
+func _make_rune_chip(member_idx: int, minion: Minion, ability: MinionAbility) -> Button:
+	var spent = _active_used(minion.id, ability.id)
+	var usable = waiting_for_command and not auto_mode and member_idx == acting_index and not spent
+
+	var chip = Button.new()
+	chip.text = ability.name + (" ✕" if spent else "")
+	chip.custom_minimum_size = Vector2(0, 22)
+	chip.disabled = not usable
+	chip.add_theme_font_size_override("font_size", 10)
+	var style := StyleBoxFlat.new()
+	style.bg_color = COL_STRIP
+	style.set_border_width_all(1)
+	style.border_color = COL_VIOLET if usable else COL_EDGE
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	chip.add_theme_stylebox_override("normal", style)
+	chip.add_theme_stylebox_override("hover", style)
+	chip.add_theme_stylebox_override("pressed", style)
+	chip.add_theme_stylebox_override("disabled", style)
+	chip.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	chip.add_theme_color_override("font_color", COL_VIOLET_TEXT if usable else COL_TEXT_GHOST)
+	chip.add_theme_color_override("font_disabled_color", COL_TEXT_GHOST)
+	chip.tooltip_text = "%s — hits %.0f%% harder, once per battle.%s" \
+		% [ability.description, ACTIVE_RUNE_MULT * 100.0, " Already spent." if spent else ""]
+	if usable:
+		chip.pressed.connect(func(): _execute_active(member_idx, ability))
+	return chip
+
+## AB3's right zone: one bordered panel holding a compact row per squad
+## member — name, wide HP bar, short charge bar.
+func _make_squad_panel() -> PanelContainer:
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(SQUAD_W, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = COL_STRIP
+	style.set_border_width_all(1)
+	style.border_color = COL_EDGE
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var col = VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 6)
+	panel.add_child(col)
+
+	for i in range(party.size()):
+		if i == acting_index: continue
+		col.add_child(_make_squad_row(i))
+	return panel
+
+func _make_squad_row(index: int) -> HBoxContainer:
+	var member = party[index]
+	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+	var downed = member["hp"] <= 0
+	var reeling = not downed and float(member["hp"]) / float(member["max_hp"]) <= 0.2
+
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	row.tooltip_text = "%s — %d / %d HP%s" % [minion.name, member["hp"], member["max_hp"],
+		", guarding" if member["guarding"] else ""]
+	if downed:
+		row.modulate.a = 0.55
+
+	var name_lbl = Label.new()
+	name_lbl.text = minion.name + (" 🛡" if member["guarding"] else "")
+	name_lbl.custom_minimum_size = Vector2(76, 0)
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_lbl.add_theme_font_size_override("font_size", 11)
+	name_lbl.add_theme_color_override("font_color",
+		COL_RUST if reeling or downed else COL_TEXT_MID)
+	row.add_child(name_lbl)
+
+	var hp_bar = _make_bar(float(member["hp"]) / float(member["max_hp"]), _hp_color(member), 5)
+	hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hp_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(hp_bar)
+
+	var charge = _make_bar(member["charge"], COL_CHARGE, 4)
+	charge.custom_minimum_size = Vector2(34, 4)
+	charge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	charge.tooltip_text = "Turn gauge — when it fills, %s takes its turn." % minion.name
+	charge_fills[index] = charge.get_child(0)
+	row.add_child(charge)
+	return row
+
+# --- Small pieces ---
+
+func _hp_color(member: Dictionary) -> Color:
+	var frac = float(member["hp"]) / float(member["max_hp"])
+	if frac <= 0.2: return COL_RUST
+	if frac <= 0.5: return COL_GOLD
+	return COL_GREEN
+
+## A flat track + fill bar (the theme's ProgressBar fights custom layouts).
+## The fill panel is child 0, so callers can grab it for per-frame updates.
+func _make_bar(fraction: float, color: Color, height: int) -> Panel:
+	var track = Panel.new()
+	track.custom_minimum_size = Vector2(0, height)
+	var tstyle := StyleBoxFlat.new()
+	tstyle.bg_color = COL_WELL
+	tstyle.set_corner_radius_all(int(height / 2.0))
+	track.add_theme_stylebox_override("panel", tstyle)
+
+	var fill = Panel.new()
+	fill.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fill.anchor_right = clampf(fraction, 0.0, 1.0)
+	var fstyle := StyleBoxFlat.new()
+	fstyle.bg_color = color
+	fstyle.set_corner_radius_all(int(height / 2.0))
+	fill.add_theme_stylebox_override("panel", fstyle)
+	fill.visible = fraction > 0.001
+	track.add_child(fill)
+	return track
+
+func _on_auto_toggled(pressed: bool) -> void:
+	auto_mode = pressed
+	# Flipping to auto releases any minion frozen mid-command.
+	if auto_mode and waiting_for_command:
+		waiting_for_command = false
+	_refresh_all()
+	_log("The dead take matters into their own hands." if auto_mode else "You take command once more.")
+
+func _log(text: String) -> void:
+	if log_label:
+		log_label.text = text
+
+func _clear(container: Node) -> void:
+	for child in container.get_children():
+		container.remove_child(child)
+		child.queue_free()

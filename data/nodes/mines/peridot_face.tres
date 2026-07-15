@@ -2,25 +2,24 @@
 
 [ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
-[ext_resource type="Resource" path="res://data/items/materials/peridotite_chunk.tres" id="i0"]
-[ext_resource type="Resource" path="res://data/items/materials/imperial_jade_knot.tres" id="i1"]
+[ext_resource type="Resource" path="res://data/items/materials/peridotite_chunk.tres" id="it0"]
+[ext_resource type="Resource" path="res://data/items/materials/nickel_granule.tres" id="it1"]
 
 [sub_resource type="Resource" id="hit0"]
 script = ExtResource("2_loot")
-item = ExtResource("i0")
-weight = 60.0
+item = ExtResource("it0")
+weight = 30.0
 
-[sub_resource type="Resource" id="break0"]
+[sub_resource type="Resource" id="hit1"]
 script = ExtResource("2_loot")
-item = ExtResource("i0")
-weight = 85.0
-min_amount = 2
-max_amount = 4
+item = ExtResource("it1")
+weight = 10.0
 
-[sub_resource type="Resource" id="break1"]
+[sub_resource type="Resource" id="break2"]
 script = ExtResource("2_loot")
-item = ExtResource("i1")
-weight = 15.0
+item = ExtResource("it0")
+weight = 100.0
+max_amount = 2
 
 [resource]
 script = ExtResource("1_node")
@@ -34,5 +33,7 @@ base_duration = 4.0
 base_xp = 18
 hit_damage = 0.143
 affix = "subterranean_chill"
-hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0")])
-break_pool = Array[ExtResource("2_loot")]([SubResource("break0"), SubResource("break1")])
+common_pool = Array[ExtResource("2_loot")]([])
+rare_pool = Array[ExtResource("2_loot")]([])
+hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0"), SubResource("hit1")])
+break_pool = Array[ExtResource("2_loot")]([SubResource("break2")])

@@ -25,6 +25,12 @@ extends Resource
 ## Short human label for the effect, shown on the card.
 @export var effect_label: String = ""
 
+@export_category("Placement (Grounds map)")
+## Anchor tile of the building's footprint on the isometric plot.
+@export var grid_cell: Vector2i = Vector2i.ZERO
+## Footprint size in tiles (drives the iso base and the click area).
+@export var footprint: Vector2i = Vector2i(2, 2)
+
 @export_category("Tiers")
 @export var tiers: Array[StructureTier] = []
 

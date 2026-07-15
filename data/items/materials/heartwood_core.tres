@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/heartwood_core.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "heartwood_core"
+name = "Heartwood Core"
+description = "The living heart of the Hangman's Oak, still pulsing with a slow green fire. Smiths and alchemists will prize it once their crafts awaken."
+icon = ExtResource("2_icon")
+sell_value = 220
+rarity = 4

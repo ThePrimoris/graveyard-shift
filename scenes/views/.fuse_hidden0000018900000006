@@ -1,0 +1,420 @@
+# HarvestView.gd
+# Shared base for the Graveyard / Forest / Quarry screens.
+# Each skill holds a list of zones; the selector on the left picks the active
+# zone and the card grid shows that zone's nodes, four to a row.
+class_name HarvestView
+extends PanelContainer
+
+const ACTION_CARD_SCENE = preload("res://scenes/cards/ActionCard.tscn")
+
+## The skill's zones, in unlock order. Assign zone .tres files here.
+@export var zones: Array[HarvestZone] = []
+
+var action_verb: String = "Harvest"
+var progress_color: Color = Color("#c8a24d")
+## Ambient page tint behind the cards, one flavour per skill.
+var ambience: Color = Color(0.043, 0.039, 0.063)
+
+var current_zone: int = 0
+var display_nodes: Array = []
+var zone_buttons: Array = []
+
+var node_progress: Dictionary = {}
+## Accumulated break damage per node id (0..1), for nodes with hit_damage.
+var node_damage: Dictionary = {}
+## Unstable Seams lockout: node id -> seconds until the sealed seam reopens.
+var node_locked: Dictionary = {}
+var cards: Array = []
+
+## How long an "unstable_seams" node stays sealed after a vent break. The
+## draft calls for 10 minutes (600s); parked lower for now so the mechanic is
+## easy to feel while testing — bump toward 600 once it plays right.
+const UNSTABLE_LOCKOUT_SECONDS: float = 120.0
+
+var header_title: Label
+var header_bar: ProgressBar
+var header_xp_label: Label
+var header_level_label: Label
+
+func _ready() -> void:
+	add_to_group(Ids.Group.UI_UPDATES)
+	add_to_group(Ids.Group.HARVEST_VIEWS)
+	_apply_ambience()
+	_build_header()
+	_build_zone_selector()
+	_select_zone(0)
+
+## Tints the whole page in the skill's flavour so the cards sit on a
+## scene-coloured backdrop instead of flat chrome. Preserves the view's
+## content margins (sidebar clearance, plots bar clearance).
+func _apply_ambience() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = ambience
+	var previous := get_theme_stylebox("panel")
+	if previous:
+		style.content_margin_left = previous.content_margin_left
+		style.content_margin_top = previous.content_margin_top
+		style.content_margin_right = previous.content_margin_right
+		style.content_margin_bottom = previous.content_margin_bottom
+	add_theme_stylebox_override("panel", style)
+
+func _get_skill_key() -> String:
+	for zone in zones:
+		if zone == null: continue
+		for node in zone.nodes:
+			if node != null:
+				return GameManager.get_skill_key(node)
+	return ""
+
+# --- Zones ---
+
+func _build_zone_selector() -> void:
+	var list = get_node_or_null("VBoxContainer/ContentRow/ZonePanel/ZoneVBox/ZoneList")
+	if list == null: return
+	for child in list.get_children():
+		child.queue_free()
+	zone_buttons.clear()
+
+	for i in range(zones.size()):
+		var zone = zones[i]
+		if zone == null: continue
+		var btn = Button.new()
+		btn.custom_minimum_size = Vector2(0, 44)
+		btn.text = zone.name
+		btn.toggle_mode = true
+		btn.tooltip_text = zone.description
+		btn.pressed.connect(_on_zone_pressed.bind(i))
+		list.add_child(btn)
+		zone_buttons.append(btn)
+
+func _on_zone_pressed(index: int) -> void:
+	_select_zone(index)
+
+func _select_zone(index: int) -> void:
+	if zones.is_empty(): return
+	current_zone = clampi(index, 0, zones.size() - 1)
+
+	display_nodes.clear()
+	if zones[current_zone] != null:
+		for node in zones[current_zone].nodes:
+			if node != null:
+				display_nodes.append(node)
+
+	_build_cards()
+	_update_zone_buttons()
+	update_ui()
+
+func _update_zone_buttons() -> void:
+	var skill_key = _get_skill_key()
+	var level = GameManager.skills[skill_key]["level"] if skill_key in GameManager.skills else 1
+	for i in range(zone_buttons.size()):
+		var btn: Button = zone_buttons[i]
+		btn.set_pressed_no_signal(i == current_zone)
+		var zone = zones[i]
+		if zone and level < zone.required_level:
+			btn.disabled = true
+			btn.tooltip_text = "Requires level %d %s" % [zone.required_level, skill_key.capitalize()]
+		else:
+			btn.disabled = false
+
+# --- Cards ---
+
+func _build_cards() -> void:
+	var flow = get_node_or_null("VBoxContainer/ContentRow/ScrollContainer")
+	if flow == null or flow.get_child_count() == 0: return
+	flow = flow.get_child(0)
+
+	for child in flow.get_children():
+		child.queue_free()
+	cards.clear()
+
+	for node_data in display_nodes:
+		var card = ACTION_CARD_SCENE.instantiate()
+		flow.add_child(card)
+
+		card.setup_card(node_data.name, node_data.description, action_verb, node_data.base_duration)
+		var entries = _chance_entries(node_data.hit_pool) if node_data.hit_damage > 0.0 \
+			else _table_entries(node_data.common_pool)
+		if entries.is_empty():
+			entries = _table_entries(node_data.break_pool)
+		if not entries.is_empty():
+			card.set_icon(entries[0]["item"].icon)
+		card.set_progress_color(progress_color)
+		card.set_dig_sections(node_data.dig_sections)
+		card.set_damage_meter(node_data.hit_damage)
+		card.update_damage(node_damage.get(node_data.id, 0.0))
+		card.set_affix(GameManager.get_affix_info(node_data.affix))
+		if node_data.is_boss:
+			card.set_large()
+		if not node_progress.has(node_data.id):
+			node_progress[node_data.id] = 0.0
+
+		if node_data.is_boss:
+			card.action_triggered.connect(_on_boss_confront.bind(node_data))
+		else:
+			card.action_triggered.connect(func():
+				if _is_locked(node_data.id):
+					NotificationManager.show_item("%s is sealed — the vent must settle." % node_data.name, 1)
+					return
+				GameManager.register_activity(card, node_data)
+			)
+		cards.append(card)
+
+## True while an Unstable Seams node is sealed shut after a vent break.
+func _is_locked(node_id: String) -> bool:
+	return node_locked.get(node_id, 0.0) > 0.0
+
+## Confront launches the node's encounter, warband permitting.
+func _on_boss_confront(node_data: HarvestNode) -> void:
+	var encounter = GameManager.find_encounter_by_id(node_data.encounter_id)
+	if encounter == null:
+		NotificationManager.show_item("%s stirs... but its hour has not come." % node_data.name, 1)
+		return
+	if MinionManager.roster.is_empty():
+		NotificationManager.show_item("You need a warband — raise minions in the Necronomicon first", 1)
+		return
+	var combat_view = get_tree().get_first_node_in_group(Ids.Group.COMBAT_VIEWS)
+	if combat_view == null: return
+	combat_view.start_encounter_res(encounter)
+	get_tree().call_group(Ids.Group.VIEW_MANAGER, "switch_view", Ids.View.COMBAT)
+
+## Page header, Melvor-style: dark strip with the skill icon and name on the
+## left, a level badge on the right, and a thin XP bar with a readout below.
+func _build_header() -> void:
+	var vbox = get_node_or_null("VBoxContainer")
+	if vbox == null: return
+
+	var header = PanelContainer.new()
+	var hstyle := StyleBoxFlat.new()
+	hstyle.bg_color = Color(0.078, 0.071, 0.11, 0.97)
+	hstyle.set_border_width_all(1)
+	hstyle.border_width_left = 4
+	hstyle.border_color = Color(progress_color.r * 0.6, progress_color.g * 0.6, progress_color.b * 0.6)
+	hstyle.set_corner_radius_all(10)
+	hstyle.shadow_color = Color(0, 0, 0, 0.35)
+	hstyle.shadow_size = 8
+	hstyle.shadow_offset = Vector2(0, 3)
+	header.add_theme_stylebox_override("panel", hstyle)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	header.add_child(margin)
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 5)
+	margin.add_child(col)
+
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	col.add_child(row)
+
+	var skill_key = _get_skill_key()
+	var icon_path = "res://icons/skills/%s.png" % skill_key
+	if ResourceLoader.exists(icon_path):
+		var icon = TextureRect.new()
+		icon.texture = load(icon_path)
+		icon.custom_minimum_size = Vector2(38, 38)
+		icon.expand_mode = 1
+		icon.stretch_mode = 5
+		row.add_child(icon)
+
+	header_title = Label.new()
+	header_title.theme_type_variation = &"HeaderLabel"
+	header_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(header_title)
+
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+
+	var badge = PanelContainer.new()
+	var bstyle := StyleBoxFlat.new()
+	bstyle.bg_color = Color(0.055, 0.047, 0.082)
+	bstyle.border_color = progress_color
+	bstyle.set_border_width_all(1)
+	bstyle.set_corner_radius_all(11)
+	bstyle.content_margin_left = 12
+	bstyle.content_margin_right = 12
+	bstyle.content_margin_top = 3
+	bstyle.content_margin_bottom = 3
+	badge.add_theme_stylebox_override("panel", bstyle)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header_level_label = Label.new()
+	header_level_label.add_theme_font_size_override("font_size", 16)
+	header_level_label.add_theme_color_override("font_color", progress_color)
+	badge.add_child(header_level_label)
+	row.add_child(badge)
+
+	header_bar = ProgressBar.new()
+	header_bar.custom_minimum_size = Vector2(0, 10)
+	header_bar.show_percentage = false
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = progress_color
+	fill.set_corner_radius_all(5)
+	header_bar.add_theme_stylebox_override("fill", fill)
+	col.add_child(header_bar)
+
+	header_xp_label = Label.new()
+	header_xp_label.theme_type_variation = &"MutedLabel"
+	header_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	col.add_child(header_xp_label)
+
+	vbox.add_child(header)
+	vbox.move_child(header, 0)
+
+func _update_header() -> void:
+	if header_title == null: return
+	var skill_key = _get_skill_key()
+	if skill_key == "": return
+
+	var skill = GameManager.skills[skill_key]
+	header_title.text = skill_key.capitalize()
+	header_level_label.text = "%d / %d" % [skill["level"], GameManager.MAX_LEVEL]
+
+	if skill["level"] >= GameManager.MAX_LEVEL:
+		header_bar.max_value = 1
+		header_bar.value = 1
+		header_xp_label.text = "Skill mastered!"
+	else:
+		var needed = GameManager.get_xp_needed(skill["level"])
+		header_bar.max_value = needed
+		header_bar.value = skill["xp"]
+		header_xp_label.text = "%.0f / %.0f XP" % [skill["xp"], needed]
+
+## Called by SaveManager after loading: restart the node that was being worked,
+## switching to its zone if needed.
+func resume_node(node_id: String) -> void:
+	if node_id == "": return
+	for zi in range(zones.size()):
+		var zone = zones[zi]
+		if zone == null: continue
+		for node in zone.nodes:
+			if node == null or node.id != node_id: continue
+			if zi != current_zone:
+				_select_zone(zi)
+			for i in range(display_nodes.size()):
+				if display_nodes[i].id == node_id and i < cards.size():
+					if GameManager.active_action_source != cards[i] and GameManager.is_node_accessible(node):
+						GameManager.register_activity(cards[i], node)
+					return
+			return
+
+func _process(delta: float) -> void:
+	for i in range(display_nodes.size()):
+		var node_data = display_nodes[i]
+		var card = cards[i] if i < cards.size() else null
+
+		if not node_data or not card: continue
+
+		# Sealed (Unstable Seams): count the lockout down and show it on the
+		# button; a sealed node can't be worked, so skip its harvest handling.
+		if node_locked.get(node_data.id, 0.0) > 0.0:
+			node_locked[node_data.id] -= delta
+			if node_locked[node_data.id] <= 0.0:
+				node_locked.erase(node_data.id)
+				card.set_button_text(false)
+			else:
+				card.action_button.disabled = true
+				card.action_button.text = "Sealed %ds" % int(ceil(node_locked[node_data.id]))
+			continue
+
+		if GameManager.active_action_source == card:
+			node_progress[node_data.id] += delta
+
+			var duration = GameManager.get_effective_duration(node_data)
+			if node_progress[node_data.id] >= duration:
+				node_progress[node_data.id] = 0.0
+				GameManager.resolve_harvest(node_data)
+				_register_hit(node_data, card)
+
+			card.update_progress(node_progress[node_data.id], duration)
+		else:
+			if node_progress[node_data.id] > 0.0:
+				node_progress[node_data.id] = 0.0
+				card.reset_progress()
+
+## One completed bar = one hit on a breakable node. Damage accrues on the
+## card's vertical meter; at full health lost, the node breaks, pays its
+## break tables, and resets instantly.
+func _register_hit(node_data: HarvestNode, card) -> void:
+	if node_data.hit_damage <= 0.0: return
+	var dealt: float = node_damage.get(node_data.id, 0.0) + node_data.hit_damage
+	if dealt >= 0.999:
+		GameManager.resolve_break(node_data)
+		dealt = 0.0
+		# Unstable Seams: the break vents the gas and seals the seam shut. Stop
+		# the harvest and lock the node until the countdown clears.
+		if node_data.affix == "unstable_seams":
+			node_locked[node_data.id] = UNSTABLE_LOCKOUT_SECONDS
+			if GameManager.active_action_source == card:
+				GameManager.register_activity(card)
+			NotificationManager.show_item("%s vents and seals shut!" % node_data.name, 1)
+	node_damage[node_data.id] = dealt
+	card.update_damage(dealt)
+
+## Ledger rows for one weighted drop table, biggest share first.
+## Each row: { "item", "pct" (0..100), "min_amount", "max_amount" }.
+func _table_entries(pool: Array) -> Array:
+	var valid: Array = []
+	var total := 0.0
+	for entry in pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
+		if entry != null and entry.item != null and entry.weight > 0.0:
+			valid.append(entry)
+			total += entry.weight
+	var entries: Array = []
+	for entry in valid:
+		entries.append({
+			"item": entry.item,
+			"pct": entry.weight / total * 100.0,
+			"min_amount": entry.min_amount,
+			"max_amount": entry.max_amount,
+		})
+	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
+	return entries
+
+## Ledger rows for a Hit Chance table — weights ARE the percentages, and
+## they may sum below 100 (the remainder is the chance a hit pays nothing).
+func _chance_entries(pool: Array) -> Array:
+	var entries: Array = []
+	for entry in pool.slice(0, HarvestNode.MAX_LOOT_ENTRIES):
+		if entry != null and entry.item != null and entry.weight > 0.0:
+			entries.append({
+				"item": entry.item,
+				"pct": entry.weight,
+				"min_amount": entry.min_amount,
+				"max_amount": entry.max_amount,
+			})
+	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
+	return entries
+
+func update_ui() -> void:
+	_update_header()
+	_update_zone_buttons()
+
+	for i in range(cards.size()):
+		var card = cards[i]
+		if not card: continue
+
+		card.set_button_text(GameManager.active_action_source == card)
+
+		if i < display_nodes.size() and display_nodes[i] != null:
+			var node = display_nodes[i]
+
+			if not GameManager.is_node_accessible(node):
+				card.show_locked(node.description, GameManager.get_node_requirement_text(node))
+			elif node.is_boss:
+				card.show_boss(node.description, "Confront")
+				card.action_button.disabled = false
+			else:
+				card.show_unlocked()
+				var mods = GameManager.get_gather_modifiers(node)
+				card.set_stats(node.base_xp * mods.xp_mult, GameManager.get_effective_duration(node), node.base_duration)
+				if node.hit_damage > 0.0:
+					card.set_drops(_chance_entries(node.hit_pool), _table_entries(node.break_pool), 1.0, true)
+				else:
+					card.set_drops(_table_entries(node.common_pool), _table_entries(node.rare_pool), node.rare_chance + mods.rare_add)
+				card.set_bonuses(mods)
+				card.action_button.disabled = _is_locked(node.id)

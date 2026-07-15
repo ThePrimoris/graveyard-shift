@@ -94,11 +94,24 @@ func build(structure_id: String) -> bool:
 	var s = find_structure(structure_id)
 	if s:
 		NotificationManager.show_item("%s raised to tier %d" % [s.name, get_level(structure_id)], 1)
+	AudioManager.play_sfx(Ids.SFX_BUILD)
 	grounds_updated.emit()
 	# Storage structures may have just grown the backpack.
 	InventoryManager.refresh_capacity()
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
+
+## Debug-only: set a structure straight to `level`, ignoring cost. Used by the
+## console (`grounds raise|max|reset`) to preview tiers without grinding.
+func debug_set_level(structure_id: String, level: int) -> int:
+	var s = find_structure(structure_id)
+	if s == null:
+		return -1
+	levels[structure_id] = clampi(level, 0, s.max_level())
+	grounds_updated.emit()
+	InventoryManager.refresh_capacity()
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+	return get_level(structure_id)
 
 # --- Effects (read by the rest of the game) ---
 
@@ -122,7 +135,7 @@ func get_bonus(effect: String) -> float:
 
 ## Extra backpack slots granted by storage structures.
 func get_inventory_slot_bonus() -> int:
-	return int(round(get_bonus("inventory_slots")))
+	return int(round(get_bonus(Ids.EFFECT_INVENTORY_SLOTS)))
 
 # --- Save / Load ---
 

@@ -10,7 +10,10 @@ const PORTRAIT_PATH = "res://icons/ui/mortimer.png"
 # wait kinds: "continue" (button), "harvest" (node + count), "view" (view name),
 #             "event" (a named beat fired via notify_event — book opened,
 #             minion raised, minion slotted, offering made)
-const STEPS: Array[Dictionary] = [
+# A `var` (not `const`) so its Ids.VIEW_* / Ids.EVENT_* values resolve at
+# instance-init time; a const array would require them to be const expressions.
+# TutorialManager is an autoload (single instance), so there's no sharing cost.
+var STEPS: Array[Dictionary] = [
 	{
 		"id": "intro", "wait": "continue", "button": "Show me around",
 		"text": "Ah — the new tenant, at last. Mortimer: caretaker of these grounds for forty years, and considerably longer since my burial. This graveyard is yours now... once it's cleared. Every empire of bone begins with a shovel."
@@ -21,7 +24,7 @@ const STEPS: Array[Dictionary] = [
 		"text": "Start with the fresh graves. Dig them open — the Still Flesh you uncover will fuel your necromancy, in time. Set your shovel working and it carries on without you. That is rather the point."
 	},
 	{
-		"id": "to_forest", "wait": "view", "view": "forest",
+		"id": "to_forest", "wait": "view", "view": Ids.VIEW_FOREST,
 		"highlight": "sidebar:Lumbering", "objective": "Open Lumbering from the sidebar",
 		"text": "Well dug — the former occupants weren't using it. Now: those dead trees crowd the ground where your workshop will one day stand. Take your hatchet to the Lumbering grounds."
 	},
@@ -31,7 +34,7 @@ const STEPS: Array[Dictionary] = [
 		"text": "Bring one down. Gravewood Logs burn poorly but build well enough — fences, coffins, scaffolds. The essentials."
 	},
 	{
-		"id": "to_quarry", "wait": "view", "view": "quarry",
+		"id": "to_quarry", "wait": "view", "view": Ids.VIEW_QUARRY,
 		"highlight": "sidebar:Spelunking", "objective": "Open Spelunking from the sidebar",
 		"text": "The catacomb walls beneath us are crumbling anyway; we may as well help them along. Your pickaxe, please — down to the Spelunking tunnels."
 	},
@@ -45,17 +48,17 @@ const STEPS: Array[Dictionary] = [
 		"text": "You've the arms for the honest work — now for the art. From beneath the circle's stones I give you what I guarded forty years: the NECRONOMICON. Every servant you will ever raise sleeps between its covers."
 	},
 	{
-		"id": "open_book", "wait": "event", "event": "book_opened",
+		"id": "open_book", "wait": "event", "event": Ids.EVENT_BOOK_OPENED,
 		"highlight": "circle", "objective": "Open the Necronomicon at the circle",
 		"text": "The circle at the grounds' heart holds the book now — that is why it glows. Go and press your hand to the stone."
 	},
 	{
-		"id": "raise", "wait": "event", "event": "minion_raised",
+		"id": "raise", "wait": "event", "event": Ids.EVENT_MINION_RAISED,
 		"highlight": "book:raise:zombie", "objective": "Raise the Zombie from its Unwritten Page",
 		"text": "The index: your raised servants on the left page, the unwritten on the right. I have left Still Flesh and Coagulated Blood on the slab — find the Zombie among the unwritten and speak its rite."
 	},
 	{
-		"id": "slot", "wait": "event", "event": "minion_slotted",
+		"id": "slot", "wait": "event", "event": Ids.EVENT_MINION_SLOTTED,
 		"highlight": "plot:1", "objective": "Slot your minion into a graveyard plot",
 		"text": "It stands! Ghastly, isn't it. Now close the book and look to the plots along the grounds' edge — click one and put the creature in it. An idle minion is a wasted corpse."
 	},
@@ -64,7 +67,7 @@ const STEPS: Array[Dictionary] = [
 		"text": "A slotted minion's inked runes do their work from the plot — and when war comes, your four slotted dead are your warband. The creature itself grows on what you feed it: offerings at the altar become its experience, levels grant skill points, and points buy runes in its page of the book. Actives wait for war."
 	},
 	{
-		"id": "altar", "wait": "event", "event": "offering_made",
+		"id": "altar", "wait": "event", "event": Ids.EVENT_OFFERING_MADE,
 		"highlight": "book:altar", "objective": "Make an offering at the Ritual Altar",
 		"text": "One final art. Open the tome to the ALTAR chapter. What you lay upon the stone becomes strength in your servants — I have left a pile of bones. Offer them, and watch the creature swell."
 	},
@@ -94,7 +97,7 @@ func _ready() -> void:
 	# talking while the book is open; below the debug console (100).
 	layer = 70
 	visible = false
-	add_to_group("view_manager")  # receives switch_view group calls
+	add_to_group(Ids.GROUP_VIEW_MANAGER)  # receives switch_view group calls
 	_build_ui()
 	GameManager.harvest_completed.connect(_on_harvest_completed)
 
@@ -125,7 +128,7 @@ func finish(skipped: bool = false) -> void:
 	if not MinionManager.necronomicon_unlocked:
 		MinionManager.necronomicon_unlocked = true
 		NotificationManager.show_item("The Necronomicon is yours — the circle glows", 1)
-		get_tree().call_group("ui_updates", "update_ui")
+		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	if not skipped:
 		NotificationManager.show_item("The grounds are yours. Mortimer will be watching.", 1)
 	SaveManager.save_game()
@@ -154,7 +157,7 @@ func _enter_step_effects() -> bool:
 		"tome":
 			MinionManager.necronomicon_unlocked = true
 			NotificationManager.show_item("The Necronomicon is yours — the circle glows", 1)
-			get_tree().call_group("ui_updates", "update_ui")
+			get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 		"raise":
 			if not MinionManager.roster.is_empty():
 				return true
@@ -199,7 +202,7 @@ func _on_harvest_completed(node_id: String) -> void:
 		else:
 			_update_objective()
 
-## Group "view_manager" hook: fired alongside Control.switch_view.
+## Group Ids.GROUP_VIEW_MANAGER hook: fired alongside Control.switch_view.
 func switch_view(target_view: String) -> void:
 	if not active: return
 	var step = current_step()
@@ -346,7 +349,7 @@ func _resolve_highlight_target() -> Control:
 	var h: String = current_step().get("highlight", "")
 	if h.begins_with("node:"):
 		var node_id = h.substr(5)
-		for view in get_tree().get_nodes_in_group("harvest_views"):
+		for view in get_tree().get_nodes_in_group(Ids.GROUP_HARVEST_VIEWS):
 			for i in range(view.display_nodes.size()):
 				if view.display_nodes[i] and view.display_nodes[i].id == node_id and i < view.cards.size():
 					return view.cards[i]
@@ -365,7 +368,7 @@ func _resolve_highlight_target() -> Control:
 	elif h.begins_with("book:"):
 		# Targets inside the Necronomicon overlay; null while the book is shut,
 		# which leaves the circle un-highlighted but the objective text standing.
-		for book in get_tree().get_nodes_in_group("necronomicon"):
+		for book in get_tree().get_nodes_in_group(Ids.GROUP_NECRONOMICON):
 			var target = book.tutorial_target(h.substr(5))
 			if target is Control:
 				return target

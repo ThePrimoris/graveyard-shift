@@ -1,0 +1,217 @@
+# DebugConsole.gd
+# Quake-style debug console, toggled with ~ (backquote).
+# Commands:
+#   level <skill_name> <amount>  - adds that much XP to the skill
+#   spawn <item_id> <amount>     - adds items to the inventory
+#   help                         - lists commands
+extends CanvasLayer
+
+const MAX_LOG_LINES: int = 200
+
+var log_lines: Array[String] = []
+var history: Array[String] = []
+var history_pos: int = -1
+
+var panel: PanelContainer
+var log_label: RichTextLabel
+var input: LineEdit
+
+func _ready() -> void:
+	layer = 100
+	visible = false
+	_build_ui()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_QUOTELEFT or event.keycode == KEY_ASCIITILDE:
+			toggle()
+			get_viewport().set_input_as_handled()
+
+func toggle() -> void:
+	visible = not visible
+	if visible:
+		input.clear()
+		input.grab_focus.call_deferred()
+
+# --- Commands ---
+
+## Runs a command line and returns the response (also written to the log).
+func execute(command: String) -> String:
+	command = command.strip_edges()
+	if command == "":
+		return ""
+	_log("[color=#8fd0a0]> %s[/color]" % command)
+	if history.is_empty() or history.back() != command:
+		history.append(command)
+	history_pos = -1
+
+	var parts = command.split(" ", false)
+	var response := ""
+	match parts[0].to_lower():
+		"help":
+			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  grounds <list|raise|max|reset> [id] — preview structures\n  necronomicon <on|off> — toggle the dread tome\n  combat [boss] — stage a test battle\n  help" % ", ".join(GameManager.skills.keys())
+		"level":
+			response = _cmd_level(parts)
+		"spawn":
+			response = _cmd_spawn(parts)
+		"grounds":
+			response = _cmd_grounds(parts)
+		"necronomicon":
+			response = _cmd_necronomicon(parts)
+		"combat":
+			response = _cmd_combat(parts)
+		_:
+			response = "Unknown command '%s'. Try 'help'." % parts[0]
+
+	_log(response)
+	return response
+
+func _cmd_level(parts: PackedStringArray) -> String:
+	if parts.size() < 3:
+		return "Usage: level <skill_name> <amount>"
+	var skill_name = parts[1].to_lower()
+	if not GameManager.skills.has(skill_name):
+		return "Unknown skill '%s'. Skills: %s" % [skill_name, ", ".join(GameManager.skills.keys())]
+	if not parts[2].is_valid_int():
+		return "'%s' is not a whole number." % parts[2]
+	var amount = int(parts[2])
+	GameManager.add_xp(skill_name, float(amount))
+	var skill = GameManager.skills[skill_name]
+	return "Added %d XP to %s — now level %d (%.0f XP into the level)." % [amount, skill_name, skill["level"], skill["xp"]]
+
+func _cmd_spawn(parts: PackedStringArray) -> String:
+	if parts.size() < 3:
+		return "Usage: spawn <item_id> <amount>"
+	var item_id = parts[1].to_lower()
+	var item = GameManager.find_item_by_id(item_id)
+	if item == null:
+		return "Unknown item '%s'." % item_id
+	if not parts[2].is_valid_int():
+		return "'%s' is not a whole number." % parts[2]
+	var amount = maxi(1, int(parts[2]))
+	var leftover = InventoryManager.add_item(item, amount)
+	if leftover > 0:
+		return "Spawned %d x %s (%d didn't fit — inventory full)." % [amount - leftover, item.name, leftover]
+	return "Spawned %d x %s." % [amount, item.name]
+
+func _cmd_grounds(parts: PackedStringArray) -> String:
+	if parts.size() < 2:
+		return "Usage: grounds <list|raise|max|reset> [id]"
+	var sub = parts[1].to_lower()
+	if sub == "list":
+		var lines: Array[String] = []
+		for structure_id in GroundsManager.sorted_ids():
+			var st = GroundsManager.find_structure(structure_id)
+			lines.append("  %s — tier %d/%d" % [structure_id, GroundsManager.get_level(structure_id), st.max_level()])
+		return "Structures:\n" + "\n".join(lines)
+	if parts.size() < 3:
+		return "Usage: grounds %s <id>" % sub
+	var sid = parts[2].to_lower()
+	var s = GroundsManager.find_structure(sid)
+	if s == null:
+		return "Unknown structure '%s'. Try 'grounds list'." % sid
+	var target: int
+	match sub:
+		"raise": target = GroundsManager.get_level(sid) + 1
+		"max": target = s.max_level()
+		"reset": target = 0
+		_: return "Usage: grounds <list|raise|max|reset> [id]"
+	var lvl = GroundsManager.debug_set_level(sid, target)
+	return "%s is now tier %d/%d." % [s.name, lvl, s.max_level()]
+
+func _cmd_necronomicon(parts: PackedStringArray) -> String:
+	if parts.size() < 2 or not parts[1].to_lower() in ["on", "off"]:
+		return "Usage: necronomicon <on|off>"
+	MinionManager.necronomicon_unlocked = parts[1].to_lower() == "on"
+	MinionManager.minions_updated.emit()
+	get_tree().call_group("ui_updates", "update_ui")
+	if MinionManager.necronomicon_unlocked:
+		return "The Necronomicon stirs. The circle at the graveyard's heart will open it."
+	return "The tome sleeps once more."
+
+func _cmd_combat(parts: PackedStringArray) -> String:
+	var combat_view = get_tree().get_first_node_in_group("combat_views")
+	if combat_view == null:
+		return "No combat view found — is the main scene running?"
+	var boss = parts.size() > 1 and parts[1].to_lower() == "boss"
+	combat_view.start_test_encounter(boss)
+	get_tree().call_group("view_manager", "switch_view", "combat")
+	return "A test battle begins%s." % (" — the Warden stirs" if boss else "")
+
+func _log(text: String) -> void:
+	log_lines.append(text)
+	while log_lines.size() > MAX_LOG_LINES:
+		log_lines.pop_front()
+	if log_label:
+		log_label.append_text(text + "\n")
+
+# --- UI ---
+
+func _build_ui() -> void:
+	panel = PanelContainer.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.82)
+	style.set_corner_radius_all(0)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	panel.anchor_bottom = 0.45
+	panel.offset_bottom = 0
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(panel)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(vbox)
+
+	log_label = RichTextLabel.new()
+	log_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	log_label.scroll_active = true
+	log_label.scroll_following = true
+	log_label.bbcode_enabled = true
+	log_label.add_theme_color_override("default_color", Color.WHITE)
+	log_label.add_theme_font_size_override("normal_font_size", 14)
+	log_label.append_text("Graveyard Shift console — type 'help' for commands.\n")
+	vbox.add_child(log_label)
+
+	input = LineEdit.new()
+	input.placeholder_text = "> command"
+	var in_style = StyleBoxFlat.new()
+	in_style.bg_color = Color(0.08, 0.08, 0.08, 0.9)
+	in_style.set_corner_radius_all(4)
+	in_style.content_margin_left = 8
+	in_style.content_margin_right = 8
+	in_style.content_margin_top = 6
+	in_style.content_margin_bottom = 6
+	input.add_theme_stylebox_override("normal", in_style)
+	input.add_theme_color_override("font_color", Color.WHITE)
+	input.text_submitted.connect(_on_submitted)
+	input.gui_input.connect(_on_input_gui)
+	vbox.add_child(input)
+
+func _on_submitted(text: String) -> void:
+	input.clear()
+	execute(text)
+
+## Up/down arrows cycle through command history.
+func _on_input_gui(event: InputEvent) -> void:
+	if not (event is InputEventKey and event.pressed): return
+	if history.is_empty(): return
+	if event.keycode == KEY_UP:
+		history_pos = (history.size() - 1) if history_pos == -1 else maxi(0, history_pos - 1)
+		input.text = history[history_pos]
+		input.caret_column = input.text.length()
+		input.accept_event()
+	elif event.keycode == KEY_DOWN:
+		if history_pos == -1: return
+		history_pos += 1
+		if history_pos >= history.size():
+			history_pos = -1
+			input.text = ""
+		else:
+			input.text = history[history_pos]
+		input.caret_column = input.text.length()
+		input.accept_event()

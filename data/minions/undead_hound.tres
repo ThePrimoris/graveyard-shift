@@ -2,59 +2,108 @@
 
 [ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
 [ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/undead_hound.png" id="3_icon"]
 
 [sub_resource type="Resource" id="Ability0"]
 script = ExtResource("2_ability")
 id = "grave_hounds_nose"
 name = "Grave Hound's Nose"
-description = "It smells what the living miss. Adds to every node's rare table chance while slotted."
+description = "It can smell the good rot from three graves off. The keenest rare-find in the roster while slotted."
 kind = 0
 tier = 1
 cost = 1
 effect = "rare_chance_pct"
-magnitude = 0.6
+magnitude = 1.2
 
 [sub_resource type="Resource" id="Ability1"]
 script = ExtResource("2_ability")
-id = "tireless_trot"
-name = "Tireless Trot"
-description = "It paces the rows all night and expects you to keep up. Bonus skill XP from every harvest while slotted."
+id = "loyal_stance"
+name = "Loyal Stance"
+description = "It puts itself between the pack and the teeth. Enemies strike the hound first, sparing the others."
 kind = 0
-tier = 2
-cost = 2
-prerequisites = Array[String](["grave_hounds_nose"])
-effect = "harvest_xp_pct"
-magnitude = 4.0
+tier = 1
+cost = 1
+effect = "minion_taunt"
+magnitude = 1.0
 
 [sub_resource type="Resource" id="Ability2"]
 script = ExtResource("2_ability")
+id = "thick_hide"
+name = "Thick Hide"
+description = "Grave-toughened and scar-knotted, it can take the blows it invites. +20% max HP."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["loyal_stance"])
+effect = "minion_hp_pct"
+magnitude = 20.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
 id = "savage_pounce"
 name = "Savage Pounce"
-description = "Forty pounds of dead dog, airborne. A combat opener for the wars to come."
+description = "Forty pounds of dead dog, airborne — it slams a foe and knocks its next turn off balance. Once per battle."
 kind = 1
 tier = 2
 cost = 2
 effect = "active_savage_pounce"
 magnitude = 0.0
 
-[sub_resource type="Resource" id="Ability3"]
+[sub_resource type="Resource" id="Ability4"]
 script = ExtResource("2_ability")
-id = "restless_vigil"
-name = "Restless Vigil"
-description = "It works the rows through the long dark, whether you're watching or not. Boosts the grounds' offline output while slotted."
+id = "fleet_paws"
+name = "Fleet Paws"
+description = "Fast enough to be everywhere the pack needs it. +15% turn speed."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["loyal_stance"])
+effect = "minion_speed_pct"
+magnitude = 15.0
+
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "unshaken"
+name = "Unshaken"
+description = "It will not be moved off its master's flank. +25% max HP."
 kind = 0
 tier = 3
 cost = 3
-prerequisites = Array[String](["tireless_trot"])
-effect = "grounds_yield_pct"
-magnitude = 15.0
+prerequisites = Array[String](["thick_hide"])
+effect = "minion_hp_pct"
+magnitude = 25.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "lick_wounds"
+name = "Lick Wounds"
+description = "Between blows it tends itself, and stands again. +5% HP regen each turn."
+kind = 0
+tier = 3
+cost = 2
+prerequisites = Array[String](["thick_hide"])
+effect = "minion_regen_pct"
+magnitude = 5.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "faithful_unto_death"
+name = "Faithful Unto Death"
+description = "It has no notion of quitting. +8% HP regen — a wall that never stops mending while the pack still stands."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["unshaken", "lick_wounds"])
+effect = "minion_regen_pct"
+magnitude = 8.0
 
 [resource]
 script = ExtResource("1_minion")
 id = "undead_hound"
 name = "Undead Hound"
-description = "Faithful beyond the grave, and faster than anything else in it. All fangs, no patience."
+icon = ExtResource("3_icon")
 sort_order = 3
+description = "A loyal, keen-nosed thing that finds the best rot and puts itself between danger and the pack. Fast, faithful, and far harder to put down than it looks."
 base_hp = 15
 base_atk = 4.0
 hp_per_level = 3
@@ -64,5 +113,4 @@ raise_cost = Dictionary[String, int]({
 "bones": 6,
 "jagged_fangs": 4
 })
-abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3")])
-metadata/_custom_type_script = "res://data/MinionData.gd"
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7")])

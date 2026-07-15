@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/obsidian_wyrm_scale.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "obsidian_wyrm_scale"
+name = "Obsidian Wyrm Scale"
+description = "A scale of volcanic glass, sharp enough to smith. A capstone prize."
+icon = ExtResource("2_icon")
+sell_value = 240
+rarity = 4

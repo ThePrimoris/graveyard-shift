@@ -388,6 +388,16 @@ func set_damage_meter(hit_damage: float) -> void:
 ## track. Called by the view as hits land; a break resets it to 0.
 func update_damage(dealt: float) -> void:
 	damage_value = clampf(dealt, 0.0, 1.0)
+	# Dig-layer nodes (Lumbering): the discrete section meter falls as the node
+	# is chopped down — one section per completed bar, top removed first, and it
+	# springs back to full when the node falls and break progress resets to 0.
+	if not segments.is_empty():
+		var sn = segments.size()
+		var gone = int(floor(damage_value * sn + 0.0001))
+		for i in range(sn):
+			segments[i].modulate.a = 0.14 if i < gone else 1.0
+		return
+	# Breakable nodes (Spelunking): a continuous vertical integrity meter.
 	if damage_fill:
 		damage_fill.anchor_top = 1.0 - damage_value
 		damage_fill.offset_top = 2.0 if damage_value >= 0.999 else 0.0
@@ -423,20 +433,9 @@ func update_progress(elapsed: float, duration: float) -> void:
 	if pct_label:
 		pct_label.text = "%d%%" % int(round(t * 100))
 
-	# Dig-layer nodes: the bottom bar fills once per section, and a section
-	# only pops off the vertical meter when the bar completes a full sweep.
-	# The % label still reads overall harvest progress.
-	var sn = segments.size()
-	if sn > 0:
-		var scaled = t * sn
-		var done = int(floor(scaled))
-		if not bars.is_empty():
-			bars[0].value = 1.0 if done >= sn else scaled - done  # 0..1 within the current section
-		for i in range(sn):
-			# Top section (index 0) is removed first, then downward.
-			segments[i].modulate.a = 0.14 if i < done else 1.0
-		return
-
+	# One filled bar = one chop/hit. Section depletion (dig nodes) is driven by
+	# break progress in update_damage, not within-bar progress, so the bar just
+	# shows the current chop's fill for every node type.
 	if not bars.is_empty():
 		bars[0].value = t
 

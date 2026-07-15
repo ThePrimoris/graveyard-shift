@@ -1,10 +1,12 @@
 [gd_resource type="Resource" script_class="Item" format=3]
 
 [ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/silken_husk.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_item")
 id = "silken_husk"
 name = "Silken Husk"
 description = "An empty cocoon of impossibly fine silk."
+icon = ExtResource("2_icon")
 sell_value = 50

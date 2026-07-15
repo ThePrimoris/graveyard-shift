@@ -37,8 +37,8 @@ var header_xp_label: Label
 var header_level_label: Label
 
 func _ready() -> void:
-	add_to_group("ui_updates")
-	add_to_group("harvest_views")
+	add_to_group(Ids.GROUP_UI_UPDATES)
+	add_to_group(Ids.GROUP_HARVEST_VIEWS)
 	_apply_ambience()
 	_build_header()
 	_build_zone_selector()
@@ -133,7 +133,7 @@ func _build_cards() -> void:
 		flow.add_child(card)
 
 		card.setup_card(node_data.name, node_data.description, action_verb, node_data.base_duration)
-		var entries = _chance_entries(node_data.hit_pool) if node_data.hit_damage > 0.0 \
+		var entries = _chance_entries(node_data.hit_pool) if GameManager.is_breakable(node_data) \
 			else _table_entries(node_data.common_pool)
 		if entries.is_empty():
 			entries = _table_entries(node_data.break_pool)
@@ -173,10 +173,10 @@ func _on_boss_confront(node_data: HarvestNode) -> void:
 	if MinionManager.roster.is_empty():
 		NotificationManager.show_item("You need a warband — raise minions in the Necronomicon first", 1)
 		return
-	var combat_view = get_tree().get_first_node_in_group("combat_views")
+	var combat_view = get_tree().get_first_node_in_group(Ids.GROUP_COMBAT_VIEWS)
 	if combat_view == null: return
 	combat_view.start_encounter_res(encounter)
-	get_tree().call_group("view_manager", "switch_view", "combat")
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_COMBAT)
 
 ## Page header, Melvor-style: dark strip with the skill icon and name on the
 ## left, a level badge on the right, and a thin XP bar with a readout below.
@@ -340,14 +340,15 @@ func _process(delta: float) -> void:
 ## card's vertical meter; at full health lost, the node breaks, pays its
 ## break tables, and resets instantly.
 func _register_hit(node_data: HarvestNode, card) -> void:
-	if node_data.hit_damage <= 0.0: return
-	var dealt: float = node_damage.get(node_data.id, 0.0) + node_data.hit_damage
+	var per_hit: float = GameManager.per_hit_damage(node_data)
+	if per_hit <= 0.0: return
+	var dealt: float = node_damage.get(node_data.id, 0.0) + per_hit
 	if dealt >= 0.999:
 		GameManager.resolve_break(node_data)
 		dealt = 0.0
 		# Unstable Seams: the break vents the gas and seals the seam shut. Stop
 		# the harvest and lock the node until the countdown clears.
-		if node_data.affix == "unstable_seams":
+		if node_data.affix == Ids.AFFIX_UNSTABLE_SEAMS:
 			node_locked[node_data.id] = UNSTABLE_LOCKOUT_SECONDS
 			if GameManager.active_action_source == card:
 				GameManager.register_activity(card)
@@ -412,7 +413,7 @@ func update_ui() -> void:
 				card.show_unlocked()
 				var mods = GameManager.get_gather_modifiers(node)
 				card.set_stats(node.base_xp * mods.xp_mult, GameManager.get_effective_duration(node), node.base_duration)
-				if node.hit_damage > 0.0:
+				if GameManager.is_breakable(node):
 					card.set_drops(_chance_entries(node.hit_pool), _table_entries(node.break_pool), 1.0, true)
 				else:
 					card.set_drops(_table_entries(node.common_pool), _table_entries(node.rare_pool), node.rare_chance + mods.rare_add)

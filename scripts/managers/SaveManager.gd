@@ -1,5 +1,7 @@
 # SaveManager.gd
-# Persists the run to disk. Fresh-slate save format (version 2).
+# Persists the run to disk (save format v2). Old saves are UPGRADED forward by
+# _migrate rather than discarded, so a SAVE_VERSION bump no longer wipes
+# progress; a save from a NEWER build than this one is backed up, not clobbered.
 extends Node
 
 const SAVE_PATH: String = "user://graveyard_shift_save.json"
@@ -44,7 +46,7 @@ func hard_reset() -> void:
 	GroundsManager.reset_state()
 	TutorialManager.reset_state()
 	save_game()
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	NotificationManager.show_item("Progress reset — fresh graveyard", 1)
 
 # --- Saving ---
@@ -103,11 +105,27 @@ func load_game() -> void:
 		return
 
 	var data: Dictionary = parsed
+	var from_version := int(data.get("version", 1))
 
-	# Pre-reboot saves are incompatible with the fresh slate: start over.
-	if int(data.get("version", 1)) < SAVE_VERSION:
-		push_warning("SaveManager: Old save format detected; starting fresh.")
+	# A save written by a NEWER build than this one. Its fields may have changed
+	# meaning, so reading it could corrupt the run — and letting the game start
+	# fresh would let the next autosave overwrite it. Preserve it, then start fresh.
+	if from_version > SAVE_VERSION:
+		_backup_save("newer")
+		push_warning("SaveManager: save is from a newer version (v%d > v%d); backed up a copy and starting fresh." \
+			% [from_version, SAVE_VERSION])
 		return
+
+	# An OLDER save: upgrade it field-by-field instead of throwing it away.
+	var migrated_now := false
+	if from_version < SAVE_VERSION:
+		var upgraded := _migrate(data, from_version)
+		if upgraded.is_empty():
+			push_warning("SaveManager: a v%d save can't be carried forward; starting fresh." % from_version)
+			return
+		data = upgraded
+		migrated_now = true
+		push_warning("SaveManager: migrated save from v%d to v%d." % [from_version, SAVE_VERSION])
 
 	GameManager.gold_coins = int(data.get("gold", 0))
 
@@ -141,10 +159,63 @@ func load_game() -> void:
 	# Pick the previous node back up so the player doesn't have to re-click it
 	var last_node_id = str(data.get("active_node_id", ""))
 	if last_node_id != "":
-		get_tree().call_group("harvest_views", "resume_node", last_node_id)
+		get_tree().call_group(Ids.GROUP_HARVEST_VIEWS, "resume_node", last_node_id)
 		_accrue_offline(last_node_id, int(data.get("timestamp", 0)))
 
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+
+	# Persist the upgraded save so the file itself moves to the current format
+	# now, rather than waiting for the next autosave (which might not come if the
+	# game closes first).
+	if migrated_now:
+		save_game()
+
+# --- Save migration ----------------------------------------------------
+# Old saves are UPGRADED, not discarded. Each SAVE_VERSION bump adds exactly one
+# _migrate_v<N>_to_v<N+1> step; _migrate chains them from the save's version up
+# to the current one. A step returns {} to signal "unrecoverable — start fresh".
+# To add the next version: bump SAVE_VERSION, write _migrate_v2_to_v3, and add a
+# `2:` case to the match below. The loaders already default any missing field
+# (via .get), so a step only needs to handle fields that MOVED or CHANGED shape.
+
+## Upgrades a parsed save dict from `from_version` up to SAVE_VERSION. Returns
+## the migrated dict, or {} when the save can't be carried forward (the caller
+## then starts fresh). Pure — no side effects — so it is unit-testable.
+func _migrate(data: Dictionary, from_version: int) -> Dictionary:
+	var migrated: Dictionary = data.duplicate(true)
+	var v := from_version
+	while v < SAVE_VERSION:
+		match v:
+			1:
+				migrated = _migrate_v1_to_v2(migrated)
+			# 2:
+			#     migrated = _migrate_v2_to_v3(migrated)   # <- next bump slots in here
+			_:
+				push_warning("SaveManager: no migration step for v%d." % v)
+				return {}
+		if migrated.is_empty():
+			return {}
+		v += 1
+		migrated["version"] = v
+	return migrated
+
+## v1 (pre-reboot) → v2. The reboot replaced the skill set, item ids, and node
+## ids wholesale, so a v1 save has nothing that maps cleanly onto v2 — it is
+## intentionally unrecoverable. Kept as an explicit step (rather than a blanket
+## discard) so the migration chain is complete and the decision is documented.
+func _migrate_v1_to_v2(_data: Dictionary) -> Dictionary:
+	return {}
+
+## Copies the current save to a timestamped .bak so an incompatible file (e.g. a
+## save from a newer build) is never silently overwritten.
+func _backup_save(reason: String) -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	var stamp := str(int(Time.get_unix_time_from_system()))
+	var backup_path := "%s.%s.%s.bak" % [SAVE_PATH, reason, stamp]
+	var err := DirAccess.copy_absolute(SAVE_PATH, backup_path)
+	if err != OK:
+		push_warning("SaveManager: could not back up save (error %d)." % err)
 
 ## Grants offline harvesting for the node the player left running, capped by
 ## the base window plus any Grave-Lantern tiers built.
@@ -154,7 +225,7 @@ func _accrue_offline(node_id: String, saved_ts: int) -> void:
 	if node == null: return
 	var elapsed = Time.get_unix_time_from_system() - float(saved_ts)
 	if elapsed < OFFLINE_MIN_SECONDS: return
-	var cap_hours = OFFLINE_BASE_HOURS + GroundsManager.get_bonus("offline_hours")
+	var cap_hours = OFFLINE_BASE_HOURS + GroundsManager.get_bonus(Ids.EFFECT_OFFLINE_HOURS)
 	var capped = clampf(elapsed, 0.0, cap_hours * 3600.0)
 
 	var result = GameManager.accrue_offline(node, capped)

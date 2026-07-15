@@ -36,6 +36,10 @@ func _ready() -> void:
 			missing_icons.append(item_id)
 	check(missing_icons.is_empty(), "every item has an icon" + ("" if missing_icons.is_empty() else " (missing: %s)" % str(missing_icons)))
 
+	# --- Content validation (QA-2): every .tres reference resolves ---
+	var content_errors := ContentValidator.validate()
+	check(content_errors.is_empty(), "all content valid" + ("" if content_errors.is_empty() else " — %d problem(s):\n    %s" % [content_errors.size(), "\n    ".join(content_errors)]))
+
 	# --- Player settings: the window choice persists in its own file ---
 	var prev_window_choice = SettingsManager.window_choice
 	SettingsManager.window_choice = "1280x720"
@@ -47,11 +51,11 @@ func _ready() -> void:
 	SettingsManager.window_choice = prev_window_choice
 	SettingsManager.save_settings()
 
-	# --- Every harvest lands exactly one common-table row ---
+	# --- Harvest resolution: common/rare (graves) vs hit/break (lumber, mines) ---
 	var expectations = {
-		"fresh_grave": ["graverobbing", "flesh"],
-		"withered_trees": ["lumbering", "rotten_logs"],
-		"verdigris_seams": ["spelunking", "stone_debris"],
+		"fresh_grave": ["graverobbing", "flesh"],          # common/rare: one pull per bar
+		"withered_trees": ["lumbering", "rotten_logs"],     # dig: hit chips per chop, break primary
+		"verdigris_seams": ["spelunking", "stone_debris"],  # breakable: hit per bar, break primary
 	}
 	for node_id in expectations:
 		var node = GameManager.find_node_by_id(node_id)
@@ -59,17 +63,21 @@ func _ready() -> void:
 		var drop = expectations[node_id][1]
 		check(node != null and GameManager.get_skill_key(node) == skill, "%s belongs to %s" % [node_id, skill])
 		var xp_before = GameManager.skills[skill]["xp"]
-		var every_harvest_paid = true
-		var saw_expected = false
-		for i in range(15):
-			var g = GameManager.resolve_harvest(node, false)
-			if g.is_empty(): every_harvest_paid = false
-			if g.has(drop): saw_expected = true
-		if node.hit_damage > 0.0:
-			check(not node.hit_pool.is_empty(), "%s rolls a hit chance table" % node_id)
+		if GameManager.is_breakable(node):
+			# Byproduct roll per bar (may whiff); the guaranteed primary waits for the break.
+			check(not node.hit_pool.is_empty(), "%s rolls a hit-chance table per bar" % node_id)
+			check(GameManager.resolve_break(node, false).has(drop), "%s breaks for its primary (%s)" % [node_id, drop])
+			for i in range(15):
+				GameManager.resolve_harvest(node, false)  # exercise the hit table + XP
 		else:
+			var every_harvest_paid = true
+			var saw_expected = false
+			for i in range(15):
+				var g = GameManager.resolve_harvest(node, false)
+				if g.is_empty(): every_harvest_paid = false
+				if g.has(drop): saw_expected = true
 			check(every_harvest_paid, "%s pays out on every harvest" % node_id)
-		check(saw_expected, "%s drops %s" % [node_id, drop])
+			check(saw_expected, "%s drops %s" % [node_id, drop])
 		check(InventoryManager.get_item_count(drop) >= 1, "%s banked in inventory" % drop)
 		check(GameManager.skills[skill]["xp"] > xp_before or GameManager.skills[skill]["level"] > 1, "%s grants %s XP" % [node_id, skill])
 
@@ -245,18 +253,19 @@ func _ready() -> void:
 	check(gv.header_title != null and gv.header_title.text.begins_with("Graverobbing"), "page header shows the skill")
 	var fv = main.find_child("ForestView", true, false)
 	check(fv.cards.size() >= 1 and fv.cards[0].bars.size() == 1 and fv.cards[0].bars[0].value == 0.0, "withered trees use a single fill bar")
-	check(fv.cards[0].rare_col.visible and fv.cards[0].divider.visible, "rare column shows for a node with a rare table")
-	# Lumbering keeps the dig-layer meter: 2 sections on Withered Trees
+	check(fv.cards[0].rare_col.visible and fv.cards[0].divider.visible, "break column shows for a breakable tree node")
+	# Lumbering keeps the discrete dig meter (2 sections on Withered Trees), but a
+	# section now falls on BREAK progress — one per completed chop — not within a
+	# single bar sweep. The bottom bar just shows the current chop.
 	check(GameManager.find_node_by_id("withered_trees").dig_sections == 2, "Withered Trees chops in 2 sections")
 	check(fv.cards[0].segments.size() == 2 and fv.cards[0].segment_box.visible, "lumbering card shows a 2-section layer meter")
 	check(fv.cards[0].segment_box is VBoxContainer, "layer meter is vertical")
-	# A full sweep of the bottom bar removes one section (top first).
-	fv.cards[0].update_progress(0.75, 3.0)  # 25% -> bar mid-sweep, no section removed yet
-	check(fv.cards[0].segments[0].modulate.a > 0.5 and fv.cards[0].bars[0].value > 0.0, "bottom bar sweeps within the current section")
-	fv.cards[0].update_progress(1.5, 3.0)   # halfway -> top section gone
-	check(fv.cards[0].segments[0].modulate.a < 0.5 and fv.cards[0].segments[1].modulate.a > 0.5, "a full sweep removes the top section")
-	fv.cards[0].reset_progress()
-	check(fv.cards[0].segments[0].modulate.a > 0.5, "reset restores all sections")
+	fv.cards[0].update_progress(1.5, 3.0)   # mid-bar: the chop bar sweeps, no section removed yet
+	check(fv.cards[0].bars[0].value > 0.0 and fv.cards[0].segments[0].modulate.a > 0.5, "the bar sweeps without dropping a section")
+	fv.cards[0].update_damage(0.5)          # one chop of two -> top section falls
+	check(fv.cards[0].segments[0].modulate.a < 0.5 and fv.cards[0].segments[1].modulate.a > 0.5, "a completed chop removes the top section")
+	fv.cards[0].update_damage(0.0)          # node fell, break progress reset
+	check(fv.cards[0].segments[0].modulate.a > 0.5, "a felled node restores all sections")
 	var qv = main.find_child("QuarryView", true, false)
 	check(qv.cards.size() >= 1 and qv.cards[0].bars[0].value == 0.0, "verdigris seams bar starts empty and fills")
 
@@ -410,9 +419,9 @@ func _ready() -> void:
 	check(not MinionManager.can_unlock_ability("zombie", "carrion_nose"), "prerequisites gate deeper abilities")
 	check(MinionManager.unlock_ability("zombie", "gravekeepers_vigor"), "ability unlocks with a point")
 	check(MinionManager.get_skill_points("zombie") == 0, "unlocking spends the point")
-	check(MinionManager.get_passive_bonus("harvest_xp_pct") == 5.0, "slotted passive counts toward the bonus")
+	check(MinionManager.get_passive_bonus(Ids.EFFECT_HARVEST_XP_PCT) == 5.0, "slotted passive counts toward the bonus")
 	MinionManager.vacate_plot(1)
-	check(MinionManager.get_passive_bonus("harvest_xp_pct") == 0.0, "passives sleep while the minion is idle")
+	check(MinionManager.get_passive_bonus(Ids.EFFECT_HARVEST_XP_PCT) == 0.0, "passives sleep while the minion is idle")
 	MinionManager.assign_to_plot("zombie", 1)
 
 	# --- The Necronomicon ---
@@ -515,7 +524,7 @@ func _ready() -> void:
 	GameManager.skills["graverobbing"] = {"level": 1, "xp": 0.0}
 	cv.fight_state = "idle"
 
-	get_tree().call_group("view_manager", "switch_view", "graveyard")
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)
 	check(not cv.visible, "leaving combat returns to the grounds")
 
 	# Save / load round trip + node resume
@@ -538,6 +547,38 @@ func _ready() -> void:
 	check(MinionManager.plots[1] == "zombie", "plot assignments restored from save")
 	check(MinionManager.necronomicon_unlocked, "necronomicon unlock persists across save/load")
 
+	# --- Save migration (ARC-3): old saves upgrade, they don't wipe ---
+	# _migrate is pure, so exercise its contract directly.
+	var migrated_same = SaveManager._migrate({"version": SaveManager.SAVE_VERSION, "gold": 7}, SaveManager.SAVE_VERSION)
+	check(int(migrated_same.get("gold", -1)) == 7 and int(migrated_same.get("version", -1)) == SaveManager.SAVE_VERSION,
+		"migration is a no-op at the current save version")
+	check(SaveManager._migrate({"version": 1, "gold": 999}, 1).is_empty(),
+		"a pre-reboot v1 save is intentionally unrecoverable (starts fresh)")
+	check(SaveManager._migrate({"version": 0}, 0).is_empty(),
+		"a save version with no migration path starts fresh")
+
+	# A save from a NEWER build must be preserved (backed up), never overwritten.
+	var newer_data = {"version": SaveManager.SAVE_VERSION + 5, "gold": 424242}
+	var newer_file = FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	newer_file.store_string(JSON.stringify(newer_data))
+	newer_file.close()
+	GameManager.gold_coins = 0
+	SaveManager.load_game()
+	check(GameManager.gold_coins == 0, "a newer-version save is not loaded (state left at defaults)")
+	var found_backup := false
+	var udir = DirAccess.open("user://")
+	if udir:
+		udir.list_dir_begin()
+		var bak_name = udir.get_next()
+		while bak_name != "":
+			if bak_name.begins_with("graveyard_shift_save.json.newer.") and bak_name.ends_with(".bak"):
+				found_backup = true
+				DirAccess.remove_absolute("user://" + bak_name)
+			bak_name = udir.get_next()
+		udir.list_dir_end()
+	check(found_backup, "a newer-version save is backed up to a .bak copy, not clobbered")
+	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
+
 	# --- Tutorial: Mortimer walks the three grounds ---
 	# No save existed at boot, so the tutorial should have started on its own.
 	check(TutorialManager.active, "tutorial starts on a fresh run")
@@ -553,12 +594,12 @@ func _ready() -> void:
 		GameManager.resolve_harvest(grave, false)
 	check(TutorialManager.current_step().get("id", "") == "to_forest", "digging enough flesh advances the tutorial")
 	check(TutorialManager._resolve_highlight_target() != null, "sidebar Lumbering button is highlighted")
-	get_tree().call_group("view_manager", "switch_view", "forest")
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_FOREST)
 	check(TutorialManager.current_step().get("id", "") == "chop", "opening Lumbering advances the tutorial")
 	for i in range(TutorialManager.current_step().get("count", 1)):
 		GameManager.resolve_harvest(GameManager.find_node_by_id("withered_trees"), false)
 	check(TutorialManager.current_step().get("id", "") == "to_quarry", "felling trees advances the tutorial")
-	get_tree().call_group("view_manager", "switch_view", "quarry")
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_QUARRY)
 	check(TutorialManager.current_step().get("id", "") == "mine", "opening Spelunking advances the tutorial")
 	for i in range(TutorialManager.current_step().get("count", 1)):
 		GameManager.resolve_harvest(GameManager.find_node_by_id("verdigris_seams"), false)
@@ -570,7 +611,7 @@ func _ready() -> void:
 	check(TutorialManager.current_step().get("id", "") == "open_book", "taking the tome advances to opening it")
 	check(MinionManager.necronomicon_unlocked, "the tome step unlocks the necronomicon")
 	check(TutorialManager._resolve_highlight_target() != null, "the circle is highlighted for the player")
-	TutorialManager.notify_event("book_opened")
+	TutorialManager.notify_event(Ids.EVENT_BOOK_OPENED)
 	# Raise and slot lessons auto-skip: this run already has a raised, slotted zombie
 	check(TutorialManager.current_step().get("id", "") == "growth", "raise and slot lessons skip when already done")
 	TutorialManager._on_continue_pressed()

@@ -1,0 +1,953 @@
+# NecronomiconPanel.gd
+# The dread tome, opened from the circle at the graveyard's heart once
+# MinionManager.necronomicon_unlocked is true. A leather book with two
+# parchment pages, two chapter tabs (MINIONS / ALTAR), and page-turn arrows.
+#
+# MINIONS chapter: spread 0 is the index (The Raised / Unwritten Pages with
+# raise buttons); spreads 1..N are one minion each — identity on the left,
+# the rising-fan sigil skill tree on the right.
+# ALTAR chapter: the Offering Rite — burn materials to feed a minion XP.
+class_name NecronomiconPanel
+extends CanvasLayer
+
+# Parchment palette
+const PAGE_L := Color("#e6d9b8")
+const PAGE_R := Color("#e2d4b0")
+const PAGE_EDGE := Color("#a89162")
+const INK := Color("#2c2015")
+const INK_MID := Color("#4a3c28")
+const INK_FAINT := Color("#8a7550")
+const INK_GHOST := Color("#b3a075")
+const BLOOD := Color("#6d2f28")
+const BLOOD_LIGHT := Color("#e8cfc0")
+const MOSS := Color("#2f5a2a")
+const LEATHER := Color("#241812")
+const LEATHER_EDGE := Color("#3d2b1c")
+const RUNE_FILL := Color("#d5c49b")
+const RUNE_EDGE := Color("#6b5636")
+const GOLD := Color("#c8a24d")
+
+var chapter: String = "minions"   # "minions" | "altar"
+var page: int = 0                 # minions chapter: 0 = index, 1..N = minion
+var minion_ids: Array = []
+var selected_ability: Dictionary = {}   # minion_id -> ability_id
+var altar_target: String = ""
+
+var left_page: PanelContainer
+var right_page: PanelContainer
+var left_arrow: Button
+var right_arrow: Button
+var minions_tab: Button
+var altar_tab: Button
+var dots_label: Label
+
+# Live references the tutorial's highlight can point at (see tutorial_target).
+var raise_buttons: Dictionary = {}   # minion_id -> Button
+var first_offer_button: Button = null
+
+## update_ui fires every game tick; rebuilding the pages destroys whatever
+## control a tooltip is hovering (rune tooltips vanished after a second).
+## Pages only rebuild when this fingerprint of the displayed state changes.
+var _ui_fingerprint: String = ""
+
+func _ready() -> void:
+	layer = 55
+	add_to_group(Ids.Group.UI_UPDATES)
+	add_to_group(Ids.Group.NECRONOMICON)
+	TutorialManager.notify_event("book_opened")
+	minion_ids = MinionManager.sorted_ids()
+	if not MinionManager.roster.is_empty():
+		altar_target = MinionManager.sorted_ids(true)[0]
+	_build_shell()
+	_rebuild()
+
+func update_ui() -> void:
+	var fingerprint = _state_fingerprint()
+	if fingerprint == _ui_fingerprint:
+		return
+	_rebuild()
+
+## Everything the open pages render that can change under them: navigation,
+## roster state, plots, and the inventory counts the index and altar show.
+func _state_fingerprint() -> String:
+	var counts: Array = []
+	for item_id in GameManager.item_db:
+		var held = InventoryManager.get_item_count(item_id)
+		if held > 0:
+			counts.append("%s:%d" % [item_id, held])
+	counts.sort()
+	return "%s|%d|%s|%s|%s|%s|%s" % [chapter, page, altar_target,
+		str(selected_ability), str(MinionManager.roster), str(MinionManager.plots), str(counts)]
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		queue_free()
+
+# --- Shell: dim, leather frame, tabs, pages, arrows, footer ---
+
+func _build_shell() -> void:
+	var root = Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(root)
+
+	var dim = ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.7)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed: queue_free())
+	root.add_child(dim)
+
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+
+	var frame = PanelContainer.new()
+	var fstyle := StyleBoxFlat.new()
+	fstyle.bg_color = LEATHER
+	fstyle.set_border_width_all(2)
+	fstyle.border_color = LEATHER_EDGE
+	fstyle.set_corner_radius_all(12)
+	fstyle.shadow_color = Color(0, 0, 0, 0.55)
+	fstyle.shadow_size = 18
+	fstyle.shadow_offset = Vector2(0, 6)
+	frame.add_theme_stylebox_override("panel", fstyle)
+	center.add_child(frame)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	frame.add_child(margin)
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	margin.add_child(col)
+
+	# Header: chapter tabs + close
+	var header = HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
+	col.add_child(header)
+
+	var title = Label.new()
+	title.text = "NECRONOMICON"
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", Color("#7a5c40"))
+	header.add_child(title)
+
+	var hspacer = Control.new()
+	hspacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(hspacer)
+
+	minions_tab = _make_tab("MINIONS")
+	minions_tab.pressed.connect(func(): _switch_chapter("minions"))
+	header.add_child(minions_tab)
+
+	altar_tab = _make_tab("ALTAR")
+	altar_tab.pressed.connect(func(): _switch_chapter("altar"))
+	header.add_child(altar_tab)
+
+	var close_btn = _make_tab("✕")
+	close_btn.custom_minimum_size = Vector2(34, 26)
+	close_btn.pressed.connect(queue_free)
+	header.add_child(close_btn)
+
+	# Book row: arrow | page | spine | page | arrow
+	var book_row = HBoxContainer.new()
+	book_row.add_theme_constant_override("separation", 8)
+	col.add_child(book_row)
+
+	left_arrow = _make_arrow("‹")
+	left_arrow.pressed.connect(_turn.bind(-1))
+	book_row.add_child(left_arrow)
+
+	left_page = _make_page(PAGE_L)
+	book_row.add_child(left_page)
+
+	var spine = Panel.new()
+	spine.custom_minimum_size = Vector2(3, 0)
+	var sstyle := StyleBoxFlat.new()
+	sstyle.bg_color = PAGE_EDGE
+	spine.add_theme_stylebox_override("panel", sstyle)
+	book_row.add_child(spine)
+
+	right_page = _make_page(PAGE_R)
+	book_row.add_child(right_page)
+
+	right_arrow = _make_arrow("›")
+	right_arrow.pressed.connect(_turn.bind(1))
+	book_row.add_child(right_arrow)
+
+	# Footer: chapter dots
+	dots_label = Label.new()
+	dots_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dots_label.add_theme_font_size_override("font_size", 12)
+	dots_label.add_theme_color_override("font_color", Color("#7a5c40"))
+	col.add_child(dots_label)
+
+func _make_page(bg: Color) -> PanelContainer:
+	var p = PanelContainer.new()
+	p.custom_minimum_size = Vector2(410, 470)
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	p.add_theme_stylebox_override("panel", style)
+	return p
+
+func _make_arrow(glyph: String) -> Button:
+	var b = Button.new()
+	b.text = glyph
+	b.custom_minimum_size = Vector2(30, 60)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", 26)
+	b.flat = true
+	b.add_theme_color_override("font_color", GOLD)
+	b.add_theme_color_override("font_hover_color", Color("#e8c878"))
+	b.add_theme_color_override("font_disabled_color", Color("#4a382a"))
+	return b
+
+func _make_tab(text: String) -> Button:
+	var b = Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 26)
+	b.add_theme_font_size_override("font_size", 11)
+	var active := StyleBoxFlat.new()
+	active.bg_color = BLOOD
+	active.set_corner_radius_all(5)
+	active.content_margin_left = 12
+	active.content_margin_right = 12
+	var idle := StyleBoxFlat.new()
+	idle.bg_color = Color("#4a382a")
+	idle.set_corner_radius_all(5)
+	idle.content_margin_left = 12
+	idle.content_margin_right = 12
+	b.add_theme_stylebox_override("normal", idle)
+	b.add_theme_stylebox_override("hover", active)
+	b.add_theme_stylebox_override("pressed", active)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", Color("#c0ae83"))
+	b.add_theme_color_override("font_hover_color", BLOOD_LIGHT)
+	return b
+
+func _tab_active(b: Button, active: bool) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = BLOOD if active else Color("#4a382a")
+	style.set_corner_radius_all(5)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	b.add_theme_stylebox_override("normal", style)
+	b.add_theme_color_override("font_color", BLOOD_LIGHT if active else Color("#c0ae83"))
+
+# --- Navigation ---
+
+func _switch_chapter(target: String) -> void:
+	chapter = target
+	page = 0
+	_rebuild()
+
+func _turn(dir: int) -> void:
+	if chapter != "minions": return
+	page = clampi(page + dir, 0, minion_ids.size())
+	_rebuild()
+
+## Jump straight to a minion's spread (index rows use this).
+func open_minion(minion_id: String) -> void:
+	var idx = minion_ids.find(minion_id)
+	if idx == -1: return
+	chapter = "minions"
+	page = idx + 1
+	_rebuild()
+
+# --- Rebuild ---
+
+func _rebuild() -> void:
+	_ui_fingerprint = _state_fingerprint()
+	_tab_active(minions_tab, chapter == "minions")
+	_tab_active(altar_tab, chapter == "altar")
+	_clear(left_page)
+	_clear(right_page)
+
+	if chapter == "altar":
+		left_arrow.disabled = true
+		right_arrow.disabled = true
+		dots_label.text = "✦ The Ritual Altar ✦"
+		_build_altar_left(left_page)
+		_build_altar_right(right_page)
+		return
+
+	left_arrow.disabled = page <= 0
+	right_arrow.disabled = page >= minion_ids.size()
+
+	var dots = "● Index" if page == 0 else "○ Index"
+	for i in range(minion_ids.size()):
+		var minion = MinionManager.find_minion_by_id(minion_ids[i])
+		var mark = "●" if page == i + 1 else "○"
+		var label = minion.name if MinionManager.is_raised(minion.id) else "?"
+		dots += "   %s %s" % [mark, label]
+	dots_label.text = dots
+
+	if page == 0:
+		_build_index_left(left_page)
+		_build_index_right(right_page)
+	else:
+		var minion = MinionManager.find_minion_by_id(minion_ids[page - 1])
+		_build_minion_left(left_page, minion)
+		_build_minion_right(right_page, minion)
+
+# --- Spread: index ---
+
+func _build_index_left(into: PanelContainer) -> void:
+	var col = _page_col(into)
+	col.add_child(_heading("THE RAISED"))
+
+	if MinionManager.roster.is_empty():
+		col.add_child(_flavor("No names are written here yet.\nThe rites on the facing page await."))
+		return
+
+	for minion_id in minion_ids:
+		if not MinionManager.is_raised(minion_id): continue
+		var minion = MinionManager.find_minion_by_id(minion_id)
+		var row = Button.new()
+		row.custom_minimum_size = Vector2(0, 34)
+		var style := StyleBoxFlat.new()
+		style.bg_color = RUNE_FILL
+		style.set_border_width_all(1)
+		style.border_color = Color("#b3a075")
+		style.set_corner_radius_all(4)
+		style.content_margin_left = 8
+		style.content_margin_right = 8
+		var hover: StyleBoxFlat = style.duplicate()
+		hover.border_color = RUNE_EDGE
+		hover.bg_color = Color("#dbcda7")
+		row.add_theme_stylebox_override("normal", style)
+		row.add_theme_stylebox_override("hover", hover)
+		row.add_theme_stylebox_override("pressed", style)
+		row.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		row.add_theme_color_override("font_color", INK)
+		row.add_theme_color_override("font_hover_color", INK)
+		row.add_theme_font_size_override("font_size", 13)
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var plot = MinionManager.plot_of(minion_id)
+		var station = ("Plot %d" % (plot + 1)) if plot != -1 else "idle"
+		row.text = "▸ %s   —   Lv %d · %s" % [minion.name, MinionManager.get_level(minion_id), station]
+		row.pressed.connect(open_minion.bind(minion_id))
+		col.add_child(row)
+
+	col.add_child(_flavor("Click a name, or turn the pages, to reach its entry."))
+
+func _build_index_right(into: PanelContainer) -> void:
+	var col = _page_col(into)
+	col.add_child(_heading("UNWRITTEN PAGES"))
+
+	raise_buttons.clear()
+	var any_unraised := false
+	for minion_id in minion_ids:
+		if MinionManager.is_raised(minion_id): continue
+		any_unraised = true
+		var minion = MinionManager.find_minion_by_id(minion_id)
+
+		var entry = PanelContainer.new()
+		var estyle := StyleBoxFlat.new()
+		estyle.bg_color = Color("#dbcda7")
+		estyle.set_border_width_all(1)
+		estyle.border_color = PAGE_EDGE
+		estyle.set_corner_radius_all(4)
+		estyle.content_margin_left = 10
+		estyle.content_margin_right = 10
+		estyle.content_margin_top = 8
+		estyle.content_margin_bottom = 8
+		entry.add_theme_stylebox_override("panel", estyle)
+		col.add_child(entry)
+
+		var evbox = VBoxContainer.new()
+		evbox.add_theme_constant_override("separation", 4)
+		entry.add_child(evbox)
+
+		var top = HBoxContainer.new()
+		evbox.add_child(top)
+		var name_lbl = Label.new()
+		name_lbl.text = minion.name
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_font_size_override("font_size", 14)
+		name_lbl.add_theme_color_override("font_color", INK)
+		top.add_child(name_lbl)
+		var raise_btn = _ink_button("Raise")
+		raise_btn.disabled = not MinionManager.can_afford_raise(minion)
+		raise_btn.pressed.connect(func():
+			MinionManager.raise_minion(minion.id))
+		top.add_child(raise_btn)
+		raise_buttons[minion.id] = raise_btn
+
+		for item_id in minion.raise_cost:
+			var needed: int = minion.raise_cost[item_id]
+			if needed <= 0: continue
+			var item = GameManager.find_item_by_id(item_id)
+			var have = InventoryManager.get_item_count(item_id)
+			var cost_lbl = Label.new()
+			cost_lbl.text = "%s — %d / %d" % [item.name if item else item_id, have, needed]
+			cost_lbl.add_theme_font_size_override("font_size", 11)
+			cost_lbl.add_theme_color_override("font_color", MOSS if have >= needed else BLOOD)
+			evbox.add_child(cost_lbl)
+
+	if not any_unraised:
+		col.add_child(_flavor("Every page in this tome bears a name.\nMore ink will come, in time."))
+
+# --- Spread: one minion ---
+
+func _build_minion_left(into: PanelContainer, minion: Minion) -> void:
+	var col = _page_col(into)
+	var raised = MinionManager.is_raised(minion.id)
+
+	var name_lbl = Label.new()
+	name_lbl.text = minion.name if raised else "An Unwritten Page"
+	name_lbl.add_theme_font_size_override("font_size", 22)
+	name_lbl.add_theme_color_override("font_color", INK)
+	col.add_child(name_lbl)
+
+	col.add_child(_flavor(minion.description))
+
+	var body = HBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	col.add_child(body)
+
+	var well = PanelContainer.new()
+	well.custom_minimum_size = Vector2(72, 72)
+	well.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var wstyle := StyleBoxFlat.new()
+	wstyle.bg_color = RUNE_FILL
+	wstyle.set_border_width_all(1)
+	wstyle.border_color = Color("#b3a075")
+	wstyle.set_corner_radius_all(4)
+	well.add_theme_stylebox_override("panel", wstyle)
+	body.add_child(well)
+	if minion.icon and raised:
+		var pic = TextureRect.new()
+		pic.texture = minion.icon
+		pic.expand_mode = 1
+		pic.stretch_mode = 5
+		well.add_child(pic)
+	else:
+		var initial = Label.new()
+		initial.text = minion.name.left(1) if raised else "?"
+		initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		initial.add_theme_font_size_override("font_size", 34)
+		initial.add_theme_color_override("font_color", RUNE_EDGE)
+		well.add_child(initial)
+
+	var stat_col = VBoxContainer.new()
+	stat_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stat_col.add_theme_constant_override("separation", 4)
+	body.add_child(stat_col)
+
+	if not raised:
+		stat_col.add_child(_ink_line("This creature has not yet been raised.", INK_FAINT, 12))
+		stat_col.add_child(_ink_line("Its rite waits in the index.", INK_FAINT, 12))
+		return
+
+	var state = MinionManager.roster[minion.id]
+	stat_col.add_child(_ink_line("Level %d / %d   ·   HP %d   ·   ATK %.1f" \
+		% [state["level"], MinionManager.MAX_LEVEL, MinionManager.get_hp(minion.id), MinionManager.get_atk(minion.id)], INK_MID, 13))
+
+	var bar = ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 10)
+	bar.show_percentage = false
+	_style_parchment_bar(bar)
+	if state["level"] >= MinionManager.MAX_LEVEL:
+		bar.max_value = 1
+		bar.value = 1
+	else:
+		bar.max_value = MinionManager.get_xp_needed(state["level"])
+		bar.value = state["xp"]
+	stat_col.add_child(bar)
+
+	var xp_text = "Fully grown" if state["level"] >= MinionManager.MAX_LEVEL \
+		else "%.0f / %.0f XP to level %d" % [state["xp"], MinionManager.get_xp_needed(state["level"]), state["level"] + 1]
+	stat_col.add_child(_ink_line(xp_text, INK_FAINT, 11))
+
+	col.add_child(_rule())
+
+	var plot = MinionManager.plot_of(minion.id)
+	var station = ("Plot %d — its inked runes are at work" % (plot + 1)) if plot != -1 else "Idle — click a graveyard plot to station it"
+	col.add_child(_kv_row("Station", station, MOSS if plot != -1 else INK_FAINT))
+	col.add_child(_kv_row("Skill points", "%d unspent" % MinionManager.get_skill_points(minion.id), INK_MID))
+	var owned := 0
+	for a in minion.abilities:
+		if a and MinionManager.has_ability(minion.id, a.id): owned += 1
+	col.add_child(_kv_row("Runes inked", "%d of %d" % [owned, minion.abilities.size()], INK_MID))
+
+func _build_minion_right(into: PanelContainer, minion: Minion) -> void:
+	var col = _page_col(into)
+	var raised = MinionManager.is_raised(minion.id)
+	col.add_child(_heading("RITE OF THE %s — %d POINT%s" \
+		% [minion.name.to_upper(), MinionManager.get_skill_points(minion.id), "" if MinionManager.get_skill_points(minion.id) == 1 else "S"] \
+		if raised else "A SIGIL, FAINT AND WAITING"))
+
+	if not raised:
+		col.add_child(_flavor("The fan of runes will reveal itself\nonce the creature walks."))
+		return
+
+	var tree = SigilTree.new()
+	tree.setup(minion, selected_ability.get(minion.id, ""))
+	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tree.rune_selected.connect(func(ability_id: String):
+		selected_ability[minion.id] = ability_id
+		_rebuild())
+	col.add_child(tree)
+
+	# Caption: the selected rune's story and the unlock button
+	var sel_id: String = selected_ability.get(minion.id, "")
+	var ability = minion.find_ability(sel_id) if sel_id != "" else null
+	if ability == null:
+		col.add_child(_flavor("Touch a rune to read it."))
+		return
+
+	var owned = MinionManager.has_ability(minion.id, ability.id)
+	var cap = VBoxContainer.new()
+	cap.add_theme_constant_override("separation", 3)
+	col.add_child(cap)
+
+	var name_row = HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 8)
+	cap.add_child(name_row)
+	var cap_name = Label.new()
+	cap_name.text = ability.name
+	cap_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cap_name.add_theme_font_size_override("font_size", 14)
+	cap_name.add_theme_color_override("font_color", INK)
+	name_row.add_child(cap_name)
+
+	var status = Label.new()
+	status.add_theme_font_size_override("font_size", 12)
+	if owned:
+		status.text = "inked"
+		status.add_theme_color_override("font_color", MOSS)
+	elif ability.kind == MinionAbility.Kind.ACTIVE:
+		status.text = "%d pts · combat, one day" % ability.cost
+		status.add_theme_color_override("font_color", INK_GHOST)
+	else:
+		status.text = "%d pt%s" % [ability.cost, "" if ability.cost == 1 else "s"]
+		status.add_theme_color_override("font_color", BLOOD)
+	name_row.add_child(status)
+
+	if not owned and MinionManager.can_unlock_ability(minion.id, ability.id):
+		var unlock = _ink_button("Ink the rune")
+		unlock.pressed.connect(func():
+			MinionManager.unlock_ability(minion.id, ability.id))
+		name_row.add_child(unlock)
+
+	cap.add_child(_ink_line(ability.description, INK_FAINT, 11))
+	if not owned and not ability.prerequisites.is_empty():
+		var missing: Array = []
+		for prereq in ability.prerequisites:
+			if not MinionManager.has_ability(minion.id, prereq):
+				var pa = minion.find_ability(prereq)
+				missing.append(pa.name if pa else prereq)
+		if not missing.is_empty():
+			cap.add_child(_ink_line("Requires: %s" % ", ".join(missing), BLOOD, 11))
+
+# --- Spread: the ritual altar ---
+
+func _build_altar_left(into: PanelContainer) -> void:
+	var col = _page_col(into)
+	col.add_child(_heading("THE RITUAL ALTAR"))
+	col.add_child(_flavor("Lay your gatherings upon the stone and speak the words.\nWhat the earth gave, the dead take back — and grow stronger."))
+	col.add_child(_rule())
+	col.add_child(_ink_line("THE OFFERING FEEDS:", INK_FAINT, 10))
+
+	if MinionManager.roster.is_empty():
+		col.add_child(_flavor("No minion stands ready to receive.\nRaise one from the Minions chapter first."))
+		return
+
+	if altar_target == "" or not MinionManager.is_raised(altar_target):
+		altar_target = MinionManager.sorted_ids(true)[0]
+
+	var targets = HBoxContainer.new()
+	targets.add_theme_constant_override("separation", 6)
+	col.add_child(targets)
+	var ids = MinionManager.sorted_ids(true)
+	for minion_id in ids:
+		var minion = MinionManager.find_minion_by_id(minion_id)
+		var b = Button.new()
+		b.text = minion.name
+		b.custom_minimum_size = Vector2(0, 30)
+		b.add_theme_font_size_override("font_size", 12)
+		var chosen = minion_id == altar_target
+		var style := StyleBoxFlat.new()
+		style.bg_color = BLOOD if chosen else Color("#dbcda7")
+		style.set_border_width_all(1)
+		style.border_color = BLOOD if chosen else PAGE_EDGE
+		style.set_corner_radius_all(4)
+		style.content_margin_left = 12
+		style.content_margin_right = 12
+		b.add_theme_stylebox_override("normal", style)
+		b.add_theme_stylebox_override("hover", style)
+		b.add_theme_stylebox_override("pressed", style)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.add_theme_color_override("font_color", BLOOD_LIGHT if chosen else INK_MID)
+		b.add_theme_color_override("font_hover_color", BLOOD_LIGHT if chosen else INK)
+		b.pressed.connect(func():
+			altar_target = minion_id
+			_rebuild())
+		targets.add_child(b)
+
+	var state = MinionManager.roster[altar_target]
+	var target_minion = MinionManager.find_minion_by_id(altar_target)
+	col.add_child(_ink_line("%s — level %d" % [target_minion.name, state["level"]], INK_MID, 13))
+	var bar = ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 10)
+	bar.show_percentage = false
+	_style_parchment_bar(bar)
+	if state["level"] >= MinionManager.MAX_LEVEL:
+		bar.max_value = 1
+		bar.value = 1
+	else:
+		bar.max_value = MinionManager.get_xp_needed(state["level"])
+		bar.value = state["xp"]
+	col.add_child(bar)
+	col.add_child(_ink_line("Each offering yields %.1f XP per gold of its worth." % MinionManager.OFFERING_XP_PER_GOLD, INK_FAINT, 11))
+
+func _build_altar_right(into: PanelContainer) -> void:
+	var col = _page_col(into)
+	col.add_child(_heading("OFFERINGS"))
+	first_offer_button = null
+
+	if MinionManager.roster.is_empty():
+		col.add_child(_flavor("The stone is cold."))
+		return
+
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(scroll)
+
+	var list = VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 5)
+	scroll.add_child(list)
+
+	var any := false
+	var ids = GameManager.item_db.keys()
+	ids.sort()
+	for item_id in ids:
+		var item = GameManager.item_db[item_id]
+		if item is ToolData or not item.is_sellable: continue
+		var held = InventoryManager.get_item_count(item_id)
+		if held <= 0: continue
+		any = true
+
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		list.add_child(row)
+
+		if item.icon:
+			var pic = TextureRect.new()
+			pic.custom_minimum_size = Vector2(20, 20)
+			pic.expand_mode = 1
+			pic.stretch_mode = 5
+			pic.texture = item.icon
+			row.add_child(pic)
+
+		var name_lbl = Label.new()
+		name_lbl.text = "%s ×%d" % [item.name, held]
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_lbl.add_theme_font_size_override("font_size", 12)
+		name_lbl.add_theme_color_override("font_color", INK)
+		name_lbl.tooltip_text = "%.0f XP each" % MinionManager.get_offering_xp(item)
+		row.add_child(name_lbl)
+
+		var xp_lbl = Label.new()
+		xp_lbl.text = "+%.0f ea" % MinionManager.get_offering_xp(item)
+		xp_lbl.add_theme_font_size_override("font_size", 11)
+		xp_lbl.add_theme_color_override("font_color", INK_FAINT)
+		row.add_child(xp_lbl)
+
+		for batch in [1, 10]:
+			if held >= batch:
+				var b = _ink_button(str(batch))
+				b.custom_minimum_size = Vector2(34, 26)
+				b.pressed.connect(_offer.bind(item_id, batch))
+				row.add_child(b)
+				if first_offer_button == null:
+					first_offer_button = b
+		var all_btn = _ink_button("All")
+		all_btn.custom_minimum_size = Vector2(40, 26)
+		all_btn.pressed.connect(_offer.bind(item_id, held))
+		row.add_child(all_btn)
+
+	if not any:
+		col.add_child(_flavor("Your pack holds nothing the altar wants.\nGo dig."))
+
+func _offer(item_id: String, amount: int) -> void:
+	var gained = MinionManager.offer_materials(altar_target, item_id, amount)
+	if gained > 0.0:
+		var minion = MinionManager.find_minion_by_id(altar_target)
+		NotificationManager.show_item("%s devours the offering — +%.0f XP" % [minion.name, gained], 1)
+
+# --- Tutorial hooks ---
+
+## The control Mortimer's highlight should pulse over, by beat name.
+## "raise:<id>": that minion's Raise button (steering to the index first).
+## "altar": the ALTAR tab, or the first offer button once the altar is open.
+func tutorial_target(kind: String) -> Control:
+	if kind.begins_with("raise"):
+		if chapter != "minions" or page != 0:
+			return minions_tab
+		var wanted = kind.substr(6) if kind.begins_with("raise:") else ""
+		var btn = raise_buttons.get(wanted, null)
+		if not is_instance_valid(btn):
+			for minion_id in raise_buttons:
+				if is_instance_valid(raise_buttons[minion_id]):
+					btn = raise_buttons[minion_id]
+					break
+		if is_instance_valid(btn):
+			return btn
+	elif kind == "altar":
+		if chapter != "altar":
+			return altar_tab
+		if is_instance_valid(first_offer_button):
+			return first_offer_button
+	return null
+
+# --- Parchment furniture helpers ---
+
+func _page_col(into: PanelContainer) -> VBoxContainer:
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	into.add_child(col)
+	return col
+
+func _heading(text: String) -> Label:
+	var l = Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 11)
+	l.add_theme_color_override("font_color", BLOOD)
+	return l
+
+func _flavor(text: String) -> Label:
+	var l = Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_color_override("font_color", INK_FAINT)
+	return l
+
+func _ink_line(text: String, color: Color, size: int) -> Label:
+	var l = Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+func _kv_row(key: String, value: String, value_color: Color) -> HBoxContainer:
+	var row = HBoxContainer.new()
+	var k = Label.new()
+	k.text = key
+	k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	k.add_theme_font_size_override("font_size", 12)
+	k.add_theme_color_override("font_color", INK_MID)
+	row.add_child(k)
+	var v = Label.new()
+	v.text = value
+	v.add_theme_font_size_override("font_size", 12)
+	v.add_theme_color_override("font_color", value_color)
+	row.add_child(v)
+	return row
+
+func _rule() -> Panel:
+	var r = Panel.new()
+	r.custom_minimum_size = Vector2(0, 1)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#c9b891")
+	r.add_theme_stylebox_override("panel", style)
+	return r
+
+func _ink_button(text: String) -> Button:
+	var b = Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 28)
+	b.add_theme_font_size_override("font_size", 12)
+	var style := StyleBoxFlat.new()
+	style.bg_color = BLOOD
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	var hover: StyleBoxFlat = style.duplicate()
+	hover.bg_color = Color("#82392f")
+	var disabled: StyleBoxFlat = style.duplicate()
+	disabled.bg_color = Color("#b3a075")
+	b.add_theme_stylebox_override("normal", style)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", style)
+	b.add_theme_stylebox_override("disabled", disabled)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", BLOOD_LIGHT)
+	b.add_theme_color_override("font_hover_color", Color("#f5e4d8"))
+	b.add_theme_color_override("font_disabled_color", Color("#8a7550"))
+	return b
+
+func _style_parchment_bar(bar: ProgressBar) -> void:
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color("#cbb88e")
+	bg.set_corner_radius_all(5)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = BLOOD
+	fill.set_corner_radius_all(5)
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+
+func _clear(container: Node) -> void:
+	for child in container.get_children():
+		container.remove_child(child)
+		child.queue_free()
+
+# =====================================================================
+# The rising fan: root rune at the base, ability runes fanning upward,
+# one arc per tier. Positions come from each ability's `tier` — nothing
+# is hand-placed.
+class SigilTree:
+	extends Control
+
+	signal rune_selected(ability_id: String)
+
+	const ARC_STEP: float = 78.0
+	const RUNE_R: float = 17.0
+	const ROOT_R: float = 20.0
+	const FAN_FROM_DEG: float = 38.0
+	const FAN_TO_DEG: float = 142.0
+
+	var minion: Minion = null
+	var selected_id: String = ""
+	var rune_centers: Dictionary = {}   # ability_id -> Vector2
+
+	func setup(target: Minion, selected: String) -> void:
+		minion = target
+		selected_id = selected
+		custom_minimum_size = Vector2(340, 270)
+		resized.connect(_layout)
+		_layout.call_deferred()
+
+	func _root_pos() -> Vector2:
+		return Vector2(size.x * 0.5, size.y - ROOT_R - 6.0)
+
+	## Computes every rune's center and (re)builds the rune buttons.
+	func _layout() -> void:
+		for child in get_children():
+			remove_child(child)
+			child.queue_free()
+		rune_centers.clear()
+		if minion == null: return
+
+		var tiers: Dictionary = {}
+		for ability in minion.abilities:
+			if ability == null: continue
+			var t = maxi(ability.tier, 1)
+			if not tiers.has(t): tiers[t] = []
+			tiers[t].append(ability)
+
+		var root = _root_pos()
+		for t in tiers:
+			var row: Array = tiers[t]
+			for i in range(row.size()):
+				var ability: MinionAbility = row[i]
+				var span = FAN_TO_DEG - FAN_FROM_DEG
+				var angle = deg_to_rad(FAN_FROM_DEG + span * (i + 1) / (row.size() + 1))
+				var radius = ARC_STEP * t
+				var center = root + Vector2(cos(angle) * radius, -sin(angle) * radius)
+				rune_centers[ability.id] = center
+				add_child(_make_rune(ability, center))
+		queue_redraw()
+
+	func _make_rune(ability: MinionAbility, center: Vector2) -> Button:
+		var b = Button.new()
+		b.custom_minimum_size = Vector2(RUNE_R * 2, RUNE_R * 2)
+		b.position = center - Vector2(RUNE_R, RUNE_R)
+		b.text = ability.name.left(1)
+		b.add_theme_font_size_override("font_size", 13)
+		b.tooltip_text = "%s — %s" % [ability.name, ability.description]
+
+		var owned = MinionManager.has_ability(minion.id, ability.id)
+		var can = MinionManager.can_unlock_ability(minion.id, ability.id)
+		var style := StyleBoxFlat.new()
+		style.set_corner_radius_all(int(RUNE_R))
+		if owned:
+			style.bg_color = Color("#d5c49b")
+			style.border_color = Color("#6b5636")
+			style.set_border_width_all(2)
+			b.add_theme_color_override("font_color", Color("#2c2015"))
+		elif can:
+			style.bg_color = Color("#e8dcc0")
+			style.border_color = Color("#6d2f28")
+			style.set_border_width_all(2)
+			b.add_theme_color_override("font_color", Color("#6d2f28"))
+		else:
+			style.bg_color = Color("#e2d4b0")
+			style.border_color = Color("#a89162")
+			style.set_border_width_all(1)
+			b.add_theme_color_override("font_color", Color("#8a7550"))
+		if ability.id == selected_id:
+			style.border_color = Color("#c8a24d")
+			style.set_border_width_all(3)
+		var hover: StyleBoxFlat = style.duplicate()
+		hover.border_color = Color("#c8a24d")
+		b.add_theme_stylebox_override("normal", style)
+		b.add_theme_stylebox_override("hover", hover)
+		b.add_theme_stylebox_override("pressed", style)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.add_theme_color_override("font_hover_color", Color("#2c2015"))
+		b.pressed.connect(func(): rune_selected.emit(ability.id))
+		return b
+
+	func _draw() -> void:
+		if minion == null: return
+		var root = _root_pos()
+
+		# Faint tier arcs
+		var max_tier := 1
+		for ability in minion.abilities:
+			if ability: max_tier = maxi(max_tier, ability.tier)
+		for t in range(1, max_tier + 1):
+			draw_arc(root, ARC_STEP * t, deg_to_rad(-FAN_TO_DEG), deg_to_rad(-FAN_FROM_DEG),
+				40, Color("#c9b891", 0.7), 1.0, true)
+
+		# Connectors: prereq rune (or the root) -> rune
+		for ability in minion.abilities:
+			if ability == null or not rune_centers.has(ability.id): continue
+			var to: Vector2 = rune_centers[ability.id]
+			var sources: Array = []
+			if ability.prerequisites.is_empty():
+				sources.append(root)
+			else:
+				for prereq in ability.prerequisites:
+					sources.append(rune_centers.get(prereq, root))
+			var owned = MinionManager.has_ability(minion.id, ability.id)
+			var can = MinionManager.can_unlock_ability(minion.id, ability.id)
+			for from in sources:
+				var dir = (to - from).normalized()
+				var a = from + dir * (ROOT_R if from == root else RUNE_R)
+				var b = to - dir * RUNE_R
+				if owned:
+					draw_line(a, b, Color("#6b5636"), 1.6, true)
+				elif can:
+					draw_line(a, b, Color("#6d2f28"), 1.4, true)
+				else:
+					draw_dashed_line(a, b, Color("#a89162"), 1.2, 4.0)
+
+		# The root rune: the minion itself
+		draw_circle(root, ROOT_R, Color("#d5c49b"))
+		draw_arc(root, ROOT_R, 0, TAU, 40, Color("#6b5636"), 2.0, true)
+		var font = get_theme_default_font()
+		var glyph = minion.name.left(1)
+		var gsize = font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, 15)
+		draw_string(font, root + Vector2(-gsize.x * 0.5, gsize.y * 0.32), glyph,
+			HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color("#2c2015"))

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Enemy" format=3]
+
+[ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/verdigris_cyst.tres" id="3_l0"]
+
+[sub_resource type="Resource" id="Loot0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l0")
+weight = 100.0
+min_amount = 1
+max_amount = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "blind_grub"
+name = "Blind Grub"
+glyph = "🐛"
+base_hp = 16
+atk = 2.0
+speed = 0.80
+xp_reward = 9.0
+gold_min = 1
+gold_max = 4
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0")])

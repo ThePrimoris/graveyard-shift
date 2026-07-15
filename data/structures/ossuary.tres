@@ -37,4 +37,6 @@ sort_order = 1
 effect = "inventory_slots"
 effect_unit = " slots"
 effect_label = "storage"
+grid_cell = Vector2i(3, 0)
+footprint = Vector2i(2, 2)
 tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

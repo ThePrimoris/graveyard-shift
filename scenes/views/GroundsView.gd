@@ -1,196 +1,382 @@
 # GroundsView.gd
-# The Grounds overlay: rebuild and upgrade the graveyard's structures, the
-# game's main material sink. Built in code on a CanvasLayer like the Settings
-# and Necronomicon overlays, opened from the "Grounds" nav button.
+# The Grounds overlay — isometric map of the graveyard (M2).
+# Built in code on a CanvasLayer like the Settings / Necronomicon overlays and
+# opened from the "Grounds" nav button (see Control.gd). Structures are placed
+# on the iso plot from their resource data, clicking one selects it (gold
+# footprint highlight), and the docked panel inspects and raises it through
+# GroundsManager. Rich per-tier building art arrives in M3.
 extends CanvasLayer
 
+const GROUNDS_WORLD = preload("res://scripts/ui/GroundsWorld.gd")
+const STRUCTURE_BUILDING = preload("res://scripts/ui/StructureBuilding.gd")
+
+const COL_SCREEN := Color("#0d0a18")
+const COL_PANEL := Color("#14101f")
+const COL_BORDER := Color("#3a2f52")
 const COL_GOLD := Color(0.83, 0.64, 0.27)
 const COL_TEXT_HI := Color(0.91, 0.886, 0.83)
 const COL_TEXT_MID := Color(0.6, 0.565, 0.66)
-const COL_GREEN := Color(0.55, 0.82, 0.5)
+const COL_GREEN := Color(0.48, 0.75, 0.42)
 const COL_RUST := Color(0.76, 0.353, 0.29)
+const COL_VIOLET := Color(0.663, 0.61, 0.867)
 
-## structure_id -> { "tier": Label, "effect": Label, "cost": Label, "button": Button }
-var rows: Dictionary = {}
+const BAR_ITEMS: Array[String] = ["bones", "rotten_logs", "stone_debris"]
+
+var gold_label: Label
+var mat_labels: Dictionary = {}       # item_id -> Label
+
+var structures_node: Node2D
+var buildings: Dictionary = {}         # structure_id -> StructureBuilding
+var selected_id: String = ""
+
+var panel_box: VBoxContainer
+var cost_rows: Array = []              # [{ "id", "need", "label" }]
+var build_button: Button
 
 func _ready() -> void:
 	layer = 58
-	add_to_group("ui_updates")
+	add_to_group(Ids.GROUP_UI_UPDATES)
 	_build_ui()
+	if not GroundsManager.grounds_updated.is_connected(_on_grounds_changed):
+		GroundsManager.grounds_updated.connect(_on_grounds_changed)
+	var ids := GroundsManager.sorted_ids()
+	if not ids.is_empty():
+		_select(ids[0])
+	else:
+		_rebuild_panel()
 	update_ui()
 
 func _build_ui() -> void:
-	var root = Control.new()
+	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(root)
 
-	var dim = ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.65)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(dim)
 
-	var center = CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(center)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(m, 40)
+	root.add_child(margin)
 
-	var panel = PanelContainer.new()
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.078, 0.071, 0.11, 0.98)
-	style.set_corner_radius_all(12)
-	style.border_color = Color(0.83, 0.64, 0.27, 0.55)
-	style.set_border_width_all(1)
-	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 14
-	style.shadow_offset = Vector2(0, 4)
-	panel.add_theme_stylebox_override("panel", style)
-	center.add_child(panel)
+	var screen := PanelContainer.new()
+	screen.add_theme_stylebox_override("panel", _panel_style(COL_SCREEN, 16))
+	margin.add_child(screen)
 
-	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_bottom", 22)
-	panel.add_child(margin)
+	var pad := MarginContainer.new()
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 14)
+	screen.add_child(pad)
 
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	vbox.custom_minimum_size = Vector2(680, 0)
-	margin.add_child(vbox)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	pad.add_child(col)
 
-	var title = Label.new()
-	title.text = "THE GROUNDS"
-	title.add_theme_font_size_override("font_size", 26)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
+	# --- HUD: title + resource bar ---
+	var hud := HBoxContainer.new()
+	hud.add_theme_constant_override("separation", 10)
+	col.add_child(hud)
 
-	var subtitle = Label.new()
-	subtitle.text = "Rebuild what the earth has taken. Every structure is a standing boon."
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_color_override("font_color", COL_TEXT_MID)
-	subtitle.add_theme_font_size_override("font_size", 13)
-	vbox.add_child(subtitle)
+	var title := Label.new()
+	title.text = "The Grounds"
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", COL_TEXT_HI)
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hud.add_child(title)
 
-	vbox.add_child(HSeparator.new())
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hud.add_child(spacer)
 
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 6)
+	hud.add_child(bar)
+	_build_bar(bar)
+
+	# --- Body: iso world + inspect panel ---
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(body)
+
+	var svc := SubViewportContainer.new()
+	svc.stretch = true
+	svc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	svc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	svc.custom_minimum_size = Vector2(0, 360)
+	body.add_child(svc)
+
+	var sv := SubViewport.new()
+	sv.transparent_bg = true
+	sv.physics_object_picking = true
+	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	svc.add_child(sv)
+
+	var world = GROUNDS_WORLD.new()
+	sv.add_child(world)
+
+	structures_node = Node2D.new()
+	structures_node.y_sort_enabled = true
+	world.add_child(structures_node)
+	_create_structures()
+
+	var cam := Camera2D.new()
+	cam.position = IsoUtil.plot_center()
+	cam.zoom = Vector2(1.15, 1.15)
+	world.add_child(cam)
+	cam.make_current()
+
+	body.add_child(_build_inspect_panel())
+
+	# --- Close ---
+	var close := Button.new()
+	close.text = "Close"
+	close.custom_minimum_size = Vector2(150, 34)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	close.pressed.connect(queue_free)
+	col.add_child(close)
+
+func _create_structures() -> void:
 	for structure_id in GroundsManager.sorted_ids():
-		vbox.add_child(_build_row(structure_id))
+		var s = GroundsManager.find_structure(structure_id)
+		if s == null:
+			continue
+		var b = STRUCTURE_BUILDING.new()
+		structures_node.add_child(b)
+		b.setup(s)
+		b.selected.connect(_on_structure_selected)
+		buildings[structure_id] = b
 
-	vbox.add_child(HSeparator.new())
+func _on_structure_selected(structure_id: String) -> void:
+	_select(structure_id)
 
-	var close_btn = Button.new()
-	close_btn.text = "Close"
-	close_btn.custom_minimum_size = Vector2(160, 36)
-	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close_btn.pressed.connect(queue_free)
-	vbox.add_child(close_btn)
+func _select(structure_id: String) -> void:
+	selected_id = structure_id
+	for k in buildings:
+		buildings[k].set_selected(k == structure_id)
+	_rebuild_panel()
 
-func _build_row(structure_id: String) -> Control:
-	var s: Structure = GroundsManager.find_structure(structure_id)
+# --- Inspect / build panel ---
 
-	var card = PanelContainer.new()
-	var cstyle := StyleBoxFlat.new()
-	cstyle.bg_color = Color(0.055, 0.05, 0.082)
-	cstyle.set_corner_radius_all(8)
-	cstyle.set_border_width_all(1)
-	cstyle.border_color = Color(0.83, 0.64, 0.27, 0.25)
-	cstyle.content_margin_left = 14
-	cstyle.content_margin_right = 14
-	cstyle.content_margin_top = 10
-	cstyle.content_margin_bottom = 10
-	card.add_theme_stylebox_override("panel", cstyle)
+func _build_inspect_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(268, 0)
+	panel.add_theme_stylebox_override("panel", _panel_style(COL_PANEL, 12))
 
-	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	card.add_child(row)
+	var pm := MarginContainer.new()
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pm.add_theme_constant_override(m, 14)
+	panel.add_child(pm)
 
-	var info = VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_theme_constant_override("separation", 3)
-	row.add_child(info)
+	panel_box = VBoxContainer.new()
+	panel_box.add_theme_constant_override("separation", 6)
+	pm.add_child(panel_box)
+	return panel
 
-	var head = HBoxContainer.new()
-	head.add_theme_constant_override("separation", 10)
-	info.add_child(head)
+func _rebuild_panel() -> void:
+	cost_rows.clear()
+	build_button = null
+	for c in panel_box.get_children():
+		c.queue_free()
 
-	var name_lbl = Label.new()
-	name_lbl.text = s.name
-	name_lbl.add_theme_font_size_override("font_size", 18)
-	name_lbl.add_theme_color_override("font_color", COL_TEXT_HI)
-	head.add_child(name_lbl)
+	if selected_id == "" or not GroundsManager.structure_db.has(selected_id):
+		panel_box.add_child(_muted("Select a structure to inspect and raise it."))
+		return
 
-	var tier_lbl = Label.new()
-	tier_lbl.add_theme_font_size_override("font_size", 13)
-	tier_lbl.add_theme_color_override("font_color", COL_GOLD)
-	tier_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(tier_lbl)
+	var s: Structure = GroundsManager.find_structure(selected_id)
+	var tier := GroundsManager.get_level(selected_id)
 
-	var desc = Label.new()
-	desc.text = s.description
-	desc.add_theme_font_size_override("font_size", 12)
-	desc.add_theme_color_override("font_color", COL_TEXT_MID)
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(430, 0)
-	info.add_child(desc)
+	panel_box.add_child(_heading(s.name))
+	panel_box.add_child(_label_chip(s.effect_label))
+	panel_box.add_child(_muted(s.description))
 
-	var effect_lbl = Label.new()
-	effect_lbl.add_theme_font_size_override("font_size", 13)
-	effect_lbl.add_theme_color_override("font_color", COL_GREEN)
-	info.add_child(effect_lbl)
+	var tier_lbl := Label.new()
+	tier_lbl.text = "Tier %d / %d" % [tier, s.max_level()]
+	tier_lbl.add_theme_font_size_override("font_size", 12)
+	tier_lbl.add_theme_color_override("font_color", COL_TEXT_MID)
+	panel_box.add_child(tier_lbl)
+	panel_box.add_child(_pip_row(tier, s.max_level()))
 
-	var cost_lbl = Label.new()
-	cost_lbl.add_theme_font_size_override("font_size", 12)
-	cost_lbl.add_theme_color_override("font_color", COL_TEXT_MID)
-	cost_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	cost_lbl.custom_minimum_size = Vector2(430, 0)
-	info.add_child(cost_lbl)
+	var current := GroundsManager.get_structure_value(selected_id)
+	var next_tier := GroundsManager.next_tier(selected_id)
+	var effect := Label.new()
+	effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	effect.add_theme_font_size_override("font_size", 13)
+	effect.add_theme_color_override("font_color", COL_GREEN)
+	if next_tier == null:
+		effect.text = "%s — fully raised" % _fmt_value(s, current)
+	else:
+		effect.text = "%s  →  %s" % [_fmt_value(s, current), _fmt_value(s, current + next_tier.magnitude)]
+	panel_box.add_child(effect)
 
-	var build_btn = Button.new()
-	build_btn.custom_minimum_size = Vector2(180, 46)
-	build_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	build_btn.pressed.connect(_on_build_pressed.bind(structure_id))
-	row.add_child(build_btn)
+	if next_tier == null:
+		build_button = _make_build_button("Complete")
+		build_button.disabled = true
+		panel_box.add_child(build_button)
+		return
 
-	rows[structure_id] = {"tier": tier_lbl, "effect": effect_lbl, "cost": cost_lbl, "button": build_btn}
-	return card
+	var rule := HSeparator.new()
+	panel_box.add_child(rule)
+	for item_id in next_tier.cost:
+		panel_box.add_child(_cost_row(item_id, next_tier.cost[item_id]))
 
-func _on_build_pressed(structure_id: String) -> void:
-	GroundsManager.build(structure_id)
-	update_ui()
+	build_button = _make_build_button("Raise to tier %d" % (tier + 1))
+	build_button.pressed.connect(_on_build_pressed)
+	panel_box.add_child(build_button)
+	_refresh_costs()
 
-func _describe_cost(cost: Dictionary) -> String:
-	var parts: Array[String] = []
-	for item_id in cost:
-		var item = GameManager.find_item_by_id(item_id)
-		var display = item.name if item else item_id.capitalize()
-		var have = InventoryManager.get_item_count(item_id)
-		parts.append("%d %s (have %d)" % [cost[item_id], display, have])
-	return ", ".join(parts)
+func _cost_row(item_id: String, need: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	var item = GameManager.find_item_by_id(item_id)
+	var name_lbl := Label.new()
+	name_lbl.text = "%d %s" % [need, item.name if item else item_id.capitalize()]
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.add_theme_color_override("font_color", COL_TEXT_MID)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	row.add_child(name_lbl)
+
+	var have_lbl := Label.new()
+	have_lbl.add_theme_font_size_override("font_size", 12)
+	row.add_child(have_lbl)
+
+	cost_rows.append({"id": item_id, "need": need, "label": have_lbl})
+	return row
+
+func _refresh_costs() -> void:
+	for r in cost_rows:
+		var have := InventoryManager.get_item_count(r["id"])
+		var ok: bool = have >= r["need"]
+		r["label"].text = "have %d %s" % [have, "✓" if ok else "✗"]
+		r["label"].add_theme_color_override("font_color", COL_GREEN if ok else COL_RUST)
+	if build_button and selected_id != "":
+		build_button.disabled = not GroundsManager.can_afford(selected_id)
+
+func _on_build_pressed() -> void:
+	GroundsManager.build(selected_id)
+
+func _on_grounds_changed() -> void:
+	_rebuild_panel()
+
+# --- small builders ---
+
+func _make_build_button(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 42)
+	return b
+
+func _heading(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_color_override("font_color", COL_TEXT_HI)
+	return l
+
+func _muted(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_color_override("font_color", COL_TEXT_MID)
+	return l
+
+func _label_chip(text: String) -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#241d33")
+	style.set_corner_radius_all(8)
+	style.border_color = COL_BORDER
+	style.set_border_width_all(1)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	chip.add_theme_stylebox_override("panel", style)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 11)
+	l.add_theme_color_override("font_color", COL_VIOLET)
+	chip.add_child(l)
+	return chip
+
+func _pip_row(tier: int, maxlvl: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	for i in range(maxlvl):
+		var pip := Panel.new()
+		pip.custom_minimum_size = Vector2(11, 11)
+		var style := StyleBoxFlat.new()
+		style.bg_color = COL_GOLD if i < tier else Color("#2f2745")
+		style.set_corner_radius_all(6)
+		pip.add_theme_stylebox_override("panel", style)
+		row.add_child(pip)
+	return row
 
 func _fmt_value(s: Structure, value: float) -> String:
 	if s.effect_unit == "%":
 		return "+%d%%" % int(round(value))
 	return "%d%s" % [int(round(value)), s.effect_unit]
 
+# --- Resource bar ---
+
+func _build_bar(bar: HBoxContainer) -> void:
+	gold_label = _add_chip(bar, null, COL_GOLD)
+	for item_id in BAR_ITEMS:
+		var item = GameManager.find_item_by_id(item_id)
+		mat_labels[item_id] = _add_chip(bar, item.icon if item else null, COL_TEXT_HI)
+
+func _add_chip(bar: HBoxContainer, icon: Texture2D, color: Color) -> Label:
+	var chip := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#171226")
+	style.set_corner_radius_all(20)
+	style.border_color = Color("#2f2745")
+	style.set_border_width_all(1)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	chip.add_theme_stylebox_override("panel", style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	chip.add_child(row)
+
+	if icon:
+		var pic := TextureRect.new()
+		pic.texture = icon
+		pic.custom_minimum_size = Vector2(18, 18)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(pic)
+
+	var lbl := Label.new()
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_color_override("font_color", color)
+	row.add_child(lbl)
+
+	bar.add_child(chip)
+	return lbl
+
+func _panel_style(bg: Color, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.set_corner_radius_all(radius)
+	style.border_color = COL_BORDER
+	style.set_border_width_all(1)
+	return style
+
 func update_ui() -> void:
-	for structure_id in rows:
-		var s: Structure = GroundsManager.find_structure(structure_id)
-		var r = rows[structure_id]
-		var lvl = GroundsManager.get_level(structure_id)
-		var current = GroundsManager.get_structure_value(structure_id)
-
-		r["tier"].text = "Tier %d / %d" % [lvl, s.max_level()]
-
-		var tier = GroundsManager.next_tier(structure_id)
-		if tier == null:
-			r["effect"].text = "%s %s — fully raised." % [_fmt_value(s, current), s.effect_label]
-			r["cost"].text = ""
-			r["button"].text = "COMPLETE"
-			r["button"].disabled = true
-		else:
-			var after = current + tier.magnitude
-			r["effect"].text = "%s  →  %s  %s" % [_fmt_value(s, current), _fmt_value(s, after), s.effect_label]
-			r["cost"].text = "Cost: %s" % _describe_cost(tier.cost)
-			r["button"].text = "Build Tier %d" % (lvl + 1)
-			r["button"].disabled = not GroundsManager.can_afford(structure_id)
+	if gold_label:
+		gold_label.text = "Gold: %d" % GameManager.gold_coins
+	for item_id in mat_labels:
+		mat_labels[item_id].text = str(InventoryManager.get_item_count(item_id))
+	_refresh_costs()

@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="Enemy" format=3]
+
+[ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Resource" path="res://data/items/materials/heartwood_core.tres" id="3_l0"]
+[ext_resource type="Resource" path="res://data/items/materials/raven_quill.tres" id="3_l1"]
+
+[sub_resource type="Resource" id="Loot0"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l0")
+weight = 60.0
+min_amount = 1
+max_amount = 2
+
+[sub_resource type="Resource" id="Loot1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l1")
+weight = 40.0
+min_amount = 3
+max_amount = 6
+
+[resource]
+script = ExtResource("1_enemy")
+id = "hangmans_oak"
+name = "The Hangman's Oak"
+glyph = "†"
+description = "A gallows-tree that fed on the hanged for centuries. Its boughs still reach."
+base_hp = 1200
+atk = 22.0
+speed = 0.6
+is_boss = true
+telegraph_name = "Strangling Boughs"
+enrage_per_segment = 0.2
+xp_reward = 620.0
+gold_min = 200
+gold_max = 360
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1")])

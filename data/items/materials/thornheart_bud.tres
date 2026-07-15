@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/thornheart_bud.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "thornheart_bud"
+name = "Thornheart Bud"
+description = "A briar bud that beats like a tiny heart. Reserved for crafts yet to wake."
+icon = ExtResource("2_icon")
+sell_value = 26
+rarity = 2

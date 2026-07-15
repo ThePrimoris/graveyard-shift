@@ -5,11 +5,12 @@
 [ext_resource type="Resource" path="res://data/nodes/trees/sable_stand.tres" id="3_n1"]
 [ext_resource type="Resource" path="res://data/nodes/trees/nightshade_tangle.tres" id="3_n2"]
 [ext_resource type="Resource" path="res://data/nodes/trees/raven_roost.tres" id="3_n3"]
+[ext_resource type="Resource" path="res://data/nodes/trees/hangmans_oak.tres" id="3_n4"]
 
 [resource]
 script = ExtResource("1_zone")
 id = "tangled_ridge"
 name = "Tangled Ridge"
-description = "The high ridge, roots knotted with nightshade and older poisons."
+description = "The high ridge, roots knotted with nightshade and older poisons — and at its crown, a gallows-tree that remembers every hanging."
 required_level = 55
-nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3")])
+nodes = Array[ExtResource("2_hnode")]([ExtResource("3_n1"), ExtResource("3_n2"), ExtResource("3_n3"), ExtResource("3_n4")])

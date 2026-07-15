@@ -2,17 +2,17 @@
 
 [ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
-[ext_resource type="Resource" path="res://data/items/materials/granite_cobble.tres" id="i0"]
-[ext_resource type="Resource" path="res://data/items/materials/beryl_cluster.tres" id="i1"]
+[ext_resource type="Resource" path="res://data/items/materials/granite_cobble.tres" id="it0"]
+[ext_resource type="Resource" path="res://data/items/materials/beryl_cluster.tres" id="it1"]
 
 [sub_resource type="Resource" id="hit0"]
 script = ExtResource("2_loot")
-item = ExtResource("i0")
+item = ExtResource("it0")
 weight = 20.0
 
-[sub_resource type="Resource" id="break0"]
+[sub_resource type="Resource" id="break1"]
 script = ExtResource("2_loot")
-item = ExtResource("i1")
+item = ExtResource("it1")
 weight = 100.0
 
 [resource]
@@ -27,5 +27,7 @@ base_duration = 3.5
 base_xp = 9
 hit_damage = 0.1
 affix = "sonic_resonance"
+common_pool = Array[ExtResource("2_loot")]([])
+rare_pool = Array[ExtResource("2_loot")]([])
 hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0")])
-break_pool = Array[ExtResource("2_loot")]([SubResource("break0")])
+break_pool = Array[ExtResource("2_loot")]([SubResource("break1")])

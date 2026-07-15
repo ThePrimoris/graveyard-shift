@@ -1133,6 +1133,48 @@ ITEMS = {
     "nincompoops_tome": ("book", (92, 62, 78), (214, 204, 176)),
     "rotten_logs": ("log_rotten", (110, 96, 66), None),
     "stone_debris": ("rubble", (150, 146, 138), None),
+    # lumbering — woods
+    "brittle_branches": ("branch", (150, 132, 96), None),
+    "blackthorn_timber": ("log_thorned", (72, 60, 56), (40, 32, 34)),
+    "ash_burl": ("log_pale", (176, 166, 144), None),
+    "angel_oak": ("log_blessed", (198, 178, 122), (150, 120, 70)),
+    "sable_walnut_heartwood": ("log_dark", (78, 54, 42), None),
+    # lumbering — herbal
+    "pale_lichen": ("lichen", (156, 172, 146), None),
+    "velvet_moss": ("moss", (68, 112, 66), None),
+    "poison_thorns": ("thorns", (96, 116, 80), (60, 40, 60)),
+    "nightshade_vine": ("vine", (108, 86, 138), (60, 40, 80)),
+    "briar_blossom": ("flower", (188, 96, 158), (150, 60, 120)),
+    "amber_droplet": ("amber", (206, 142, 52), None),
+    "silken_husk": ("husk", (206, 200, 182), None),
+    "petrified_acorn": ("acorn", (150, 132, 104), (110, 92, 70)),
+    "raven_quill": ("feather", (66, 60, 82), (30, 28, 40)),
+    # spelunking — stone / ore / gem
+    "slate_slab": ("slab", (92, 100, 112), None),
+    "granite_cobble": ("rock_speckled", (146, 140, 132), None),
+    "basalt_debris": ("rock_columns", (72, 70, 78), None),
+    "peridotite_chunk": ("rock_crystals", (112, 132, 92), (90, 150, 90)),
+    "sphalerite_nugget": ("ore_sphalerite", (154, 124, 92), (200, 180, 120)),
+    "pyrite_dust": ("dust_sparkle", (186, 164, 92), (230, 210, 120)),
+    "nickel_granule": ("ore_nickel", (172, 176, 182), None),
+    "tungsten_lump": ("ore_tungsten", (118, 120, 132), None),
+    "cobalt_powder": ("powder_vial", (66, 96, 186), None),
+    "malachite_flake": ("flakes", (42, 146, 104), (30, 110, 80)),
+    "quartz_geode": ("geode", (200, 190, 214), (150, 140, 180)),
+    "beryl_cluster": ("cluster", (122, 204, 184), (80, 170, 150)),
+    "obsidian_shard": ("shard", (44, 40, 54), (90, 70, 120)),
+    "imperial_jade_knot": ("jade_torus", (62, 172, 124), (40, 130, 90)),
+    # dungeon / prestige drops (new)
+    "heartwood_core": ("core_shards", (108, 158, 82), (70, 120, 50)),
+    "bloodsap_resin": ("gel", (156, 52, 50), None),
+    "thornheart_bud": ("beads", (150, 54, 74), (100, 30, 50)),
+    "pale_silkgland": ("gland", (212, 206, 190), None),
+    "dryads_heartstone": ("idol", (146, 138, 126), (110, 100, 90)),
+    "verdigris_cyst": ("bile", (92, 152, 116), None),
+    "cinder_slag": ("ember_core", (182, 84, 42), (230, 140, 60)),
+    "resonant_geode": ("void_prism", (150, 172, 192), (110, 140, 170)),
+    "living_jade_core": ("golem_heart", (52, 180, 116), (30, 140, 90)),
+    "obsidian_wyrm_scale": ("wing", (58, 50, 80), (120, 90, 150)),
     # tools
     "rusty_shovel": ("shovel", (150, 96, 62), (110, 82, 58)),
     "rusty_hatchet": ("hatchet", (150, 96, 62), (110, 82, 58)),
@@ -1162,6 +1204,13 @@ UI = {
     "mortimer": ("ghost", (206, 210, 218), None),
 }
 
+MINIONS = {
+    "zombie": ("zombie_head", (120, 150, 96), (80, 110, 60)),
+    "skeleton": ("skeleton_body", (222, 216, 198), (150, 140, 120)),
+    "ghoul": ("ghoul", (150, 156, 120), (100, 110, 80)),
+    "undead_hound": ("hound", (128, 116, 104), (80, 70, 62)),
+}
+
 def render(table, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     for key, (shape, main, accent) in table.items():
@@ -1179,6 +1228,7 @@ def main():
     render(ITEMS, "icons/items")
     render(SKILLS, "icons/skills")
     render(UI, "icons/ui")
+    render(MINIONS, "icons/minions")
 
 
 if __name__ == "__main__":

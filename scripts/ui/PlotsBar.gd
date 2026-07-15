@@ -15,7 +15,7 @@ var open_book: Node = null
 @onready var circle_button: Button = %CircleButton
 
 func _ready() -> void:
-	add_to_group("ui_updates")
+	add_to_group(Ids.GROUP_UI_UPDATES)
 
 	for i in range(1, 5):
 		var btn: Button = get_node("%%PlotButton%d" % i)

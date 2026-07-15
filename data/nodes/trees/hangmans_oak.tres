@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HarvestNode" format=3]
+
+[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+
+[resource]
+script = ExtResource("1_node")
+id = "hangmans_oak"
+name = "The Hangman's Oak"
+description = "The ridge's oldest tree, black with old rope and older grudges. You raised your hatchet to it — and it turned to look at you."
+required_skill = 1
+required_level = 58
+required_tool_type = 1
+base_duration = 3.0
+base_xp = 0.0
+is_boss = true
+encounter_id = "hangmans_oak"

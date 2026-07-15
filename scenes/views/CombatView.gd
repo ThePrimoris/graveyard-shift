@@ -9,7 +9,8 @@
 # act the moment their hidden gauges fill.
 #
 # Commands: Attack (ATK ± 15%), Guard (halve damage until their next
-# turn), inked active runes (heavy strike, once per fight each), Flee.
+# turn), inked active runes (each once per fight — a heavy blow, a cleave
+# across all foes, a sundering strike, or an off-balancing pounce), Flee.
 # Bosses telegraph their all-party slam one turn ahead and enrage as
 # health quarters break. Victory pays each foe's gold, loot roll, and
 # minion XP to the survivors.
@@ -51,17 +52,40 @@ const BEAT_SECONDS := 0.75         ## Pause after every action: the scene
 								   ## holds on the log line, input is dead,
 								   ## and spam clicks fall on deaf ears
 const DMG_VARIANCE := 0.15         ## Attacks roll ATK ± this fraction
-const ACTIVE_RUNE_MULT := 1.6      ## Active runes hit this much harder
 const GUARD_REDUCTION := 0.5       ## Guarding halves incoming damage
 const BOSS_SLAM_MULT := 0.75       ## The telegraphed slam's per-target ATK share
 const BOSS_SLAM_CHANCE := 0.3      ## Odds the boss telegraphs a slam next
 
+# --- Active runes (DEP-1) --------------------------------------------
+# Each inked active resolves differently instead of every rune being the same
+# heavier attack. The ATK multiplier is the headline number; secondary effects
+# (sunder, gauge drain) are the tactical hook. Tunable here; _active_defs maps
+# each Ids.ACTIVE_* id to its resolution.
+const ACTIVE_HEAVY_MULT := 2.2       ## Lurch: one crushing single-target blow
+const ACTIVE_CLEAVE_MULT := 1.0      ## Rattling Volley: this ATK share to EVERY foe
+const ACTIVE_SUNDER_MULT := 1.4      ## Rending Claws: the hit that opens the wound
+const ACTIVE_POUNCE_MULT := 1.7      ## Savage Pounce: a hit that also unbalances
+const SUNDER_BONUS := 0.5            ## Sundered foes take this much extra damage...
+const SUNDER_TURNS := 2              ## ...for this many of their own turns
+const POUNCE_CHARGE_DRAIN := 1.0     ## Pounce drains this much of the foe's gauge
+const CRIT_MULT := 1.5               ## A landed crit (minion_crit_pct) hits this hard
+
+## Ids.ACTIVE_* -> { "kind": String, "mult": float }. A var (not const) so the
+## Ids.* keys resolve at runtime; see Ids.gd on why we avoid const cross-refs.
+var _active_defs := {
+	Ids.ACTIVE_LURCH: {"kind": "heavy", "mult": ACTIVE_HEAVY_MULT},
+	Ids.ACTIVE_RATTLING_VOLLEY: {"kind": "cleave", "mult": ACTIVE_CLEAVE_MULT},
+	Ids.ACTIVE_RENDING_CLAWS: {"kind": "sunder", "mult": ACTIVE_SUNDER_MULT},
+	Ids.ACTIVE_SAVAGE_POUNCE: {"kind": "pounce", "mult": ACTIVE_POUNCE_MULT},
+}
+
 ## A foe: { "name", "glyph", "hp", "max_hp", "atk", "speed", "charge",
-##   "rage", "is_boss", "slam_name", "telegraph", "segments_broken",
+##   "rage", "is_boss", "slam_name", "telegraph", "segments_broken", "sunder",
 ##   "xp", "gold_min", "gold_max", "loot_pool" }
 var enemies: Array = []
 var is_boss_fight: bool = false
-## A warband member: { "minion_id", "hp", "max_hp", "charge", "speed", "guarding" }
+## A warband member: { "minion_id", "hp", "max_hp", "charge", "speed", "guarding",
+##   "revived" (Revive rune spent?), "revived_now" (transient log flag) }
 var party: Array = []
 ## minion_id -> Array of active ability ids already spent this fight.
 var used_actives: Dictionary = {}
@@ -91,9 +115,15 @@ var enemy_charge_fills: Array = []
 var _last_promoted: int = -1
 
 func _ready() -> void:
-	add_to_group("combat_views")
+	add_to_group(Ids.GROUP_COMBAT_VIEWS)
 	_apply_ambience()
 	_build_shell()
+	# Debug-only: catch an inked active whose effect id has no combat handler
+	# (e.g. a new minion rune added to a .tres but not wired up here).
+	if OS.is_debug_build():
+		for eff in Ids.ACTIVE_ALL:
+			if not _active_defs.has(eff):
+				push_warning("[CombatView] no active-rune handler for effect '%s'" % eff)
 
 ## Same page-tint treatment as the harvest views, in battle-dark violet.
 func _apply_ambience() -> void:
@@ -167,25 +197,43 @@ func _roll_damage(base: float, mult: float = 1.0) -> int:
 
 # --- Warband actions ---
 
-func _execute_attack(member_idx: int, enemy_idx: int, mult: float, label: String) -> void:
-	if fight_state != "active" or action_beat > 0.0: return
-	if member_idx < 0 or member_idx >= party.size(): return
-	if enemy_idx < 0 or enemy_idx >= enemies.size(): return
+## Deals one hit's damage to a foe: rolls ATK×mult, adds the Sunder penalty if
+## the foe is sundered, applies it, and checks the boss enrage. Returns the
+## damage dealt. Does NOT end the attacker's turn — a cleave calls it once per
+## foe, then ends the turn a single time via _end_member_turn.
+func _strike_foe(member_idx: int, foe: Dictionary, mult: float) -> int:
 	var member = party[member_idx]
-	var foe = enemies[enemy_idx]
-	if member["hp"] <= 0 or foe["hp"] <= 0: return
-
-	var minion = MinionManager.find_minion_by_id(member["minion_id"])
-	var dmg = _roll_damage(MinionManager.get_atk(minion.id), mult)
+	var minion_id: String = member["minion_id"]
+	var atk = MinionManager.get_atk(minion_id)
+	# Frenzy (Ghoul): attack grows with each foe this minion has killed this fight.
+	var frenzy = MinionManager.get_minion_effect(minion_id, Ids.MINION_FRENZY_PCT)
+	if frenzy > 0.0:
+		atk *= 1.0 + int(member.get("frenzy_stacks", 0)) * frenzy / 100.0
+	var dmg = _roll_damage(atk, mult)
+	# Crit (Skeleton): a precise strike lands for CRIT_MULT.
+	var crit = MinionManager.get_minion_effect(minion_id, Ids.MINION_CRIT_PCT)
+	if crit > 0.0 and randf() * 100.0 < crit:
+		dmg = maxi(dmg + 1, int(round(dmg * CRIT_MULT)))
+	if int(foe.get("sunder", 0)) > 0:
+		dmg = maxi(1, int(round(dmg * (1.0 + SUNDER_BONUS))))
 	foe["hp"] = maxi(foe["hp"] - dmg, 0)
-
-	var verb = label if label != "" else "strikes"
-	if foe["hp"] <= 0:
-		_log("%s %s %s for %d — it falls!" % [minion.name, verb, foe["name"], dmg])
-	else:
-		_log("%s %s %s for %d." % [minion.name, verb, foe["name"], dmg])
-
+	# Lifesteal (Ghoul): heal the attacker for a share of the damage dealt.
+	var ls = MinionManager.get_minion_effect(minion_id, Ids.MINION_LIFESTEAL_PCT)
+	if ls > 0.0 and member["hp"] > 0:
+		member["hp"] = mini(int(member["max_hp"]), member["hp"] + int(ceil(dmg * ls / 100.0)))
+	# Frenzy: a kill stokes it for the rest of the fight.
+	if foe["hp"] <= 0 and frenzy > 0.0:
+		member["frenzy_stacks"] = int(member.get("frenzy_stacks", 0)) + 1
 	_check_boss_enrage(foe)
+	AudioManager.play_sfx(Ids.SFX_COMBAT_HIT)
+	return dmg
+
+## Ends the acting member's turn: spends its gauge, drops its guard, and either
+## wins the fight or opens the post-action beat. Every warband action funnels
+## through here so the bookkeeping stays in one place.
+func _end_member_turn(member_idx: int) -> void:
+	var member = party[member_idx]
+	_apply_regen(member)
 	member["charge"] = 0.0
 	member["guarding"] = false
 	waiting_for_command = false
@@ -196,6 +244,25 @@ func _execute_attack(member_idx: int, enemy_idx: int, mult: float, label: String
 		action_beat = BEAT_SECONDS
 		_refresh_all()
 
+func _execute_attack(member_idx: int, enemy_idx: int, mult: float, label: String) -> void:
+	if fight_state != "active" or action_beat > 0.0: return
+	if member_idx < 0 or member_idx >= party.size(): return
+	if enemy_idx < 0 or enemy_idx >= enemies.size(): return
+	var member = party[member_idx]
+	var foe = enemies[enemy_idx]
+	if member["hp"] <= 0 or foe["hp"] <= 0: return
+
+	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+	var dmg = _strike_foe(member_idx, foe, mult)
+
+	var verb = label if label != "" else "strikes"
+	if foe["hp"] <= 0:
+		_log("%s %s %s for %d — it falls!" % [minion.name, verb, foe["name"], dmg])
+	else:
+		_log("%s %s %s for %d." % [minion.name, verb, foe["name"], dmg])
+
+	_end_member_turn(member_idx)
+
 func _execute_guard(member_idx: int) -> void:
 	if fight_state != "active" or action_beat > 0.0: return
 	var member = party[member_idx]
@@ -204,19 +271,88 @@ func _execute_guard(member_idx: int) -> void:
 	member["charge"] = 0.0
 	waiting_for_command = false
 	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+	_apply_regen(member)
 	_log("%s braces behind its own bones." % minion.name)
 	action_beat = BEAT_SECONDS
 	_refresh_all()
 
+## The resolution profile for an active rune's effect id, or a heavy-strike
+## fallback so an unhandled id still does something sane (a debug warning fires
+## at boot — see _ready).
+func _active_def(effect: String) -> Dictionary:
+	return _active_defs.get(effect, {"kind": "heavy", "mult": ACTIVE_HEAVY_MULT})
+
+## One-line mechanical summary of a rune, for its chip tooltip.
+func _active_summary(ability: MinionAbility) -> String:
+	var def = _active_def(ability.effect)
+	var mult: float = ability.magnitude if ability.magnitude > 0.0 else float(def["mult"])
+	match def["kind"]:
+		"cleave":
+			return "Strikes EVERY foe for %.0f%% ATK." % (mult * 100.0)
+		"sunder":
+			return "Hits for %.0f%% ATK and sunders the foe: +%.0f%% damage taken for %d of its turns." \
+				% [mult * 100.0, SUNDER_BONUS * 100.0, SUNDER_TURNS]
+		"pounce":
+			return "Hits for %.0f%% ATK and wipes the foe's turn gauge, delaying its next move." % (mult * 100.0)
+		_:
+			return "A crushing single blow for %.0f%% ATK." % (mult * 100.0)
+
+## Casts an inked active rune. Each effect id resolves differently (heavy blow,
+## cleave, sunder, pounce) rather than every rune being the same harder attack.
 func _execute_active(member_idx: int, ability: MinionAbility) -> void:
-	if fight_state != "active": return
+	if fight_state != "active" or action_beat > 0.0: return
+	if member_idx < 0 or member_idx >= party.size(): return
 	var member = party[member_idx]
+	if member["hp"] <= 0: return
 	var minion_id: String = member["minion_id"]
 	if _active_used(minion_id, ability.id): return
+	var target = _default_target()
+	if target < 0: return
+
+	var minion = MinionManager.find_minion_by_id(minion_id)
+	var def = _active_def(ability.effect)
+	# The .tres magnitude, when set, overrides the tuned default multiplier.
+	var mult: float = ability.magnitude if ability.magnitude > 0.0 else float(def["mult"])
+
+	# The single-target foe (unused by cleave, which hits everyone). Distinct
+	# local names per branch keep this safe under any scoping rules.
+	var focus: Dictionary = enemies[target]
+	match def["kind"]:
+		"cleave":
+			var parts: Array = []
+			for foe in enemies:
+				if foe["hp"] <= 0: continue
+				var cd = _strike_foe(member_idx, foe, mult)
+				parts.append("%s (%d%s)" % [foe["name"], cd, " ✕" if foe["hp"] <= 0 else ""])
+			_log("%s looses %s across the field — %s." % [minion.name, ability.name, ", ".join(parts)])
+		"sunder":
+			var sd = _strike_foe(member_idx, focus, mult)
+			if focus["hp"] <= 0:
+				_log("%s rends %s for %d — it falls!" % [minion.name, focus["name"], sd])
+			else:
+				focus["sunder"] = SUNDER_TURNS
+				_log("%s rends %s for %d — SUNDERED (+%.0f%% damage taken)." \
+					% [minion.name, focus["name"], sd, SUNDER_BONUS * 100.0])
+		"pounce":
+			var pd = _strike_foe(member_idx, focus, mult)
+			if focus["hp"] <= 0:
+				_log("%s pounces %s for %d — it falls!" % [minion.name, focus["name"], pd])
+			else:
+				focus["charge"] = maxf(0.0, float(focus["charge"]) - POUNCE_CHARGE_DRAIN)
+				_log("%s pounces %s for %d — knocked off balance, its turn is delayed." \
+					% [minion.name, focus["name"], pd])
+		_:  # "heavy"
+			var hd = _strike_foe(member_idx, focus, mult)
+			if focus["hp"] <= 0:
+				_log("%s unleashes %s on %s for %d — it falls!" % [minion.name, ability.name, focus["name"], hd])
+			else:
+				_log("%s unleashes %s on %s for %d." % [minion.name, ability.name, focus["name"], hd])
+
+	# Spend the rune only after a successful cast.
 	if not used_actives.has(minion_id):
 		used_actives[minion_id] = []
 	used_actives[minion_id].append(ability.id)
-	_execute_attack(member_idx, _default_target(), ACTIVE_RUNE_MULT, "unleashes %s on" % ability.name)
+	_end_member_turn(member_idx)
 
 func _active_used(minion_id: String, ability_id: String) -> bool:
 	return used_actives.has(minion_id) and used_actives[minion_id].has(ability_id)
@@ -224,7 +360,7 @@ func _active_used(minion_id: String, ability_id: String) -> bool:
 func _flee() -> void:
 	fight_state = "idle"
 	_log("The warband withdraws.")
-	get_tree().call_group("view_manager", "switch_view", "graveyard")
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)
 
 # --- Enemy actions ---
 
@@ -240,7 +376,7 @@ func _enemy_act(enemy_idx: int) -> void:
 			if member["hp"] <= 0: continue
 			var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"] * BOSS_SLAM_MULT)
 			hits.append(str(dmg))
-		_log("%s! The whole warband takes %s." % [foe["slam_name"], " / ".join(hits)])
+		_log("%s! The whole warband takes %s.%s" % [foe["slam_name"], " / ".join(hits), _revive_note()])
 	else:
 		var living: Array = []
 		for i in range(party.size()):
@@ -249,15 +385,28 @@ func _enemy_act(enemy_idx: int) -> void:
 		if living.is_empty():
 			_enter_defeat()
 			return
-		var victim_idx: int = living[randi() % living.size()]
+		# Taunt (Hound/Colossus): a guardian on the field soaks the enemy's attention,
+		# so foes strike the taunters and spare the squishier warband behind them.
+		var taunters: Array = []
+		for i in living:
+			if MinionManager.get_minion_effect(party[i]["minion_id"], Ids.MINION_TAUNT) > 0.0:
+				taunters.append(i)
+		var pool: Array = taunters if not taunters.is_empty() else living
+		var victim_idx: int = pool[randi() % pool.size()]
 		var member = party[victim_idx]
 		var minion = MinionManager.find_minion_by_id(member["minion_id"])
 		var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"])
 		if member["hp"] <= 0:
 			_log("%s savages %s for %d — it collapses!" % [foe["name"], minion.name, dmg])
 		else:
-			_log("%s claws %s for %d%s." % [foe["name"], minion.name, dmg,
-				" (guarded)" if member["guarding"] else ""])
+			_log("%s claws %s for %d%s.%s" % [foe["name"], minion.name, dmg,
+				" (guarded)" if member["guarding"] else "", _revive_note()])
+
+	# The sunder window closes as the foe spends a turn (silently — the enemy
+	# card's SUNDERED tag clearing is the feedback, and a second _log here would
+	# just overwrite the attack line the player is reading).
+	if int(foe.get("sunder", 0)) > 0:
+		foe["sunder"] = int(foe["sunder"]) - 1
 
 	# Bosses declare their next move; the banner shows slam warnings.
 	if foe["is_boss"] and foe["slam_name"] != "":
@@ -270,10 +419,36 @@ func _enemy_act(enemy_idx: int) -> void:
 		_refresh_all()
 
 ## Applies damage to a member (guard halves it). Returns the damage dealt.
+## A minion with the Revive rune (minion_revive) cheats death once per fight,
+## rising at 25% HP instead of falling.
 func _apply_party_damage(member: Dictionary, base: float) -> int:
 	var dmg = _roll_damage(base, GUARD_REDUCTION if member["guarding"] else 1.0)
 	member["hp"] = maxi(member["hp"] - dmg, 0)
+	if member["hp"] <= 0 and not member.get("revived", false) \
+			and MinionManager.get_minion_effect(member["minion_id"], Ids.MINION_REVIVE) > 0.0:
+		member["revived"] = true
+		member["revived_now"] = true
+		member["hp"] = maxi(1, int(round(float(member["max_hp"]) * 0.25)))
+	AudioManager.play_sfx(Ids.SFX_COMBAT_HIT)
 	return dmg
+
+## Heals a minion by its own tree's regen % of max HP (called when it acts).
+func _apply_regen(member: Dictionary) -> void:
+	if member["hp"] <= 0: return
+	var pct = MinionManager.get_minion_effect(member["minion_id"], Ids.MINION_REGEN_PCT)
+	if pct <= 0.0: return
+	member["hp"] = mini(int(member["max_hp"]), member["hp"] + int(ceil(float(member["max_hp"]) * pct / 100.0)))
+
+## Consumes any "just revived" flags and returns a log suffix naming them, so the
+## dramatic moment rides along on the attack line instead of being overwritten.
+func _revive_note() -> String:
+	var names: Array = []
+	for member in party:
+		if member.get("revived_now", false):
+			member["revived_now"] = false
+			names.append(MinionManager.find_minion_by_id(member["minion_id"]).name)
+	if names.is_empty(): return ""
+	return " — %s RISES AGAIN!" % ", ".join(names)
 
 ## Each broken quarter of a boss's health stokes its fury.
 func _check_boss_enrage(foe: Dictionary) -> void:
@@ -322,7 +497,7 @@ func _enter_victory() -> void:
 		NotificationManager.show_item("%d gold looted from the fallen" % gold, 1)
 
 	_log("VICTORY — %d gold, %.0f XP to each survivor." % [gold, total_xp])
-	get_tree().call_group("ui_updates", "update_ui")
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	_refresh_all()
 
 func _enter_defeat() -> void:
@@ -367,6 +542,8 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 			"telegraph": enemy.telegraph_name if enemy.is_boss and enemy.telegraph_name != "" and randf() < BOSS_SLAM_CHANCE else "",
 			"enrage_per_segment": enemy.enrage_per_segment,
 			"segments_broken": 0,
+			# Sunder (Rending Claws): turns of +SUNDER_BONUS damage taken remaining.
+			"sunder": 0,
 			"xp": enemy.xp_reward,
 			"gold_min": enemy.gold_min,
 			"gold_max": enemy.gold_max,
@@ -390,8 +567,10 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 			# Low starting charge so the gauges visibly fill before the
 			# first turn — the mechanic teaches itself in the opening beat.
 			"charge": randf_range(0.0, 0.35),
-			"speed": minion.speed,
+			"speed": minion.speed * (1.0 + MinionManager.get_minion_effect(minion_id, Ids.MINION_SPEED_PCT) / 100.0),
 			"guarding": false,
+			"revived": false,
+			"frenzy_stacks": 0,
 		})
 
 	target_index = 0
@@ -648,6 +827,14 @@ func _make_enemy_card(index: int) -> Button:
 	name_lbl.add_theme_color_override("font_color", COL_TEXT_HI if targeted else COL_TEXT_MID)
 	col.add_child(name_lbl)
 
+	if not dead and int(foe.get("sunder", 0)) > 0:
+		var sunder_lbl = Label.new()
+		sunder_lbl.text = "✷ SUNDERED +%.0f%%" % (SUNDER_BONUS * 100.0)
+		sunder_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sunder_lbl.add_theme_font_size_override("font_size", 10)
+		sunder_lbl.add_theme_color_override("font_color", COL_VIOLET)
+		col.add_child(sunder_lbl)
+
 	col.add_child(_make_bar(float(foe["hp"]) / float(foe["max_hp"]), COL_RUST, 8))
 
 	# Its turn gauge — attacks stop coming from nowhere.
@@ -721,6 +908,12 @@ func _make_boss_banner(foe: Dictionary) -> PanelContainer:
 		tele.add_theme_font_size_override("font_size", 11)
 		tele.add_theme_color_override("font_color", COL_GOLD)
 		foot.add_child(tele)
+	if int(foe.get("sunder", 0)) > 0:
+		var sund = Label.new()
+		sund.text = "   ✷ sundered +%.0f%%" % (SUNDER_BONUS * 100.0)
+		sund.add_theme_font_size_override("font_size", 11)
+		sund.add_theme_color_override("font_color", COL_VIOLET)
+		foot.add_child(sund)
 
 	# The boss's own turn gauge: its next move is always visibly coming.
 	var turn_row = HBoxContainer.new()
@@ -749,12 +942,12 @@ func _rebuild_command_panel() -> void:
 			command_holder.add_child(_menu_header("VICTORY"))
 			command_holder.add_child(_menu_row("Collect & Return", true, true, func():
 				fight_state = "idle"
-				get_tree().call_group("view_manager", "switch_view", "graveyard")))
+				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)))
 		"defeat":
 			command_holder.add_child(_menu_header("DEFEAT"))
 			command_holder.add_child(_menu_row("Retreat", true, true, func():
 				fight_state = "idle"
-				get_tree().call_group("view_manager", "switch_view", "graveyard")))
+				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)))
 		_:
 			var can_command = waiting_for_command and not auto_mode
 			command_holder.add_child(_menu_header("%s ACTS" % _actor_name().to_upper() if can_command else "AWAITING"))
@@ -952,8 +1145,8 @@ func _make_rune_chip(member_idx: int, minion: Minion, ability: MinionAbility) ->
 	chip.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	chip.add_theme_color_override("font_color", COL_VIOLET_TEXT if usable else COL_TEXT_GHOST)
 	chip.add_theme_color_override("font_disabled_color", COL_TEXT_GHOST)
-	chip.tooltip_text = "%s — hits %.0f%% harder, once per battle.%s" \
-		% [ability.description, ACTIVE_RUNE_MULT * 100.0, " Already spent." if spent else ""]
+	chip.tooltip_text = "%s\n%s Once per battle.%s" \
+		% [ability.description, _active_summary(ability), " Already spent." if spent else ""]
 	if usable:
 		chip.pressed.connect(func(): _execute_active(member_idx, ability))
 	return chip
