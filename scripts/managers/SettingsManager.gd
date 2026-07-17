@@ -18,7 +18,18 @@ const WINDOW_CHOICES: Array[Dictionary] = [
 	{"id": "2560x1440", "label": "2560 × 1440", "size": Vector2i(2560, 1440)},
 ]
 
+## The autosave cadences offered in Settings. seconds = 0 disables the timer
+## (save-on-quit and manual saves still work).
+const AUTOSAVE_CHOICES: Array[Dictionary] = [
+	{"id": "15s", "label": "Every 15 seconds", "seconds": 15.0},
+	{"id": "30s", "label": "Every 30 seconds", "seconds": 30.0},
+	{"id": "60s", "label": "Every minute", "seconds": 60.0},
+	{"id": "5m", "label": "Every 5 minutes", "seconds": 300.0},
+	{"id": "off", "label": "Off (save on quit)", "seconds": 0.0},
+]
+
 var window_choice: String = "maximized"
+var autosave_choice: String = "30s"
 
 ## Audio volumes (0..1), applied by AudioManager. Kept here so they persist in
 ## the settings file and survive hard resets, alongside the window choice.
@@ -72,6 +83,29 @@ func apply_window_choice() -> void:
 			var screen = DisplayServer.screen_get_usable_rect(window.current_screen)
 			window.position = screen.position + (screen.size - size) / 2
 
+# --- Autosave cadence ---
+
+func get_autosave_labels() -> Array:
+	var labels: Array = []
+	for choice in AUTOSAVE_CHOICES:
+		labels.append(choice["label"])
+	return labels
+
+func get_autosave_index(choice_id: String) -> int:
+	for i in range(AUTOSAVE_CHOICES.size()):
+		if AUTOSAVE_CHOICES[i]["id"] == choice_id:
+			return i
+	return 1  # 30s, the long-standing default
+
+## The active autosave interval in seconds; 0 = autosave off.
+func get_autosave_seconds() -> float:
+	return float(AUTOSAVE_CHOICES[get_autosave_index(autosave_choice)]["seconds"])
+
+func set_autosave_choice_by_index(index: int) -> void:
+	if index < 0 or index >= AUTOSAVE_CHOICES.size(): return
+	autosave_choice = AUTOSAVE_CHOICES[index]["id"]
+	save_settings()
+
 # --- Persistence (separate from the run save; survives hard resets) ---
 
 func save_settings() -> void:
@@ -81,6 +115,7 @@ func save_settings() -> void:
 		return
 	file.store_string(JSON.stringify({
 		"window_choice": window_choice,
+		"autosave_choice": autosave_choice,
 		"master_volume": master_volume,
 		"sfx_volume": sfx_volume,
 		"music_volume": music_volume,
@@ -96,6 +131,8 @@ func load_settings() -> void:
 	if parsed is Dictionary:
 		var stored = str(parsed.get("window_choice", "maximized"))
 		window_choice = WINDOW_CHOICES[get_choice_index(stored)]["id"]
+		var stored_autosave = str(parsed.get("autosave_choice", "30s"))
+		autosave_choice = AUTOSAVE_CHOICES[get_autosave_index(stored_autosave)]["id"]
 		master_volume = clampf(float(parsed.get("master_volume", master_volume)), 0.0, 1.0)
 		sfx_volume = clampf(float(parsed.get("sfx_volume", sfx_volume)), 0.0, 1.0)
 		music_volume = clampf(float(parsed.get("music_volume", music_volume)), 0.0, 1.0)

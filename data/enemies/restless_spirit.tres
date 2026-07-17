@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/grave_dust.tres" id="3_l0"]
+[ext_resource type="Resource" path="res://data/items/consumables/scroll_sextons_ashes.tres" id="3_l1"]
+[ext_resource type="Texture2D" path="res://icons/enemies/restless_spirit.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
@@ -11,10 +13,18 @@ weight = 50.0
 min_amount = 1
 max_amount = 2
 
+[sub_resource type="Resource" id="Loot1"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l1")
+weight = 4.0
+min_amount = 1
+max_amount = 1
+
 [resource]
 script = ExtResource("1_enemy")
 id = "restless_spirit"
 name = "Restless Spirit"
+icon = ExtResource("9_icon")
 glyph = "☠"
 description = "A tenant who refuses to accept the terms of burial."
 base_hp = 12
@@ -23,5 +33,5 @@ speed = 0.9
 xp_reward = 12.0
 gold_min = 3
 gold_max = 8
-loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0")])
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1")])
 metadata/_custom_type_script = "res://data/EnemyData.gd"

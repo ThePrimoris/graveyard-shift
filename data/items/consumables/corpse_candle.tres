@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Consumable" format=3]
+
+[ext_resource type="Script" path="res://data/ConsumableData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/corpse_candle.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "corpse_candle"
+name = "Corpse-Candle"
+description = "A tallow taper that burns cold and blue. For 15 minutes the exhausted rest twice as quick — lighting it also stirs those already resting."
+icon = ExtResource("2_icon")
+type = 4
+sell_value = 10
+rarity = 1
+use_effect = "consume_incense_exhaust"
+magnitude = 50.0
+buff_minutes = 15.0
+metadata/_custom_type_script = "res://data/ConsumableData.gd"

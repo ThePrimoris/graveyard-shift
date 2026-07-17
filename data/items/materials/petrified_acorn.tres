@@ -10,3 +10,4 @@ name = "Petrified Acorn"
 description = "An acorn turned to grey stone, yet somehow still whole."
 icon = ExtResource("2_icon")
 sell_value = 85
+rarity = 3

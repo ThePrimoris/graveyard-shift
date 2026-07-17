@@ -51,6 +51,7 @@ func _ready() -> void:
 
 	var title = Label.new()
 	title.text = "SETTINGS"
+	title.theme_type_variation = &"HeaderLabel"
 	title.add_theme_font_size_override("font_size", 26)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
@@ -80,6 +81,24 @@ func _ready() -> void:
 	window_dropdown.select(SettingsManager.get_choice_index(SettingsManager.window_choice))
 	window_dropdown.item_selected.connect(SettingsManager.set_window_choice_by_index)
 	display_row.add_child(window_dropdown)
+
+	# Autosave cadence (DEP-7) — persisted with the other preferences
+	var autosave_row = HBoxContainer.new()
+	autosave_row.add_theme_constant_override("separation", 12)
+	vbox.add_child(autosave_row)
+
+	var autosave_label = Label.new()
+	autosave_label.text = "Autosave"
+	autosave_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	autosave_row.add_child(autosave_label)
+
+	var autosave_dropdown = OptionButton.new()
+	autosave_dropdown.custom_minimum_size = Vector2(190, 36)
+	for label in SettingsManager.get_autosave_labels():
+		autosave_dropdown.add_item(label)
+	autosave_dropdown.select(SettingsManager.get_autosave_index(SettingsManager.autosave_choice))
+	autosave_dropdown.item_selected.connect(SettingsManager.set_autosave_choice_by_index)
+	autosave_row.add_child(autosave_dropdown)
 
 	vbox.add_child(HSeparator.new())
 

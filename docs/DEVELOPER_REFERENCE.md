@@ -37,8 +37,11 @@ Registered in `project.godot`, in this load order:
 | `GameManager` | `scripts/managers/GameManager.gd` | Skills/XP, item+node+encounter registries, equipment, gather bonuses, harvest resolution, offline sim. |
 | `InventoryManager` | `scripts/managers/InventoryManager.gd` | The backpack grid: slots, stacking, capacity. |
 | `NotificationManager` | `scripts/managers/NotificationManager.gd` | Spawns toast popups. |
-| `MinionManager` | `scripts/managers/MinionManager.gd` | Minion roster, levels/XP, skill trees, plots, offerings. |
-| `GroundsManager` | `scripts/managers/GroundsManager.gd` | Buildable structures (the Grounds) + their bonuses. |
+| `MinionManager` | `scripts/managers/MinionManager.gd` | Minion roster, levels/XP, skill trees, plots, offerings, exhaustion. |
+| `GroundsManager` | `scripts/managers/GroundsManager.gd` | Buildable structures (the Grounds) + their bonuses; tiers can cost gold. |
+| `AlchemyManager` | `scripts/managers/AlchemyManager.gd` | Alchemy production skill (a `CraftingManager` subclass: recipe registry + craft timer, auto-repeats while inputs last). |
+| `ForgeManager` | `scripts/managers/ForgeManager.gd` | Forge production skill (same `CraftingManager` engine): smiths minion gear from ores/gems. |
+| `StatsManager` | `scripts/managers/StatsManager.gd` | Lifetime counters (signals + one-line bumps), the achievement book (one-time toasts), and the graveyard restoration %. |
 | `AudioManager` | `scripts/managers/AudioManager.gd` | SFX pool + per-view ambient music; volumes via SettingsManager. |
 | `SaveManager` | `scripts/managers/SaveManager.gd` | Save/load JSON, autosave, offline progress, hard reset. |
 | `TutorialManager` | `scripts/managers/TutorialManager.gd` | Mortimer's first-run tutorial (a `CanvasLayer`). |
@@ -138,14 +141,39 @@ icons/                        items/, skills/, ui/ art
 All live in `data/` and use `class_name`, so they're global types.
 
 ### `Item` (`ItemData.gd`)
-`id, name, type (MATERIAL/TOOL/QUEST/MISC), icon, description, sell_value,
-is_sellable, rarity (COMMON..LEGENDARY), max_stack (250), is_stackable,
-required_level, item_effect`.
+`id, name, type (MATERIAL/TOOL/QUEST/MISC/CONSUMABLE), icon, description,
+sell_value, is_sellable, rarity (COMMON..LEGENDARY, aligned to value bands),
+offering_value (-1 = derive from sell_value; explicit values decouple altar XP
+from economy pricing), max_stack (250), is_stackable, required_level,
+item_effect`.
 
 ### `ToolData : Item` (`ToolData.gd`)
 Adds `speed_multiplier, yield_bonus, tool_type (SHOVEL/HATCHET/PICKAXE),
 tool_tier (RUSTED/GALVANIZED/REINFORCED/TEMPERED)`. See §6 for how these feed
 the bonus model.
+
+### `Consumable : Item` (`ConsumableData.gd`)
+A usable item (P2a/P3): `use_effect (Ids.CONSUME_*), magnitude,
+duration_turns, buff_minutes`. Combat potions (`is_combat_usable()`: heal /
+atk surge / poison) are used from the battle Item menu; the Grave Tonic cures
+exhaustion from the defeat panel; gather elixirs (`is_gather_elixir()`) are
+drunk from the inventory and lay a timed buff (see §6.3). Live in
+`data/items/consumables/`; sold in the shop's Battle Supplies, brewed by Alchemy.
+
+### `Recipe` (`RecipeData.gd`)
+One production-skill craft: `id, name, description; inputs {item_id: amount},
+output_item, output_amount; required_level, base_seconds, base_xp`. Loaded
+from `data/recipes/<skill>/` by the station's CraftingManager. Inputs are paid
+when a craft STARTS; output + XP land on completion, then it auto-repeats
+while inputs last.
+
+### `Gear : Item` (`GearData.gd`)
+Minion equipment (P5): `slot (WEAPON/TRINKET), atk_bonus, hp_bonus,
+passive_effect (an Ids.MINION_* channel or ""), passive_magnitude`. COMBAT
+ONLY by design — bonuses feed `MinionManager.get_hp/get_atk/get_minion_effect`
+and never the gather channels. Unstackable; smithed at the Forge
+(`data/items/gear/`); equipped from the Armaments rows on a minion's
+Necronomicon page; worn gear lives in `MinionManager.gear` and the save.
 
 ### `HarvestNode` (`HarvestNodeData.gd`)
 The thing you harvest. `id, name, description; required_skill (SkillType),
@@ -191,7 +219,8 @@ effect, effect_unit, effect_label; grid_cell: Vector2i, footprint: Vector2i;
 tiers: Array[StructureTier]`. `max_level()` = `tiers.size()`.
 
 ### `StructureTier` (`StructureTierData.gd`)
-One upgrade step: `cost: Dictionary[String,int], magnitude, blurb`.
+One upgrade step: `cost: Dictionary[String,int], gold (P4 gold sink; 0 = free),
+magnitude, blurb`.
 
 ---
 
@@ -271,6 +300,9 @@ multiplicatively) so it can't explode.
 - **Minion passives:** `harvest_xp_pct`, `rare_chance_pct`, `double_drop_pct`
   (via `MinionManager.get_passive_bonus`, only slotted minions count).
 - **Grounds structures:** same three spice channels via `GroundsManager.get_bonus`.
+- **Gather elixirs (P3):** `GameManager.active_buffs` — timed buffs laid by
+  drinking an elixir (`apply_timed_buff` / `get_buff_bonus`); xp + rare
+  channels only; saved with the run and pruned on expiry.
 - **Affixes:** node penalties applied last (see §6.4).
 
 Speed is clamped to `[SPEED_FLOOR 0.3, SPEED_CAP 1.6]`. `SPEED_BONUSES_ENABLED`
@@ -290,8 +322,9 @@ applied inside `get_gather_modifiers`:
 
 ### 6.5 Skills & XP
 
-`GameManager.skills` = `{graverobbing/lumbering/spelunking: {level, xp}}`,
-`MAX_LEVEL = 100`. `get_xp_needed(level)` is a RuneScape/Melvor-shaped curve
+`GameManager.skills` = `{graverobbing/lumbering/spelunking/alchemy: {level,
+xp}}`, `MAX_LEVEL = 100`. Alchemy is a PRODUCTION skill: no nodes; XP comes
+from AlchemyManager brews (see §6.17). `get_xp_needed(level)` is a RuneScape/Melvor-shaped curve
 scaled by a slow-burn ramp (`SKILL_XP_SCALE_EARLY 1.0` → `LATE 2.5` by
 `RAMP_END_LEVEL 30`). `add_xp(skill, amount)` handles level-ups and the cap.
 Nodes gate on `required_level`; zones gate on their own `required_level`.
@@ -403,10 +436,13 @@ finish/skip. Intro nodes referenced: `withered_trees`, `verdigris_seams`,
 
 ### 6.13 Save / load
 
-`SaveManager`, `SAVE_PATH = user://graveyard_shift_save.json`, `SAVE_VERSION = 2`,
-`AUTOSAVE_INTERVAL = 30s`, plus save-on-quit. Old (v1) saves are discarded.
-Save keys: `version, timestamp, gold, skills, equipped_tools, owned_tools,
-active_node_id, purchased_slots, tutorial_complete, inventory, minions, grounds`.
+`SaveManager`, `SAVE_PATH = user://graveyard_shift_save.json`, `SAVE_VERSION = 3`,
+autosave cadence from Settings (DEP-7: 15s/30s/1m/5m/off; quit always saves).
+v1 saves are unrecoverable; v2 migrates forward untouched (v3's new fields all
+default safely). Save keys: `version, timestamp, gold, skills, buffs,
+equipped_tools, owned_tools, active_node_id, purchased_slots,
+tutorial_complete, inventory, minions (incl. exhausted_until + gear), grounds,
+stats (counters + earned achievements)`.
 Each manager provides `get_save_data` / `restore_from_save`. `hard_reset` deletes
 the file and resets every manager (Settings survive — they're a separate file).
 
@@ -424,6 +460,27 @@ structures free via `GroundsManager.debug_set_level`), `necronomicon <on|off>`,
 they survive hard resets. `SettingsPanel.gd` is the overlay (opened from the nav)
 with the dropdown, the three volume sliders, a manual save, and the two-step
 hard-reset button.
+
+### 6.17 Alchemy (P3) & combat stakes (P2a)
+
+- **Alchemy:** `AlchemyManager` (autoload) loads `data/recipes/alchemy/` into
+  `recipe_db`; `start_brew` pays inputs up front, `_process` runs the timer
+  (`get_effective_seconds` = base / Apothecary speed bonus), `_finish_brew`
+  bottles the output, grants `Ids.SKILL_ALCHEMY` XP, and auto-repeats while
+  inputs last. `AlchemyView` (`scenes/views/AlchemyView.gd`, nav button
+  "Alchemy") is a card grid refreshed in place.
+- **Combat consumables:** the battle command panel grows an `Item` submenu
+  when combat-usable consumables are held; using one is the acting minion's
+  turn (`_execute_item`). Statuses: `atk_up_mult/atk_up_turns` on members,
+  `poison_dmg/poison_turns` on foes (ticks BEFORE the foe acts, ignores rage
+  and guard, shows a POISONED tag).
+- **Exhaustion (defeat cost):** `_enter_defeat` exhausts every mustered minion
+  (`MinionManager.exhaust`, `EXHAUST_MINUTES 5`). Exhausted minions keep plot
+  passives but can't muster (`battle_ready_ids`). Cures: wait it out, the
+  defeat panel's gold rouse (`REVIVE_GOLD_PER_MINION 30` each), or a Grave
+  Tonic. Confront is blocked while nobody is battle-ready.
+- **Feel:** floating damage numbers + a hit flash on the struck side; both
+  no-op when the view isn't visible (headless-safe).
 
 ### 6.16 Audio (DEP-5)
 
@@ -447,9 +504,22 @@ WAVs under `audio/` (see `audio/README.md`): `sfx/<id>.wav` one-shots (ids in
 
 ## 7. UI / theme
 
-- `theme/graveyard_theme.tres` — the "Lanternlight" theme: dark elevated cards,
-  gold/violet/rust accents, custom type variations (`HeaderLabel`, `MutedLabel`,
-  `ChipPanel`, `ActionButton`, `DangerButton`).
+- `theme/graveyard_theme.tres` — the "Lanternlight" theme (P8 overhaul):
+  - **Type:** Alegreya (body, `default_font`) + Cinzel (display: `HeaderLabel`,
+    `SectionLabel`) — both SIL-OFL, bundled in `fonts/` with their licences.
+  - **Panels:** StyleBoxTexture 9-patches from `theme/textures/` (grain,
+    corner vignette, engraved double border, gold corner ticks), generated by
+    `tools/generate_theme_textures.py`.
+  - **Buttons:** beveled StyleBoxFlat (thick dark bottom edge, gold pressed
+    border); ActionButton (moss) / DangerButton (rust) variants match.
+  - Custom type variations: `HeaderLabel`, `SectionLabel`, `MutedLabel`,
+    `CardPanel`, `ChipPanel`, `InsetPanel`, `WellPanel`, `ActionButton`,
+    `DangerButton`.
+- Icons are generated by `tools/generate_icons.py` (v3 finish: hue-tinted
+  outlines, drop shadow, warm/cool rim lights, grain, contrast lift; skill
+  glyphs sit on engraved medallions). Audio by `tools/generate_audio.py`
+  (see `audio/README.md`). `tests/Screenshot.tscn` boots the real UI and
+  saves per-view PNGs to `user://shots/` for visual QA.
 - Views live under `MainViewContainer` in `Main.tscn` and toggle visibility via
   `Control.switch_view` (graveyard/forest/quarry/inventory/shop/combat). The
   Grounds, Settings, and Necronomicon are code-built overlays, not switched views.
@@ -490,9 +560,20 @@ loot pools (common+rare, or `hit_damage`+hit/break). Reference it from a zone's
 `raise_cost`, and `abilities` (sub-resource `MinionAbilityData.gd` each). Passive
 effects must be one of the recognised strings to do anything (§4).
 
+**A consumable:** `.tres` in `data/items/consumables/` with `ConsumableData.gd`;
+set `use_effect` to an `Ids.CONSUME_*` (validator-enforced), `magnitude`, and
+`duration_turns`/`buff_minutes` for timed effects. Combat effects surface in
+the battle Item menu automatically; add a shop price in `ShopView.SUPPLY_PRICES`
+and/or a recipe to make it obtainable.
+
+**A recipe:** `.tres` in `data/recipes/alchemy/` with `RecipeData.gd`; set
+`inputs` (item ids — validator-enforced), `output_item`, `required_level`,
+`base_seconds`, `base_xp`. It appears on the Still's card grid automatically.
+
 **A structure:** `.tres` in `data/structures/` with `StructureData.gd`; set
 `effect` (must be handled — currently `inventory_slots`/`harvest_xp_pct`/
-`double_drop_pct`/`rare_chance_pct`/`offline_hours`), `grid_cell`/`footprint`
+`double_drop_pct`/`rare_chance_pct`/`offline_hours`/`offering_pct`/`sell_pct`/
+`alchemy_speed_pct`), `grid_cell`/`footprint`
 (so it places on the iso plot), and 5 `StructureTier` sub-resources. For custom
 per-tier art, add a `_draw_<id>` branch in `StructureBuilding._draw`; otherwise
 it uses the plain-box fallback.
@@ -519,8 +600,9 @@ a node's `affix`.
   `ACTIVE_RUNE_MULT 1.6`, `GUARD_REDUCTION 0.5`, `BOSS_SLAM_MULT 0.75`,
   `BOSS_SLAM_CHANCE 0.3`.
 - Affix: `HarvestView.UNSTABLE_LOCKOUT_SECONDS 120`.
-- Save/offline: `SAVE_VERSION 2`, `AUTOSAVE_INTERVAL 30`, `OFFLINE_BASE_HOURS 1`,
-  `OFFLINE_MIN_SECONDS 60`.
+- Save/offline: `SAVE_VERSION 3`, autosave cadence from Settings (default 30s),
+  `OFFLINE_BASE_HOURS 1`, `OFFLINE_MIN_SECONDS 60`.
+- Stakes: `MinionManager.EXHAUST_MINUTES 5`, `CombatView.REVIVE_GOLD_PER_MINION 30`.
 
 ---
 

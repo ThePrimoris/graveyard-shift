@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/quartz_charm.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "quartz_charm"
+name = "Quartz Charm"
+description = "A cloudy crystal on a leather cord. It hums against dead ribs, thickening them."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 40
+rarity = 1
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 12
+passive_effect = ""
+passive_magnitude = 0.0
+metadata/_custom_type_script = "res://data/GearData.gd"

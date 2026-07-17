@@ -10,3 +10,4 @@ name = "Tungsten Lump"
 description = "A heavy grey lump, absurdly dense for its size."
 icon = ExtResource("2_icon")
 sell_value = 10
+rarity = 1

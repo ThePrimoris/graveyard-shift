@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/beryl_signet.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "beryl_signet"
+name = "Beryl Signet"
+description = "A sea-green stone in a scavenged ring. Its wearer strikes with uncanny precision."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 100
+rarity = 2
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 8
+passive_effect = "minion_crit_pct"
+passive_magnitude = 10.0
+metadata/_custom_type_script = "res://data/GearData.gd"

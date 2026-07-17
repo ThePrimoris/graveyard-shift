@@ -10,3 +10,4 @@ name = "Imperial Jade Knot"
 description = "A knot of deep imperial jade, worked smooth by ages."
 icon = ExtResource("2_icon")
 sell_value = 95
+rarity = 3

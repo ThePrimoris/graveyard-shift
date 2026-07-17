@@ -10,3 +10,4 @@ name = "Obsidian Shard"
 description = "A blade-sharp splinter of volcanic glass, black as the void."
 icon = ExtResource("2_icon")
 sell_value = 150
+rarity = 3

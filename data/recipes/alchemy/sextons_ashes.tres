@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/consumables/sextons_ashes.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "brew_sextons_ashes"
+name = "Sexton's Ashes"
+description = "Burn bones with a withered heart under ash-wood. Scatter over those who fall."
+inputs = {"bones": 3, "withered_heart": 1, "ash_burl": 1}
+output_item = ExtResource("2_out")
+required_level = 36
+scroll_taught = true
+base_seconds = 14.0
+base_xp = 42.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

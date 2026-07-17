@@ -359,20 +359,38 @@ func clear_stats() -> void:
 
 # --- Progress ---
 
-## Also frames the card with the skill's accent colour (thicker top edge).
+## Also frames the card with the skill's accent colour (a strip painted along
+## the top edge in _draw — StyleBoxTexture can't carry a coloured border).
 func set_progress_color(color: Color) -> void:
 	bar_color = color
 	_apply_bar_styles()
-	var s := StyleBoxFlat.new()
-	s.bg_color = COL_CARD_BG
-	s.set_border_width_all(1)
-	s.border_width_top = 3
-	s.border_color = Color(color.r * 0.6, color.g * 0.6, color.b * 0.6)
-	s.set_corner_radius_all(10)
-	s.shadow_color = Color(0, 0, 0, 0.35)
-	s.shadow_size = 8
-	s.shadow_offset = Vector2(0, 3)
-	add_theme_stylebox_override("panel", s)
+	if ResourceLoader.exists("res://theme/textures/panel_card.png"):
+		var tex := StyleBoxTexture.new()
+		tex.texture = load("res://theme/textures/panel_card.png")
+		tex.texture_margin_left = 20.0
+		tex.texture_margin_top = 20.0
+		tex.texture_margin_right = 20.0
+		tex.texture_margin_bottom = 20.0
+		tex.content_margin_left = 12.0
+		tex.content_margin_top = 12.0
+		tex.content_margin_right = 12.0
+		tex.content_margin_bottom = 12.0
+		add_theme_stylebox_override("panel", tex)
+	else:
+		var s := StyleBoxFlat.new()
+		s.bg_color = COL_CARD_BG
+		s.set_border_width_all(1)
+		s.border_width_top = 3
+		s.border_color = Color(color.r * 0.6, color.g * 0.6, color.b * 0.6)
+		s.set_corner_radius_all(10)
+		add_theme_stylebox_override("panel", s)
+	queue_redraw()
+
+## Paints the skill-accent strip along the card's top edge, inside the frame.
+func _draw() -> void:
+	if bar_color.a <= 0.0:
+		return
+	draw_rect(Rect2(10, 4, size.x - 20, 3), Color(bar_color.r, bar_color.g, bar_color.b, 0.85))
 
 ## Shows the vertical damage meter for breakable nodes. `hit_damage` is the
 ## share of the node's health one completed bar removes (0 hides the meter).

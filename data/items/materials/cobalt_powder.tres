@@ -10,3 +10,4 @@ name = "Cobalt Powder"
 description = "Vivid blue powder ground from the chasm's veins."
 icon = ExtResource("2_icon")
 sell_value = 22
+rarity = 1

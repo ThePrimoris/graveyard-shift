@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/consumables/lichs_balm.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "brew_lichs_balm"
+name = "Lich's Balm"
+description = "Living moss folded through marrow-fat, cut with crushed beryl. The lich's own cure."
+inputs = {"velvet_moss": 3, "bone_marrow": 2, "beryl_cluster": 1}
+output_item = ExtResource("2_out")
+required_level = 50
+scroll_taught = true
+base_seconds = 18.0
+base_xp = 60.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

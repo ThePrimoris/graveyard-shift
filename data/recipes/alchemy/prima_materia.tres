@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/materials/prima_materia.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "brew_prima_materia"
+name = "The Vat: Prima Materia"
+description = "Boil down twenty graves' worth of matter until it forgets what it was. The Great Work begins."
+inputs = {"flesh": 20, "blood": 20, "grave_dust": 20, "quartz_geode": 5, "nickel_granule": 5}
+output_item = ExtResource("2_out")
+required_level = 55
+base_seconds = 60.0
+base_xp = 150.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

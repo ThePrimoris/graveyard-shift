@@ -10,3 +10,4 @@ name = "Velvet Moss"
 description = "Deep, cushioning moss from the thicket floor."
 icon = ExtResource("2_icon")
 sell_value = 12
+rarity = 1

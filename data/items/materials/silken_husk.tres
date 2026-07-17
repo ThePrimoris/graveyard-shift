@@ -10,3 +10,4 @@ name = "Silken Husk"
 description = "An empty cocoon of impossibly fine silk."
 icon = ExtResource("2_icon")
 sell_value = 50
+rarity = 2

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Consumable" format=3]
+
+[ext_resource type="Script" path="res://data/ConsumableData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/widows_phial.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "widows_phial"
+name = "Widow's Phial"
+description = "Silkgland venom, patient and cruel. Shatters over a foe: 7 damage on each of its next 3 turns, and its blows land 20% softer."
+icon = ExtResource("2_icon")
+type = 4
+sell_value = 24
+rarity = 2
+use_effect = "consume_poison_weaken"
+magnitude = 7.0
+secondary_magnitude = 20.0
+duration_turns = 3
+metadata/_custom_type_script = "res://data/ConsumableData.gd"

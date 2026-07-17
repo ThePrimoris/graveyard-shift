@@ -10,3 +10,4 @@ name = "Nickel Granule"
 description = "Small silvery granules teased from the cold rock."
 icon = ExtResource("2_icon")
 sell_value = 15
+rarity = 1

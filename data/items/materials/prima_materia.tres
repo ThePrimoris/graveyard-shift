@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/prima_materia.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "prima_materia"
+name = "Prima Materia"
+description = "The first matter: grave-flesh, blood, and dust boiled down until only possibility remains. Stage one of the Great Work."
+icon = ExtResource("2_icon")
+type = 0
+sell_value = 100
+rarity = 3
+metadata/_custom_type_script = "res://data/ItemData.gd"

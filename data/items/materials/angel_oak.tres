@@ -10,3 +10,4 @@ name = "Angel Oak"
 description = "Sanctified heartwood from the hallowed thicket. It resists rot."
 icon = ExtResource("2_icon")
 sell_value = 11
+rarity = 1

@@ -1,0 +1,128 @@
+[gd_resource type="Resource" script_class="Minion" format=3]
+
+[ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
+[ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/homunculus.png" id="3_icon"]
+
+[sub_resource type="Resource" id="Ability0"]
+script = ExtResource("2_ability")
+id = "alembic_blood"
+name = "Alembic Blood"
+description = "Its blood remembers every reagent it has ever been. +4% rare finds while slotted."
+kind = 0
+tier = 1
+cost = 1
+effect = "rare_chance_pct"
+magnitude = 4.0
+
+[sub_resource type="Resource" id="Ability1"]
+script = ExtResource("2_ability")
+id = "self_made_flesh"
+name = "Self-Made Flesh"
+description = "Flesh that assembled itself once can do it again. Heals 5% of max HP on each of its turns."
+kind = 0
+tier = 1
+cost = 1
+effect = "minion_regen_pct"
+magnitude = 5.0
+
+[sub_resource type="Resource" id="Ability2"]
+script = ExtResource("2_ability")
+id = "alkahest_spray"
+name = "Alkahest Spray"
+description = "It exhales a mist of the universal solvent. Sunders a foe's hide so the whole warband hits it harder, once per battle."
+kind = 1
+tier = 2
+cost = 2
+effect = "active_rending_claws"
+magnitude = 0.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
+id = "tempered_clay"
+name = "Tempered Clay"
+description = "The vat poured it dense. +15% max HP."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["self_made_flesh"])
+effect = "minion_hp_pct"
+magnitude = 15.0
+
+[sub_resource type="Resource" id="Ability4"]
+script = ExtResource("2_ability")
+id = "quicksilver_humors"
+name = "Quicksilver Humors"
+description = "Mercury where blood should be. +12% charge speed."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["alembic_blood"])
+effect = "minion_speed_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "caustic_sweat"
+name = "Caustic Sweat"
+description = "Touching it is its own punishment. Reflects 15% of the damage it takes."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["tempered_clay"])
+effect = "minion_thorns_pct"
+magnitude = 15.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "philosophers_edge"
+name = "Philosopher's Edge"
+description = "It knows exactly where matter wants to come apart. +12% chance to land a critical strike."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["quicksilver_humors"])
+effect = "minion_crit_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "perfected_mixture"
+name = "Perfected Mixture"
+description = "Every humor in its proper ratio. +16% attack."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["quicksilver_humors"])
+effect = "minion_atk_pct"
+magnitude = 16.0
+
+[sub_resource type="Resource" id="Ability8"]
+script = ExtResource("2_ability")
+id = "magnum_opus"
+name = "Magnum Opus"
+description = "The Great Work does not end on a battlefield. Once per fight it reassembles itself, rising at 25% HP."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["caustic_sweat", "philosophers_edge"])
+effect = "minion_revive"
+magnitude = 1.0
+
+[resource]
+script = ExtResource("1_minion")
+id = "homunculus"
+name = "Homunculus"
+icon = ExtResource("3_icon")
+sort_order = 5
+description = "Not raised — made. A small, precise person grown in the Caretaker's vat, still smelling faintly of the Still. The only minion on the grounds that was never buried, and the proof that Alchemy's Great Work can be finished."
+base_hp = 30
+base_atk = 3.5
+hp_per_level = 6
+atk_per_level = 0.8
+speed = 1.1
+raise_cost = Dictionary[String, int]({
+"homunculus_heart": 1
+})
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7"), SubResource("Ability8")])
+metadata/_custom_type_script = "res://data/MinionData.gd"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/consumables/surgeons_paste.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "brew_surgeons_paste"
+name = "Surgeon's Paste"
+description = "Flesh, lichen, and blood worked to a paste that argues with death."
+inputs = {"flesh": 3, "pale_lichen": 2, "blood": 2}
+output_item = ExtResource("2_out")
+required_level = 27
+scroll_taught = true
+base_seconds = 12.0
+base_xp = 34.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

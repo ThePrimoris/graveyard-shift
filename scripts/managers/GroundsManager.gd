@@ -36,8 +36,10 @@ func _build_structure_database() -> void:
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				var res = load(dir_path + file_name.replace(".remap", ""))
+			# Exported builds list text resources as "<name>.tres.remap".
+			var res_file = file_name.trim_suffix(".remap")
+			if not dir.current_is_dir() and res_file.ends_with(".tres"):
+				var res = load(dir_path + res_file)
 				if res is Structure and res.id != "":
 					structure_db[res.id] = res
 			file_name = dir.get_next()
@@ -60,10 +62,6 @@ func find_structure(structure_id: String) -> Structure:
 func get_level(structure_id: String) -> int:
 	return int(levels.get(structure_id, 0))
 
-func is_max(structure_id: String) -> bool:
-	var s = find_structure(structure_id)
-	return s != null and get_level(structure_id) >= s.max_level()
-
 ## The tier that would be built NEXT, or null when already maxed.
 func next_tier(structure_id: String) -> StructureTier:
 	var s = find_structure(structure_id)
@@ -77,16 +75,19 @@ func next_tier(structure_id: String) -> StructureTier:
 func can_afford(structure_id: String) -> bool:
 	var tier = next_tier(structure_id)
 	if tier == null: return false
+	if GameManager.gold_coins < tier.gold:
+		return false
 	for item_id in tier.cost:
 		if InventoryManager.get_item_count(item_id) < tier.cost[item_id]:
 			return false
 	return true
 
-## Pays the next tier's cost and raises the structure a level.
+## Pays the next tier's cost (materials + gold) and raises the structure a level.
 func build(structure_id: String) -> bool:
 	var tier = next_tier(structure_id)
 	if tier == null or not can_afford(structure_id):
 		return false
+	GameManager.gold_coins -= tier.gold
 	for item_id in tier.cost:
 		if tier.cost[item_id] > 0:
 			InventoryManager.remove_item(item_id, tier.cost[item_id])

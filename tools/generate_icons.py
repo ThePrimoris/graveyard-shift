@@ -36,34 +36,130 @@ def B(x0, y0, x1, y1):
     return (x0 * SS, y0 * SS, x1 * SS, y1 * SS)
 
 
-def finish(img):
-    """Depth pass: clean cartoon outline, form shadow, and a top-left rim light."""
-    # 1) Solid dark outline around the whole silhouette (cartoon read).
+def _avg_color(img):
+    """Alpha-weighted average RGB of the drawn shape (for hue-tinted outlines)."""
+    import numpy as _np
+    arr = _np.asarray(img).astype(float)
+    a = arr[..., 3:4] / 255.0
+    total = a.sum()
+    if total < 1:
+        return (60, 50, 70)
+    rgb = (arr[..., :3] * a).sum(axis=(0, 1)) / total
+    return tuple(int(v) for v in rgb)
+
+
+def finish(img, grain_seed="g"):
+    """Depth pass v3: hue-tinted outline, drop shadow, form shadow, dual rim
+    lights (warm key top-left, cool reflected bottom-right), fine grain, and a
+    final contrast/saturation lift. One pass upgrades every icon in the set."""
+    from PIL import ImageEnhance
+
     alpha = img.getchannel("A")
     mask = alpha.point(lambda v: 255 if v > 50 else 0)
+
+    # 1) Outline tinted from the icon's own palette (darkened), not flat black.
+    ar, ag, ab = _avg_color(img)
+    oc = (int(ar * 0.22), int(ag * 0.20), int(ab * 0.26))
     grown = mask.filter(ImageFilter.MaxFilter(9))
-    outline = Image.new("RGBA", (S, S), (16, 12, 20, 255))
+    outline = Image.new("RGBA", (S, S), oc + (255,))
     outline.putalpha(grown)
     img = Image.alpha_composite(outline, img)
     alpha = img.getchannel("A")
 
-    # 2) Form shadow: darken toward the bottom.
+    # 2) Soft drop shadow so icons sit on any panel instead of floating.
+    halo_mask = grown.filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.GaussianBlur(S // 26))
+    halo = Image.new("RGBA", (S, S), (8, 6, 12, 255))
+    halo.putalpha(halo_mask.point(lambda v: int(v * 0.5)))
+    base = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    base.paste(halo, (int(S * 0.015), int(S * 0.03)), halo)
+    img = Image.alpha_composite(base, img)
+    alpha = img.getchannel("A")
+
+    # 3) Form shadow: darken toward the bottom (cool).
     grad = Image.new("L", (S, S), 0)
     gd = ImageDraw.Draw(grad)
     for y in range(S):
         t = y / S
         gd.line([(0, y), (S, y)], fill=int(120 * max(0.0, t - 0.35) / 0.65))
-    shadow = Image.new("RGBA", (S, S), (10, 8, 16, 255))
+    shadow = Image.new("RGBA", (S, S), (12, 9, 22, 255))
     shadow.putalpha(ImageChops.multiply(grad, alpha))
     img = Image.alpha_composite(img, shadow)
 
-    # 3) Soft top-left rim highlight for volume.
+    # 4) Crisp warm rim light along the silhouette's TOP edge (candlelight).
+    up = Image.new("L", (S, S), 0)
+    up.paste(mask, (0, 3 * SS))
+    top_edge = ImageChops.subtract(mask, up).filter(ImageFilter.GaussianBlur(SS))
+    rim = Image.new("RGBA", (S, S), (255, 236, 190, 255))
+    rim.putalpha(top_edge.point(lambda v: int(v * 0.55)))
+    img = Image.alpha_composite(img, rim)
+
+    # 5) Cool reflected light on the bottom-right edge (moonlight bounce).
+    dl = Image.new("L", (S, S), 0)
+    dl.paste(mask, (-2 * SS, -2 * SS))
+    low_edge = ImageChops.subtract(mask, dl).filter(ImageFilter.GaussianBlur(SS))
+    bounce = Image.new("RGBA", (S, S), (150, 170, 235, 255))
+    bounce.putalpha(low_edge.point(lambda v: int(v * 0.28)))
+    img = Image.alpha_composite(img, bounce)
+
+    # 6) Soft key-light bloom top-left, as before but gentler.
     hl = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(hl).ellipse((-S // 5, -S // 4, int(S * 0.58), int(S * 0.5)), fill=85)
+    ImageDraw.Draw(hl).ellipse((-S // 5, -S // 4, int(S * 0.58), int(S * 0.5)), fill=70)
     hl = hl.filter(ImageFilter.GaussianBlur(S // 9))
-    light = Image.new("RGBA", (S, S), (255, 255, 250, 255))
+    light = Image.new("RGBA", (S, S), (255, 250, 235, 255))
     light.putalpha(ImageChops.multiply(hl, alpha))
-    return Image.alpha_composite(img, light)
+    img = Image.alpha_composite(img, light)
+
+    # 7) Fine grain inside the silhouette — kills the vector-flat look.
+    rnd = random.Random(grain_seed)
+    grain = Image.new("L", (S, S), 128)
+    gp = grain.load()
+    step = 2
+    for y in range(0, S, step):
+        for x in range(0, S, step):
+            v = 128 + rnd.randint(-14, 14)
+            for dy in range(step):
+                for dx in range(step):
+                    if x + dx < S and y + dy < S:
+                        gp[x + dx, y + dy] = v
+    grain_rgba = Image.merge("RGBA", (grain, grain, grain, ImageChops.multiply(alpha, Image.new("L", (S, S), 46))))
+    img = Image.alpha_composite(img, Image.alpha_composite(Image.new("RGBA", (S, S), (0, 0, 0, 0)), grain_rgba))
+
+    # 8) Final pop: a touch more contrast and saturation.
+    rgb = img.convert("RGB")
+    rgb = ImageEnhance.Contrast(rgb).enhance(1.07)
+    rgb = ImageEnhance.Color(rgb).enhance(1.12)
+    out = rgb.convert("RGBA")
+    out.putalpha(img.getchannel("A"))
+    return out
+
+
+def medallion(img):
+    """A dark engraved disc behind a glyph — used for the skill icons so they
+    read as sigils on the nav rail instead of floating clip-art."""
+    base = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(base)
+    cx = S // 2
+    r = int(S * 0.48)
+    d.ellipse((cx - r, cx - r, cx + r, cx + r), fill=(26, 22, 36, 255), outline=(74, 62, 96, 255), width=2 * SS)
+    d.ellipse((cx - r + 4 * SS, cx - r + 4 * SS, cx + r - 4 * SS, cx + r - 4 * SS), outline=(52, 44, 70, 255), width=SS)
+    # engraved ticks around the ring
+    for ang in range(0, 360, 30):
+        x0 = cx + (r - 2 * SS) * math.cos(math.radians(ang))
+        y0 = cx + (r - 2 * SS) * math.sin(math.radians(ang))
+        x1 = cx + (r - 5 * SS) * math.cos(math.radians(ang))
+        y1 = cx + (r - 5 * SS) * math.sin(math.radians(ang))
+        d.line([(x0, y0), (x1, y1)], fill=(74, 62, 96, 255), width=SS)
+    # inner radial glow
+    glow = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(glow).ellipse((cx - r + 8 * SS, cx - r + 8 * SS, cx + r - 8 * SS, cx + r - 8 * SS), fill=40)
+    glow = glow.filter(ImageFilter.GaussianBlur(S // 10))
+    gl = Image.new("RGBA", (S, S), (212, 170, 90, 255))
+    gl.putalpha(glow)
+    base = Image.alpha_composite(base, gl)
+    # shrink the glyph slightly to sit inside the ring
+    small = img.resize((int(S * 0.72), int(S * 0.72)), Image.LANCZOS)
+    base.paste(small, (int(S * 0.14), int(S * 0.14)), small)
+    return base
 
 
 def speck(d, seed, box, color, n=10, rmax=1.6):
@@ -1106,6 +1202,60 @@ def sh_book(d, c, a):  # nincompoops_tome
 
 
 
+def sh_scroll(d, c, a):  # recipe scroll: rolled parchment, wax seal in accent
+    # rolled ends
+    d.ellipse(B(12, 10, 22, 20), fill=darken(c, 0.75), outline=darken(c, 0.5), width=SS)
+    d.ellipse(B(42, 44, 52, 54), fill=darken(c, 0.75), outline=darken(c, 0.5), width=SS)
+    # unrolled sheet, slightly skewed
+    d.polygon(P((17, 10), (52, 14), (47, 49), (12, 45)), fill=c, outline=darken(c), width=W)
+    # lines of cramped script
+    for i, yy in enumerate((19, 25, 31, 37)):
+        x0, x1 = 20, 44 if i % 2 == 0 else 40
+        d.line(P((x0, yy + i * 0.4), (x1, yy + 1 + i * 0.4)), fill=darken(c, 0.55), width=SS)
+    # wax seal, potion-colored
+    d.ellipse(B(34, 38, 46, 50), fill=a, outline=darken(a), width=SS)
+    d.ellipse(B(37, 41, 43, 47), fill=darken(a, 0.75))
+    d.ellipse(B(36, 40, 40, 43), fill=lighten(a, 0.3))
+
+
+def sh_homunculus(d, c, a):  # vat-grown figure curled in a glass jar
+    d.rectangle(B(24, 6, 40, 12), fill=(120, 90, 60, 255), outline=(84, 60, 40, 255), width=SS)   # cork
+    d.rounded_rectangle(B(16, 10, 48, 56), 8 * SS, fill=(200, 214, 224, 70),
+                        outline=(150, 165, 180, 255), width=2 * SS)                                # jar
+    d.rectangle(B(18, 34, 46, 54), fill=darken(a, 0.9))                                            # fluid
+    d.ellipse(B(24, 22, 40, 40), fill=c, outline=darken(c), width=SS)                              # curled body
+    d.ellipse(B(27, 16, 37, 27), fill=c, outline=darken(c), width=SS)                              # head
+    d.ellipse(B(29, 20, 31, 22), fill=darken(c, 0.35))                                             # closed eye
+    d.ellipse(B(33, 20, 35, 22), fill=darken(c, 0.35))
+    d.arc(B(24, 26, 40, 40), 40, 160, fill=darken(c, 0.5), width=SS)                               # knees
+    for (x, y, r) in ((22, 30, 1.6), (43, 24, 1.3), (41, 44, 1.8)):                                # bubbles
+        d.ellipse(B(x - r, y - r, x + r, y + r), outline=lighten(a, 0.4), width=SS)
+    d.arc(B(17, 12, 47, 54), 130, 200, fill=(235, 242, 248, 170), width=2 * SS)                    # glass shine
+
+
+def sh_candle(d, c, a):  # corpse-candle: pale taper, cold flame in accent
+    d.ellipse(B(16, 48, 48, 58), fill=darken(c, 0.5), outline=darken(c, 0.4), width=SS)   # drip dish
+    d.rectangle(B(25, 22, 39, 52), fill=c, outline=darken(c), width=W)                     # taper
+    d.ellipse(B(23, 44, 31, 54), fill=c)                                                   # wax drip
+    d.ellipse(B(25, 20, 39, 26), fill=lighten(c, 0.25), outline=darken(c), width=SS)       # top rim
+    d.line(P((32, 20), (32, 14)), fill=darken(c, 0.35), width=SS)                          # wick
+    d.polygon(P((32, 4), (37, 12), (32, 17), (27, 12)), fill=a, outline=darken(a), width=SS)  # flame
+    d.ellipse(B(30, 9, 34, 14), fill=lighten(a, 0.5))
+
+
+def sh_censer(d, c, a):  # incense censer: hanging burner, smoke in accent
+    for x, y in ((22, 8), (32, 5), (26, 14)):                                              # smoke curls
+        d.arc(B(x, y, x + 10, y + 10), 200, 60, fill=a, width=SS)
+    d.line(P((20, 24), (32, 16)), fill=darken(c, 0.45), width=SS)                          # chains
+    d.line(P((44, 24), (32, 16)), fill=darken(c, 0.45), width=SS)
+    d.pieslice(B(14, 22, 50, 56), 0, 180, fill=c, outline=darken(c), width=W)              # bowl
+    d.rectangle(B(14, 22, 50, 28), fill=darken(c, 0.8), outline=darken(c), width=SS)       # rim
+    for x in (22, 32, 42):                                                                 # vent holes
+        d.ellipse(B(x - 2, 32, x + 2, 36), fill=darken(c, 0.4))
+    d.ellipse(B(28, 52, 36, 58), fill=darken(c, 0.7), outline=darken(c, 0.5), width=SS)    # foot
+    d.ellipse(B(26, 20, 38, 26), fill=a)                                                   # ember glow
+
+
 def sh_fangs(d, c, a):  # jagged_fangs
     for (x, top, w_, curve) in ((20, 12, 7, 3), (34, 8, 8, -2), (46, 14, 6, 2)):
         d.polygon(P((x - w_, top), (x + w_, top), (x + w_ * 0.3 + curve, top + 34), (x - w_ * 0.2 + curve, top + 20)),
@@ -1113,6 +1263,69 @@ def sh_fangs(d, c, a):  # jagged_fangs
         d.line(P((x, top + 4), (x + curve, top + 26)), fill=lighten(c, 0.35), width=SS)
     d.line(P((14, 13), (52, 11)), fill=darken(c, 0.5), width=2 * SS)  # gumline
     speck(d, "fangstain", (16, 26, 50, 44), (150, 90, 70, 255), 5, 1.4)
+
+
+# ================================================================ POTIONS
+
+def sh_potion_round(d, c, a):  # round-bellied flask (salve / tonic)
+    d.rectangle(B(27, 8, 37, 20), fill=(150, 165, 180, 255), outline=(100, 115, 130, 255), width=2 * SS)
+    d.rectangle(B(25, 5, 39, 11), fill=(120, 90, 60, 255), outline=(84, 60, 40, 255), width=SS)
+    d.ellipse(B(12, 18, 52, 58), fill=(200, 214, 224, 90), outline=(150, 165, 180, 255), width=2 * SS)
+    d.pieslice(B(15, 25, 49, 55), 0, 180, fill=c)
+    d.ellipse(B(15, 32, 49, 44), fill=c)
+    d.ellipse(B(20, 24, 30, 32), fill=lighten(c, 0.35))
+    for (x, y, r) in ((26, 30, 2), (36, 27, 2.4), (31, 24, 1.6)):
+        d.ellipse(B(x - r, y - r, x + r, y + r), fill=lighten(c, 0.45))
+    d.arc(B(14, 20, 50, 56), 130, 210, fill=(235, 242, 248, 200), width=2 * SS)
+
+
+def sh_potion_flask(d, c, a):  # tall conical draught
+    d.rectangle(B(28, 6, 36, 18), fill=(150, 165, 180, 255), outline=(100, 115, 130, 255), width=2 * SS)
+    d.rectangle(B(26, 3, 38, 9), fill=(120, 90, 60, 255), outline=(84, 60, 40, 255), width=SS)
+    d.polygon(P((28, 16), (36, 16), (50, 54), (14, 54)), fill=(200, 214, 224, 90), outline=(150, 165, 180, 255), width=2 * SS)
+    d.polygon(P((25, 30), (39, 30), (47, 52), (17, 52)), fill=c)
+    d.ellipse(B(24, 40, 32, 48), fill=lighten(c, 0.4))
+    star(d, 38, 42, 3, lighten(c, 0.55))
+    d.line(P((30, 18), (22, 50)), fill=(235, 242, 248, 160), width=SS)
+
+
+def sh_blade(d, c, a):  # smithed sword
+    d.polygon(P((30, 4), (38, 8), (36, 36), (30, 40), (28, 34)), fill=c, outline=darken(c), width=W)
+    d.line(P((32, 8), (31, 36)), fill=lighten(c, 0.45), width=SS)
+    d.line(P((22, 40), (44, 34)), fill=a, width=4 * SS)  # crossguard
+    d.line(P((31, 40), (26, 56)), fill=darken(a, 0.8), width=4 * SS)  # grip
+    d.ellipse(B(22, 54, 30, 62), fill=a, outline=darken(a), width=SS)  # pommel
+
+
+def sh_warpick(d, c, a):  # spiked war pick
+    d.line(P((34, 16), (26, 58)), fill=a, width=4 * SS)
+    d.polygon(P((16, 20), (36, 8), (52, 22), (48, 28), (36, 16), (22, 26)), fill=c, outline=darken(c), width=W)
+    d.polygon(P((16, 20), (10, 30), (22, 26)), fill=c, outline=darken(c), width=SS)
+    d.line(P((22, 22), (36, 12)), fill=lighten(c, 0.4), width=SS)
+    d.ellipse(B(32, 13, 38, 19), fill=darken(c, 0.6))
+
+
+def sh_cauldron(d, c, a):  # alchemy skill glyph
+    d.ellipse(B(14, 20, 50, 30), fill=darken(c, 0.8), outline=darken(c, 0.5), width=2 * SS)
+    d.pieslice(B(12, 22, 52, 58), 0, 180, fill=c, outline=darken(c), width=W)
+    d.rectangle(B(12, 22, 52, 40), fill=c)
+    d.line(P((12, 24), (12, 40)), fill=darken(c), width=W)
+    d.line(P((52, 24), (52, 40)), fill=darken(c), width=W)
+    d.ellipse(B(16, 20, 48, 28), fill=a, outline=darken(a, 0.6), width=SS)
+    for (x, y, r) in ((24, 23, 2), (34, 25, 2.4), (42, 22, 1.8)):
+        d.ellipse(B(x - r, y - r - 4, x + r, y + r - 4), fill=lighten(a, 0.3))
+    for (x0, x1) in ((20, 16), (44, 48)):
+        d.line(P((x0, 52), (x1, 60)), fill=darken(c, 0.6), width=3 * SS)
+    d.arc(B(20, 26, 44, 46), 150, 240, fill=lighten(c, 0.3), width=2 * SS)
+
+
+def sh_potion_phial(d, c, a):  # slim venom phial with a drip
+    d.rectangle(B(29, 4, 35, 14), fill=(120, 90, 60, 255), outline=(84, 60, 40, 255), width=SS)
+    d.rounded_rectangle(B(24, 12, 40, 54), radius=7 * SS, fill=(200, 214, 224, 90), outline=(150, 165, 180, 255), width=2 * SS)
+    d.rounded_rectangle(B(26, 28, 38, 52), radius=5 * SS, fill=c)
+    d.ellipse(B(28, 32, 33, 37), fill=lighten(c, 0.4))
+    d.polygon(P((46, 40), (50, 48), (46, 52), (42, 48)), fill=c, outline=darken(c), width=SS)
+    d.line(P((27, 14), (27, 48)), fill=(235, 242, 248, 140), width=SS)
 
 
 SHAPES = {n[3:]: fn for n, fn in list(globals().items()) if n.startswith("sh_")}
@@ -1175,6 +1388,40 @@ ITEMS = {
     "resonant_geode": ("void_prism", (150, 172, 192), (110, 140, 170)),
     "living_jade_core": ("golem_heart", (52, 180, 116), (30, 140, 90)),
     "obsidian_wyrm_scale": ("wing", (58, 50, 80), (120, 90, 150)),
+    # consumables (P2a combat stakes; brewed by Alchemy later)
+    "embalmers_salve": ("potion_round", (196, 84, 84), None),
+    "war_draught": ("potion_flask", (206, 142, 52), None),
+    "venom_phial": ("potion_phial", (96, 176, 84), None),
+    "grave_tonic": ("potion_round", (122, 154, 214), None),
+    "surgeons_paste": ("potion_round", (224, 116, 98), None),
+    "lichs_balm": ("potion_round", (140, 216, 184), None),
+    "wardens_draught": ("potion_flask", (118, 138, 192), None),
+    "widows_phial": ("potion_phial", (70, 130, 66), None),
+    "sextons_ashes": ("dust_skull", (204, 198, 186), None),
+    "corpse_candle": ("candle", (216, 220, 230), (120, 176, 236)),
+    "vigil_incense": ("censer", (152, 152, 160), (110, 190, 170)),
+    "requiem_incense": ("censer", (118, 108, 130), (172, 122, 212)),
+    # recipe scrolls (Alchemy rework): parchment with a wax seal in the
+    # taught potion's color
+    "scroll_war_draught": ("scroll", (222, 206, 168), (206, 142, 52)),
+    "scroll_vigil_incense": ("scroll", (222, 206, 168), (110, 190, 170)),
+    "scroll_surgeons_paste": ("scroll", (222, 206, 168), (224, 116, 98)),
+    "scroll_requiem_incense": ("scroll", (222, 206, 168), (172, 122, 212)),
+    "scroll_widows_phial": ("scroll", (210, 200, 170), (70, 130, 66)),
+    "scroll_sextons_ashes": ("scroll", (210, 200, 170), (150, 146, 138)),
+    "scroll_wardens_draught": ("scroll", (210, 200, 170), (118, 138, 192)),
+    "scroll_lichs_balm": ("scroll", (210, 200, 170), (140, 216, 184)),
+    # the Great Work (Alchemy capstone stages)
+    "prima_materia": ("golem_heart", (216, 196, 130), (170, 150, 90)),
+    "seed_of_flesh": ("gland", (218, 146, 146), None),
+    "homunculus_heart": ("heart", (196, 84, 96), None),
+    # forged gear (P5): weapons from ores, trinkets from gems
+    "nickel_blade": ("blade", (200, 206, 210), (110, 82, 58)),
+    "tungsten_cleaver": ("hatchet", (140, 148, 164), (74, 60, 48)),
+    "cobalt_warpick": ("warpick", (86, 120, 200), (54, 48, 60)),
+    "quartz_charm": ("amulet", (150, 140, 120), (208, 198, 220)),
+    "beryl_signet": ("signet", (196, 186, 156), (122, 204, 184)),
+    "jade_idol": ("idol", (110, 104, 96), (62, 172, 124)),
     # tools
     "rusty_shovel": ("shovel", (150, 96, 62), (110, 82, 58)),
     "rusty_hatchet": ("hatchet", (150, 96, 62), (110, 82, 58)),
@@ -1194,6 +1441,8 @@ SKILLS = {
     "graverobbing": ("gravestone", (196, 188, 166), (110, 92, 70)),
     "lumbering": ("tree", (86, 148, 86), (110, 82, 58)),
     "spelunking": ("pickaxe", (150, 160, 172), (110, 82, 58)),
+    "alchemy": ("cauldron", (72, 74, 88), (110, 190, 130)),
+    "forge": ("anvil", (108, 112, 124), (110, 82, 58)),
 }
 
 
@@ -1209,16 +1458,38 @@ MINIONS = {
     "skeleton": ("skeleton_body", (222, 216, 198), (150, 140, 120)),
     "ghoul": ("ghoul", (150, 156, 120), (100, 110, 80)),
     "undead_hound": ("hound", (128, 116, 104), (80, 70, 62)),
+    "homunculus": ("homunculus", (206, 178, 150), (110, 190, 170)),
 }
 
-def render(table, out_dir):
+# Enemy portraits (P8): replace the combat emoji glyphs. Shapes are the same
+# creature library the minions use; colors set each foe's temperament.
+ENEMIES = {
+    "grave_rat": ("rat", (134, 112, 100), (90, 70, 62)),
+    "restless_spirit": ("ghost", (186, 198, 214), (120, 140, 170)),
+    "crypt_warden": ("priest", (94, 78, 118), (216, 178, 88)),
+    "grave_sapling": ("treant", (104, 138, 88), (96, 74, 54)),
+    "thornbound_husk": ("zombie_head", (110, 122, 84), (74, 56, 74)),
+    "carrion_crow": ("crow", (56, 52, 68), (30, 28, 40)),
+    "hangmans_oak": ("treant", (78, 92, 64), (66, 50, 38)),
+    "petrified_dryad": ("idol", (140, 132, 122), (96, 148, 86)),
+    "blind_grub": ("gel", (196, 184, 156), (150, 130, 100)),
+    "bloated_silkmoth": ("bat", (206, 198, 180), (150, 140, 120)),
+    "ember_wretch": ("slime_ember", (172, 84, 48), (230, 140, 60)),
+    "crag_lurker": ("lurker", (120, 116, 110), (240, 200, 80)),
+    "barrow_wyrm": ("wing", (74, 62, 96), (140, 110, 170)),
+    "jade_sentinel": ("colossus", (74, 160, 118), (40, 120, 90)),
+}
+
+def render(table, out_dir, on_medallion=False):
     os.makedirs(out_dir, exist_ok=True)
     for key, (shape, main, accent) in table.items():
         img, d = canvas()
         c = tuple(main) + (255,)
         a = (tuple(accent) + (255,)) if accent else darken(c, 0.7)
         SHAPES[shape](d, c, a)
-        img = finish(img)
+        img = finish(img, grain_seed=key)
+        if on_medallion:
+            img = medallion(img)
         img = img.resize((96, 96), Image.LANCZOS)
         img.save(os.path.join(out_dir, key + ".png"))
     print("wrote %d icons to %s" % (len(table), out_dir))
@@ -1226,9 +1497,10 @@ def render(table, out_dir):
 
 def main():
     render(ITEMS, "icons/items")
-    render(SKILLS, "icons/skills")
+    render(SKILLS, "icons/skills", on_medallion=True)
     render(UI, "icons/ui")
     render(MINIONS, "icons/minions")
+    render(ENEMIES, "icons/enemies")
 
 
 if __name__ == "__main__":

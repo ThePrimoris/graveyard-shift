@@ -70,6 +70,9 @@ const SUNDER_TURNS := 2              ## ...for this many of their own turns
 const POUNCE_CHARGE_DRAIN := 1.0     ## Pounce drains this much of the foe's gauge
 const CRIT_MULT := 1.5               ## A landed crit (minion_crit_pct) hits this hard
 
+# --- Stakes (DEP-2 / P2a) --------------------------------------------
+const REVIVE_GOLD_PER_MINION := 30   ## Gold to rouse one exhausted minion after defeat
+
 ## Ids.ACTIVE_* -> { "kind": String, "mult": float }. A var (not const) so the
 ## Ids.* keys resolve at runtime; see Ids.gd on why we avoid const cross-refs.
 var _active_defs := {
@@ -92,6 +95,8 @@ var used_actives: Dictionary = {}
 
 var fight_state: String = "idle"   # idle | active | victory | defeat
 var waiting_for_command: bool = false
+## The command panel's Item submenu is open (waiting_for_command still true).
+var item_menu_open: bool = false
 ## Seconds left in the current action beat (see BEAT_SECONDS).
 var action_beat: float = 0.0
 var target_index: int = 0
@@ -125,10 +130,17 @@ func _ready() -> void:
 			if not _active_defs.has(eff):
 				push_warning("[CombatView] no active-rune handler for effect '%s'" % eff)
 
-## Same page-tint treatment as the harvest views, in battle-dark violet.
+## The battlefield scene behind the fight (falls back to the flat tint).
 func _apply_ambience() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = COL_PAGE
+	var style: StyleBox
+	if ResourceLoader.exists("res://theme/backdrops/bg_combat.png"):
+		var tex := StyleBoxTexture.new()
+		tex.texture = load("res://theme/backdrops/bg_combat.png")
+		style = tex
+	else:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = COL_PAGE
+		style = flat
 	var previous := get_theme_stylebox("panel")
 	if previous:
 		style.content_margin_left = previous.content_margin_left
@@ -205,6 +217,9 @@ func _strike_foe(member_idx: int, foe: Dictionary, mult: float) -> int:
 	var member = party[member_idx]
 	var minion_id: String = member["minion_id"]
 	var atk = MinionManager.get_atk(minion_id)
+	# War draught (consumable): a temporary attack surge while its turns last.
+	if int(member.get("atk_up_turns", 0)) > 0:
+		atk *= float(member.get("atk_up_mult", 1.0))
 	# Frenzy (Ghoul): attack grows with each foe this minion has killed this fight.
 	var frenzy = MinionManager.get_minion_effect(minion_id, Ids.MINION_FRENZY_PCT)
 	if frenzy > 0.0:
@@ -217,6 +232,8 @@ func _strike_foe(member_idx: int, foe: Dictionary, mult: float) -> int:
 	if int(foe.get("sunder", 0)) > 0:
 		dmg = maxi(1, int(round(dmg * (1.0 + SUNDER_BONUS))))
 	foe["hp"] = maxi(foe["hp"] - dmg, 0)
+	_spawn_damage_number(dmg, false)
+	_flash_area(enemy_holder)
 	# Lifesteal (Ghoul): heal the attacker for a share of the damage dealt.
 	var ls = MinionManager.get_minion_effect(minion_id, Ids.MINION_LIFESTEAL_PCT)
 	if ls > 0.0 and member["hp"] > 0:
@@ -236,7 +253,13 @@ func _end_member_turn(member_idx: int) -> void:
 	_apply_regen(member)
 	member["charge"] = 0.0
 	member["guarding"] = false
+	# Timed consumable buffs burn one of the bearer's turns per action.
+	if int(member.get("atk_up_turns", 0)) > 0:
+		member["atk_up_turns"] = int(member["atk_up_turns"]) - 1
+	if int(member.get("dr_turns", 0)) > 0:
+		member["dr_turns"] = int(member["dr_turns"]) - 1
 	waiting_for_command = false
+	item_menu_open = false
 	acting_index = member_idx
 	if _all_enemies_down():
 		_enter_victory()
@@ -357,8 +380,82 @@ func _execute_active(member_idx: int, ability: MinionAbility) -> void:
 func _active_used(minion_id: String, ability_id: String) -> bool:
 	return used_actives.has(minion_id) and used_actives[minion_id].has(ability_id)
 
+## Uses a combat consumable as the acting minion's turn. Heals and buffs serve
+## the ACTING minion; venom coats the current target foe. Consumes the item.
+func _execute_item(member_idx: int, consumable: Consumable) -> void:
+	if fight_state != "active" or action_beat > 0.0: return
+	if member_idx < 0 or member_idx >= party.size(): return
+	var member = party[member_idx]
+	if member["hp"] <= 0: return
+	if InventoryManager.get_item_count(consumable.id) <= 0: return
+	var minion = MinionManager.find_minion_by_id(member["minion_id"])
+
+	# if/elif rather than match, so the Ids.* constants are plain runtime
+	# comparisons — the same convention as GameManager's affix handling.
+	if consumable.use_effect == Ids.CONSUME_HEAL_PCT:
+		var amount = maxi(1, int(ceil(float(member["max_hp"]) * consumable.magnitude / 100.0)))
+		var healed = mini(int(member["max_hp"]), member["hp"] + amount) - member["hp"]
+		member["hp"] += healed
+		_log("%s takes the %s — %d HP restored." % [minion.name, consumable.name, healed])
+	elif consumable.use_effect == Ids.CONSUME_ATK_PCT:
+		member["atk_up_mult"] = 1.0 + consumable.magnitude / 100.0
+		# +1 because the turn spent drinking burns the first tick.
+		member["atk_up_turns"] = consumable.duration_turns + 1
+		_log("%s downs the %s — +%.0f%% ATK for %d turns." \
+			% [minion.name, consumable.name, consumable.magnitude, consumable.duration_turns])
+	elif consumable.use_effect == Ids.CONSUME_POISON:
+		var target = _default_target()
+		if target < 0: return
+		var focus: Dictionary = enemies[target]
+		focus["poison_dmg"] = consumable.magnitude
+		focus["poison_turns"] = consumable.duration_turns
+		_log("%s hurls the %s — %s is POISONED (%d dmg for %d of its turns)." \
+			% [minion.name, consumable.name, focus["name"], int(consumable.magnitude), consumable.duration_turns])
+	elif consumable.use_effect == Ids.CONSUME_ATK_DEF_PCT:
+		member["atk_up_mult"] = 1.0 + consumable.magnitude / 100.0
+		member["atk_up_turns"] = consumable.duration_turns + 1
+		member["dr_mult"] = 1.0 - consumable.magnitude / 100.0
+		member["dr_turns"] = consumable.duration_turns + 1
+		_log("%s downs the %s — +%.0f%% ATK and %.0f%% harder to hurt for %d turns." \
+			% [minion.name, consumable.name, consumable.magnitude, consumable.magnitude, consumable.duration_turns])
+	elif consumable.use_effect == Ids.CONSUME_POISON_WEAKEN:
+		var wtarget = _default_target()
+		if wtarget < 0: return
+		var wfocus: Dictionary = enemies[wtarget]
+		wfocus["poison_dmg"] = consumable.magnitude
+		wfocus["poison_turns"] = consumable.duration_turns
+		wfocus["weak_mult"] = 1.0 - consumable.secondary_magnitude / 100.0
+		wfocus["weak_turns"] = consumable.duration_turns
+		_log("%s shatters the %s — %s is POISONED (%d dmg) and WEAKENED (-%.0f%% ATK) for %d of its turns." \
+			% [minion.name, consumable.name, wfocus["name"], int(consumable.magnitude),
+			consumable.secondary_magnitude, consumable.duration_turns])
+	elif consumable.use_effect == Ids.CONSUME_REVIVE_ONCE:
+		if float(member.get("potion_revive_pct", 0.0)) > 0.0: return  # already anointed
+		member["potion_revive_pct"] = consumable.magnitude
+		_log("%s is dusted with the %s — the next fall this battle won't be its last." \
+			% [minion.name, consumable.name])
+	else:
+		return  # not a combat effect; the menu never offers these
+
+	InventoryManager.remove_item(consumable.id, 1)
+	AudioManager.play_sfx(Ids.SFX_POTION)
+	_end_member_turn(member_idx)
+
+## Combat-usable consumables currently in the pack: Array of {item, count}.
+func _held_combat_items() -> Array:
+	var held: Array = []
+	for item_id in GameManager.item_db:
+		var item = GameManager.item_db[item_id]
+		if item is Consumable and item.is_combat_usable():
+			var count = InventoryManager.get_item_count(item_id)
+			if count > 0:
+				held.append({"item": item, "count": count})
+	held.sort_custom(func(a, b): return a["item"].name < b["item"].name)
+	return held
+
 func _flee() -> void:
 	fight_state = "idle"
+	item_menu_open = false
 	_log("The warband withdraws.")
 	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)
 
@@ -368,13 +465,35 @@ func _enemy_act(enemy_idx: int) -> void:
 	var foe = enemies[enemy_idx]
 	foe["charge"] = 0.0
 
+	# Venom (consumable): the poison bites as the foe stirs, BEFORE it acts —
+	# a poisoned foe can die winding up. Ignores rage and guard entirely.
+	if int(foe.get("poison_turns", 0)) > 0:
+		var venom = maxi(1, int(round(float(foe.get("poison_dmg", 0.0)))))
+		foe["hp"] = maxi(foe["hp"] - venom, 0)
+		foe["poison_turns"] = int(foe["poison_turns"]) - 1
+		_check_boss_enrage(foe)
+		if foe["hp"] <= 0:
+			_log("%s succumbs to the venom (%d) — it falls!" % [foe["name"], venom])
+			if _all_enemies_down():
+				_enter_victory()
+			else:
+				action_beat = BEAT_SECONDS
+				_refresh_all()
+			return
+
+	# Widow's Phial (consumable): a weakened foe's blows land softer.
+	var weak := 1.0
+	if int(foe.get("weak_turns", 0)) > 0:
+		weak = float(foe.get("weak_mult", 1.0))
+		foe["weak_turns"] = int(foe["weak_turns"]) - 1
+
 	if foe["is_boss"] and foe["telegraph"] != "":
 		# The telegraphed slam: everyone standing takes a share.
 		foe["telegraph"] = ""
 		var hits: Array = []
 		for member in party:
 			if member["hp"] <= 0: continue
-			var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"] * BOSS_SLAM_MULT)
+			var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"] * weak * BOSS_SLAM_MULT)
 			hits.append(str(dmg))
 		_log("%s! The whole warband takes %s.%s" % [foe["slam_name"], " / ".join(hits), _revive_note()])
 	else:
@@ -395,7 +514,7 @@ func _enemy_act(enemy_idx: int) -> void:
 		var victim_idx: int = pool[randi() % pool.size()]
 		var member = party[victim_idx]
 		var minion = MinionManager.find_minion_by_id(member["minion_id"])
-		var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"])
+		var dmg = _apply_party_damage(member, foe["atk"] * foe["rage"] * weak)
 		if member["hp"] <= 0:
 			_log("%s savages %s for %d — it collapses!" % [foe["name"], minion.name, dmg])
 		else:
@@ -420,15 +539,25 @@ func _enemy_act(enemy_idx: int) -> void:
 
 ## Applies damage to a member (guard halves it). Returns the damage dealt.
 ## A minion with the Revive rune (minion_revive) cheats death once per fight,
-## rising at 25% HP instead of falling.
+## rising at 25% HP instead of falling. Sexton's Ashes (consumable) grant one
+## more such rise, at the potion's own percentage.
 func _apply_party_damage(member: Dictionary, base: float) -> int:
+	# Warden's Draught (consumable): blows land softer while its turns last.
+	if int(member.get("dr_turns", 0)) > 0:
+		base *= float(member.get("dr_mult", 1.0))
 	var dmg = _roll_damage(base, GUARD_REDUCTION if member["guarding"] else 1.0)
 	member["hp"] = maxi(member["hp"] - dmg, 0)
+	_spawn_damage_number(dmg, true)
+	_flash_area(party_row)
 	if member["hp"] <= 0 and not member.get("revived", false) \
 			and MinionManager.get_minion_effect(member["minion_id"], Ids.MINION_REVIVE) > 0.0:
 		member["revived"] = true
 		member["revived_now"] = true
 		member["hp"] = maxi(1, int(round(float(member["max_hp"]) * 0.25)))
+	if member["hp"] <= 0 and float(member.get("potion_revive_pct", 0.0)) > 0.0:
+		member["revived_now"] = true
+		member["hp"] = maxi(1, int(round(float(member["max_hp"]) * float(member["potion_revive_pct"]) / 100.0)))
+		member["potion_revive_pct"] = 0.0
 	AudioManager.play_sfx(Ids.SFX_COMBAT_HIT)
 	return dmg
 
@@ -487,6 +616,12 @@ func _enter_victory() -> void:
 			InventoryManager.add_item(drop.item, amount)
 			NotificationManager.show_item(drop.item.name, amount, drop.item)
 	GameManager.gold_coins += gold
+	AudioManager.play_sfx(Ids.SFX_VICTORY_STING)
+	StatsManager.bump(StatsManager.STAT_FIGHTS_WON)
+	if is_boss_fight:
+		StatsManager.bump(StatsManager.STAT_BOSSES_SLAIN)
+	if gold > 0:
+		StatsManager.bump(StatsManager.STAT_GOLD_EARNED, gold)
 
 	var survivors: Array = []
 	for member in party:
@@ -503,7 +638,16 @@ func _enter_victory() -> void:
 func _enter_defeat() -> void:
 	fight_state = "defeat"
 	waiting_for_command = false
-	_log("The warband is broken. The dead will rise again — at home.")
+	item_menu_open = false
+	# The defeat cost (DEP-2): every mustered minion is EXHAUSTED — it must
+	# rest out the timer, be roused with gold, or take a Grave Tonic before
+	# fighting again. Retrying a boss is no longer free.
+	for member in party:
+		MinionManager.exhaust(member["minion_id"])
+	StatsManager.bump(StatsManager.STAT_FIGHTS_LOST)
+	AudioManager.play_sfx(Ids.SFX_DEFEAT_STING)
+	_log("The warband is broken — exhausted, it crawls home to rest (%d min)." % int(MinionManager.EXHAUST_MINUTES))
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	_refresh_all()
 
 # =====================================================================
@@ -531,6 +675,7 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 		enemies.append({
 			"name": enemy.name,
 			"glyph": enemy.glyph,
+			"icon": enemy.icon,
 			"hp": enemy.base_hp,
 			"max_hp": enemy.base_hp,
 			"atk": enemy.atk,
@@ -544,6 +689,12 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 			"segments_broken": 0,
 			# Sunder (Rending Claws): turns of +SUNDER_BONUS damage taken remaining.
 			"sunder": 0,
+			# Venom (consumable): damage per its turn + turns remaining.
+			"poison_dmg": 0.0,
+			"poison_turns": 0,
+			# Widow's Phial (consumable): weakened blows + turns remaining.
+			"weak_mult": 1.0,
+			"weak_turns": 0,
 			"xp": enemy.xp_reward,
 			"gold_min": enemy.gold_min,
 			"gold_max": enemy.gold_max,
@@ -552,12 +703,14 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 
 	party.clear()
 	used_actives.clear()
+	# Muster the slotted warband, minus anyone exhausted (DEP-2). If no plots
+	# are filled, fall back to every battle-ready raised minion.
 	var ids: Array = []
 	for minion_id in MinionManager.plots:
-		if minion_id != "" and not ids.has(minion_id):
+		if minion_id != "" and not ids.has(minion_id) and not MinionManager.is_exhausted(minion_id):
 			ids.append(minion_id)
 	if ids.is_empty():
-		ids = MinionManager.sorted_ids(true)
+		ids = MinionManager.battle_ready_ids()
 	for minion_id in ids:
 		var minion = MinionManager.find_minion_by_id(minion_id)
 		party.append({
@@ -571,6 +724,14 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 			"guarding": false,
 			"revived": false,
 			"frenzy_stacks": 0,
+			# War draught (consumable) state: multiplier + its remaining turns.
+			"atk_up_mult": 1.0,
+			"atk_up_turns": 0,
+			# Warden's Draught (consumable): damage taken multiplier + turns.
+			"dr_mult": 1.0,
+			"dr_turns": 0,
+			# Sexton's Ashes (consumable): rise-once HP % (0 = not anointed).
+			"potion_revive_pct": 0.0,
 		})
 
 	target_index = 0
@@ -668,16 +829,7 @@ func _build_shell() -> void:
 
 	var command_panel = PanelContainer.new()
 	command_panel.custom_minimum_size = Vector2(MENU_W, 0)
-	var cstyle := StyleBoxFlat.new()
-	cstyle.bg_color = COL_STRIP
-	cstyle.set_border_width_all(1)
-	cstyle.border_color = COL_EDGE
-	cstyle.set_corner_radius_all(8)
-	cstyle.content_margin_left = 12
-	cstyle.content_margin_right = 12
-	cstyle.content_margin_top = 9
-	cstyle.content_margin_bottom = 9
-	command_panel.add_theme_stylebox_override("panel", cstyle)
+	command_panel.add_theme_stylebox_override("panel", _panel_style(12, 9))
 	bottom.add_child(command_panel)
 
 	command_holder = VBoxContainer.new()
@@ -812,12 +964,22 @@ func _make_enemy_card(index: int) -> Button:
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(col)
 
-	var glyph = Label.new()
-	glyph.text = foe["glyph"]
-	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	glyph.add_theme_font_size_override("font_size", 42)
-	glyph.add_theme_color_override("font_color", COL_RUST)
-	col.add_child(glyph)
+	# Portrait when the foe has one (P8); the old text glyph as fallback.
+	if foe.get("icon") != null:
+		var pic = TextureRect.new()
+		pic.texture = foe["icon"]
+		pic.custom_minimum_size = Vector2(56, 56)
+		pic.expand_mode = 1
+		pic.stretch_mode = 5
+		pic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		col.add_child(pic)
+	else:
+		var glyph = Label.new()
+		glyph.text = foe["glyph"]
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.add_theme_font_size_override("font_size", 42)
+		glyph.add_theme_color_override("font_color", COL_RUST)
+		col.add_child(glyph)
 
 	var name_lbl = Label.new()
 	name_lbl.text = foe["name"]
@@ -834,6 +996,14 @@ func _make_enemy_card(index: int) -> Button:
 		sunder_lbl.add_theme_font_size_override("font_size", 10)
 		sunder_lbl.add_theme_color_override("font_color", COL_VIOLET)
 		col.add_child(sunder_lbl)
+
+	if not dead and int(foe.get("poison_turns", 0)) > 0:
+		var poison_lbl = Label.new()
+		poison_lbl.text = "☠ POISONED %d×%d" % [int(foe.get("poison_dmg", 0.0)), int(foe["poison_turns"])]
+		poison_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		poison_lbl.add_theme_font_size_override("font_size", 10)
+		poison_lbl.add_theme_color_override("font_color", COL_GREEN)
+		col.add_child(poison_lbl)
 
 	col.add_child(_make_bar(float(foe["hp"]) / float(foe["max_hp"]), COL_RUST, 8))
 
@@ -867,10 +1037,19 @@ func _make_boss_banner(foe: Dictionary) -> PanelContainer:
 	banner.add_child(col)
 
 	var top = HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
 	col.add_child(top)
+	if foe.get("icon") != null:
+		var pic = TextureRect.new()
+		pic.texture = foe["icon"]
+		pic.custom_minimum_size = Vector2(44, 44)
+		pic.expand_mode = 1
+		pic.stretch_mode = 5
+		top.add_child(pic)
 	var name_lbl = Label.new()
-	name_lbl.text = "%s %s" % [foe["glyph"], foe["name"]]
+	name_lbl.text = foe["name"] if foe.get("icon") != null else "%s %s" % [foe["glyph"], foe["name"]]
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.theme_type_variation = &"HeaderLabel"
 	name_lbl.add_theme_font_size_override("font_size", 20)
 	name_lbl.add_theme_color_override("font_color", COL_RUST_TEXT)
 	top.add_child(name_lbl)
@@ -914,6 +1093,12 @@ func _make_boss_banner(foe: Dictionary) -> PanelContainer:
 		sund.add_theme_font_size_override("font_size", 11)
 		sund.add_theme_color_override("font_color", COL_VIOLET)
 		foot.add_child(sund)
+	if int(foe.get("poison_turns", 0)) > 0:
+		var pois = Label.new()
+		pois.text = "   ☠ poisoned %d×%d" % [int(foe.get("poison_dmg", 0.0)), int(foe["poison_turns"])]
+		pois.add_theme_font_size_override("font_size", 11)
+		pois.add_theme_color_override("font_color", COL_GREEN)
+		foot.add_child(pois)
 
 	# The boss's own turn gauge: its next move is always visibly coming.
 	var turn_row = HBoxContainer.new()
@@ -945,21 +1130,73 @@ func _rebuild_command_panel() -> void:
 				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)))
 		"defeat":
 			command_holder.add_child(_menu_header("DEFEAT"))
+			# The between-fights heal (DEP-2): pay gold or spend a Grave Tonic
+			# to rouse the exhausted warband instead of waiting out the rest.
+			var exhausted: Array = []
+			for member in party:
+				if MinionManager.is_exhausted(member["minion_id"]):
+					exhausted.append(member["minion_id"])
+			if not exhausted.is_empty():
+				var revive_cost = REVIVE_GOLD_PER_MINION * exhausted.size()
+				var can_pay = GameManager.gold_coins >= revive_cost
+				command_holder.add_child(_menu_row("Rouse all — %d g" % revive_cost, false, can_pay, func():
+					GameManager.gold_coins -= revive_cost
+					for minion_id in exhausted:
+						MinionManager.cure_exhaustion(minion_id)
+					_log("Coin and candle-smoke — the warband stirs, ready again.")
+					get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+					_rebuild_command_panel()))
+				var tonic = _held_tonic()
+				if tonic != null:
+					var tonic_count = InventoryManager.get_item_count(tonic.id)
+					command_holder.add_child(_menu_row("%s ×%d — rouse one" % [tonic.name, tonic_count], false, true, func():
+						InventoryManager.remove_item(tonic.id, 1)
+						MinionManager.cure_exhaustion(exhausted[0])
+						_log("%s takes the tonic and stands." % MinionManager.find_minion_by_id(exhausted[0]).name)
+						get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+						_rebuild_command_panel()))
 			command_holder.add_child(_menu_row("Retreat", true, true, func():
 				fight_state = "idle"
 				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)))
 		_:
 			var can_command = waiting_for_command and not auto_mode
+			if item_menu_open and can_command:
+				# The Item submenu: one row per held combat consumable.
+				command_holder.add_child(_menu_header("USE ITEM"))
+				for entry in _held_combat_items():
+					var consumable: Consumable = entry["item"]
+					var row = _menu_row("%s ×%d" % [consumable.name, entry["count"]], false, true, func():
+						_execute_item(acting_index, consumable))
+					row.tooltip_text = consumable.description
+					command_holder.add_child(row)
+				command_holder.add_child(_menu_row("Back", false, true, func():
+					item_menu_open = false
+					_rebuild_command_panel()))
+				return
 			command_holder.add_child(_menu_header("%s ACTS" % _actor_name().to_upper() if can_command else "AWAITING"))
 			command_holder.add_child(_menu_row("Attack", true, can_command, func():
 				_execute_attack(acting_index, _default_target(), 1.0, "")))
 			command_holder.add_child(_menu_row("Guard", false, can_command, func():
 				_execute_guard(acting_index)))
+			if not _held_combat_items().is_empty():
+				command_holder.add_child(_menu_row("Item", false, can_command, func():
+					item_menu_open = true
+					_rebuild_command_panel()))
 			command_holder.add_child(_menu_row("Flee", false, true, _flee))
+
+## The first exhaustion-curing consumable held, or null.
+func _held_tonic() -> Consumable:
+	for item_id in GameManager.item_db:
+		var item = GameManager.item_db[item_id]
+		if item is Consumable and item.use_effect == Ids.CONSUME_CURE_EXHAUSTION \
+				and InventoryManager.get_item_count(item_id) > 0:
+			return item
+	return null
 
 func _menu_header(text: String) -> Label:
 	var header = Label.new()
 	header.text = text
+	header.theme_type_variation = &"SectionLabel"
 	header.add_theme_font_size_override("font_size", 10)
 	header.add_theme_color_override("font_color", COL_GOLD)
 	return header
@@ -1108,6 +1345,13 @@ func _make_active_card(index: int) -> PanelContainer:
 		guard.add_theme_font_size_override("font_size", 11)
 		guard.add_theme_color_override("font_color", COL_GREEN)
 		actions.add_child(guard)
+	if int(member.get("atk_up_turns", 0)) > 0:
+		var surge = Label.new()
+		surge.text = "⚔ +%.0f%% (%d)" % [(float(member.get("atk_up_mult", 1.0)) - 1.0) * 100.0, int(member["atk_up_turns"])]
+		surge.tooltip_text = "War draught: attack surge, turns remaining"
+		surge.add_theme_font_size_override("font_size", 11)
+		surge.add_theme_color_override("font_color", COL_GOLD)
+		actions.add_child(surge)
 	var any_active := false
 	for ability in minion.abilities:
 		if ability == null or ability.kind != MinionAbility.Kind.ACTIVE: continue
@@ -1156,16 +1400,7 @@ func _make_rune_chip(member_idx: int, minion: Minion, ability: MinionAbility) ->
 func _make_squad_panel() -> PanelContainer:
 	var panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(SQUAD_W, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = COL_STRIP
-	style.set_border_width_all(1)
-	style.border_color = COL_EDGE
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", _panel_style(12, 8))
 
 	var col = VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1214,6 +1449,30 @@ func _make_squad_row(index: int) -> HBoxContainer:
 
 # --- Small pieces ---
 
+## The engraved card texture as a panel style (flat fallback if it's missing).
+func _panel_style(margin_h: float, margin_v: float) -> StyleBox:
+	var style: StyleBox
+	if ResourceLoader.exists("res://theme/textures/panel_card.png"):
+		var tex := StyleBoxTexture.new()
+		tex.texture = load("res://theme/textures/panel_card.png")
+		tex.texture_margin_left = 20.0
+		tex.texture_margin_top = 20.0
+		tex.texture_margin_right = 20.0
+		tex.texture_margin_bottom = 20.0
+		style = tex
+	else:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = COL_STRIP
+		flat.set_border_width_all(1)
+		flat.border_color = COL_EDGE
+		flat.set_corner_radius_all(8)
+		style = flat
+	style.content_margin_left = margin_h
+	style.content_margin_right = margin_h
+	style.content_margin_top = margin_v
+	style.content_margin_bottom = margin_v
+	return style
+
 func _hp_color(member: Dictionary) -> Color:
 	var frac = float(member["hp"]) / float(member["max_hp"])
 	if frac <= 0.2: return COL_RUST
@@ -1248,6 +1507,43 @@ func _on_auto_toggled(pressed: bool) -> void:
 		waiting_for_command = false
 	_refresh_all()
 	_log("The dead take matters into their own hands." if auto_mode else "You take command once more.")
+
+# --- Feel (P2c): damage numbers + hit flashes -------------------------
+
+## Floats a damage number up from the struck side (rust over the warband,
+## gold over the foes). No-ops when the view isn't on screen (headless tests,
+## background sims) — feel is presentation only.
+func _spawn_damage_number(amount: int, hit_party: bool) -> void:
+	if not is_inside_tree() or not visible or not is_visible_in_tree():
+		return
+	var anchor: Control = party_row if hit_party else enemy_holder
+	if anchor == null or not anchor.is_inside_tree():
+		return
+	var popup = Label.new()
+	popup.text = "-%d" % amount
+	popup.add_theme_font_size_override("font_size", 22)
+	popup.add_theme_color_override("font_color", COL_RUST if hit_party else COL_GOLD)
+	popup.z_index = 50
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	var rect = anchor.get_global_rect()
+	popup.global_position = Vector2(
+		rect.get_center().x + randf_range(-90.0, 90.0),
+		rect.get_center().y - 14.0)
+	var tween = create_tween().set_parallel(true)
+	tween.tween_property(popup, "global_position:y", popup.global_position.y - 46.0, 0.7) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(popup.queue_free)
+
+## A one-beat brightness pop on the struck side of the field.
+func _flash_area(area: Control) -> void:
+	if area == null or not area.is_inside_tree() or not is_visible_in_tree():
+		return
+	area.modulate = Color(1.35, 1.2, 1.2)
+	var tween = create_tween()
+	tween.tween_property(area, "modulate", Color.WHITE, 0.25) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _log(text: String) -> void:
 	if log_label:

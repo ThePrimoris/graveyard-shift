@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/beryl_signet.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_beryl_signet"
+name = "Beryl Signet"
+description = "Seat a sea-green cluster in a scavenged band."
+inputs = {"beryl_cluster": 4, "nickel_granule": 5, "pyrite_dust": 3}
+output_item = ExtResource("2_out")
+required_level = 18
+base_seconds = 10.0
+base_xp = 28.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

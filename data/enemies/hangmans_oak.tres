@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/heartwood_core.tres" id="3_l0"]
 [ext_resource type="Resource" path="res://data/items/materials/raven_quill.tres" id="3_l1"]
+[ext_resource type="Texture2D" path="res://icons/enemies/hangmans_oak.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
@@ -23,6 +24,7 @@ max_amount = 6
 script = ExtResource("1_enemy")
 id = "hangmans_oak"
 name = "The Hangman's Oak"
+icon = ExtResource("9_icon")
 glyph = "†"
 description = "A gallows-tree that fed on the hanged for centuries. Its boughs still reach."
 base_hp = 1200

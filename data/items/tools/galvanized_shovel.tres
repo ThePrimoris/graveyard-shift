@@ -9,6 +9,7 @@ icon = ExtResource("9_icon")
 tool_tier = 1
 speed_multiplier = 1.1
 id = "galvanized_shovel"
+rarity = 1
 name = "Steel Shovel"
 type = 1
 description = "A galvanized steel shovel."

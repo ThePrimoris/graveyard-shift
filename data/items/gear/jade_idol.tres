@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/jade_idol.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "jade_idol"
+name = "Jade Idol"
+description = "A pocket god of living jade. It feeds its bearer a sliver of every wound dealt."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 200
+rarity = 3
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 15
+passive_effect = "minion_lifesteal_pct"
+passive_magnitude = 12.0
+metadata/_custom_type_script = "res://data/GearData.gd"

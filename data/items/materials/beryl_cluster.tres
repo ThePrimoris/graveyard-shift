@@ -10,3 +10,4 @@ name = "Beryl Cluster"
 description = "A cluster of pale sea-green crystals."
 icon = ExtResource("2_icon")
 sell_value = 55
+rarity = 2

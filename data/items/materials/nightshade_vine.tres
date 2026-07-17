@@ -10,3 +10,4 @@ name = "Nightshade Vine"
 description = "A creeping vine heavy with dark, toxic berries."
 icon = ExtResource("2_icon")
 sell_value = 20
+rarity = 1

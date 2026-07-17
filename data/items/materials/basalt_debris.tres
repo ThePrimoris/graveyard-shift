@@ -10,3 +10,4 @@ name = "Basalt Debris"
 description = "Fractured volcanic basalt from the chasm walls."
 icon = ExtResource("2_icon")
 sell_value = 18
+rarity = 1

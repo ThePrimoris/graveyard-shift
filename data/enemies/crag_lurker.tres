@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/resonant_geode.tres" id="3_l0"]
 [ext_resource type="Resource" path="res://data/items/materials/beryl_cluster.tres" id="3_l1"]
+[ext_resource type="Texture2D" path="res://icons/enemies/crag_lurker.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
@@ -23,6 +24,7 @@ max_amount = 4
 script = ExtResource("1_enemy")
 id = "crag_lurker"
 name = "The Crag Lurker"
+icon = ExtResource("9_icon")
 glyph = "🪨"
 base_hp = 210
 atk = 9.5

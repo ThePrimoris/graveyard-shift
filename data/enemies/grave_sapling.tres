@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/rotten_logs.tres" id="3_l0"]
+[ext_resource type="Texture2D" path="res://icons/enemies/grave_sapling.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
@@ -15,6 +16,7 @@ max_amount = 2
 script = ExtResource("1_enemy")
 id = "grave_sapling"
 name = "Grave Sapling"
+icon = ExtResource("9_icon")
 glyph = "🌱"
 base_hp = 14
 atk = 2.5

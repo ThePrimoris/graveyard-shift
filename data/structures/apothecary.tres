@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="Structure" format=3]
+
+[ext_resource type="Script" path="res://data/StructureData.gd" id="1_struct"]
+[ext_resource type="Script" path="res://data/StructureTierData.gd" id="2_tier"]
+
+[sub_resource type="Resource" id="T0"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"velvet_moss": 25, "pale_lichen": 15})
+gold = 150
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"poison_thorns": 20, "briar_blossom": 12})
+gold = 400
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"nightshade_vine": 18, "amber_droplet": 12})
+gold = 800
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"silken_husk": 10, "bloodsap_resin": 8})
+gold = 1400
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T4"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"thornheart_bud": 6, "heartwood_core": 2})
+gold = 2200
+magnitude = 10.0
+
+[resource]
+script = ExtResource("1_struct")
+id = "apothecary"
+name = "The Apothecary"
+description = "A lean-to of copper stills and hanging herbs. Its heat and tooling quicken every brew at the Caretaker's Still."
+sort_order = 8
+effect = "alchemy_speed_pct"
+effect_unit = "%"
+effect_label = "brew speed"
+grid_cell = Vector2i(2, 4)
+footprint = Vector2i(1, 1)
+tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

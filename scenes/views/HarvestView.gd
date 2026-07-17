@@ -12,8 +12,11 @@ const ACTION_CARD_SCENE = preload("res://scenes/cards/ActionCard.tscn")
 
 var action_verb: String = "Harvest"
 var progress_color: Color = Color("#c8a24d")
-## Ambient page tint behind the cards, one flavour per skill.
+## Ambient page tint behind the cards, one flavour per skill (fallback when
+## the backdrop image is missing).
 var ambience: Color = Color(0.043, 0.039, 0.063)
+## The painted scene behind this skill's page (theme/backdrops/*.png).
+var backdrop: String = "res://theme/backdrops/bg_graveyard.png"
 
 var current_zone: int = 0
 var display_nodes: Array = []
@@ -44,12 +47,19 @@ func _ready() -> void:
 	_build_zone_selector()
 	_select_zone(0)
 
-## Tints the whole page in the skill's flavour so the cards sit on a
-## scene-coloured backdrop instead of flat chrome. Preserves the view's
-## content margins (sidebar clearance, plots bar clearance).
+## Puts the skill's painted scene behind the page (P8) — falling back to a
+## flat flavour tint if the image is missing. Preserves the view's content
+## margins (sidebar clearance, plots bar clearance).
 func _apply_ambience() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = ambience
+	var style: StyleBox
+	if ResourceLoader.exists(backdrop):
+		var tex := StyleBoxTexture.new()
+		tex.texture = load(backdrop)
+		style = tex
+	else:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = ambience
+		style = flat
 	var previous := get_theme_stylebox("panel")
 	if previous:
 		style.content_margin_left = previous.content_margin_left
@@ -172,6 +182,14 @@ func _on_boss_confront(node_data: HarvestNode) -> void:
 		return
 	if MinionManager.roster.is_empty():
 		NotificationManager.show_item("You need a warband — raise minions in the Necronomicon first", 1)
+		return
+	# Exhaustion (DEP-2): a broken warband can't march straight back in.
+	if MinionManager.battle_ready_ids().is_empty():
+		var soonest := INF
+		for minion_id in MinionManager.roster:
+			soonest = minf(soonest, MinionManager.exhaustion_left(minion_id))
+		NotificationManager.show_item("The warband is exhausted — rest %d more minute(s), pay to rouse them, or brew a tonic" \
+			% maxi(1, int(ceil(soonest / 60.0))), 1)
 		return
 	var combat_view = get_tree().get_first_node_in_group(Ids.GROUP_COMBAT_VIEWS)
 	if combat_view == null: return

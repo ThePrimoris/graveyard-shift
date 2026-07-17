@@ -4,6 +4,8 @@
 [ext_resource type="Texture2D" path="res://icons/skills/graverobbing.png" id="ic_graverobbing"]
 [ext_resource type="Texture2D" path="res://icons/skills/lumbering.png" id="ic_lumbering"]
 [ext_resource type="Texture2D" path="res://icons/skills/spelunking.png" id="ic_spelunking"]
+[ext_resource type="Texture2D" path="res://icons/skills/alchemy.png" id="ic_alchemy"]
+[ext_resource type="Texture2D" path="res://icons/skills/forge.png" id="ic_forge"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grave"]
 content_margin_left = 12.0
@@ -78,6 +80,58 @@ content_margin_bottom = 10.0
 bg_color = Color(0.125, 0.113, 0.17, 1)
 border_width_left = 4
 border_color = Color(0.58, 0.7, 0.86, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_alchemy"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.078, 0.071, 0.11, 1)
+border_width_left = 4
+border_color = Color(0.373, 0.682, 0.561, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_alchemy_hover"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.125, 0.113, 0.17, 1)
+border_width_left = 4
+border_color = Color(0.46, 0.78, 0.65, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_forge"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.078, 0.071, 0.11, 1)
+border_width_left = 4
+border_color = Color(0.753, 0.541, 0.29, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_forge_hover"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.125, 0.113, 0.17, 1)
+border_width_left = 4
+border_color = Color(0.85, 0.64, 0.38, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -199,6 +253,72 @@ text = "(1/100)"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+[node name="Alchemy" type="Button" parent="VBoxContainer/MarginContainer/SkillList"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_alchemy")
+theme_override_styles/hover = SubResource("StyleBoxFlat_alchemy_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_alchemy_hover")
+theme_override_font_sizes/font_size = 16
+icon = ExtResource("ic_alchemy")
+expand_icon = true
+alignment = 0
+text = "Alchemy"
+
+[node name="AlchemyXPLabel" type="Label" parent="VBoxContainer/MarginContainer/SkillList/Alchemy"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = -10.0
+offset_right = -10.0
+offset_bottom = 10.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "(1/100)"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Forge" type="Button" parent="VBoxContainer/MarginContainer/SkillList"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_forge")
+theme_override_styles/hover = SubResource("StyleBoxFlat_forge_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_forge_hover")
+theme_override_font_sizes/font_size = 16
+icon = ExtResource("ic_forge")
+expand_icon = true
+alignment = 0
+text = "Forge"
+
+[node name="ForgeXPLabel" type="Label" parent="VBoxContainer/MarginContainer/SkillList/Forge"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = -10.0
+offset_right = -10.0
+offset_bottom = 10.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 13
+text = "(1/100)"
+horizontal_alignment = 2
+vertical_alignment = 1
+
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer" unique_id=1455638801]
 layout_mode = 2
 
@@ -216,3 +336,11 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
 text = "Gold: 0"
+
+[node name="RestorationLabel" type="Label" parent="VBoxContainer/CurrencyMargin/CurrencyBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.565, 0.66, 1)
+theme_override_font_sizes/font_size = 12
+tooltip_text = "How much of the graveyard you have reclaimed: structures raised, skills mastered, minions raised, bosses laid to rest."
+text = "Restored: 0%"

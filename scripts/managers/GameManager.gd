@@ -21,7 +21,9 @@ const PATH_PICKAXE = "res://data/items/tools/rusty_pickaxe.tres"
 
 const ITEM_DIRS: Array[String] = [
 	"res://data/items/materials/",
-	"res://data/items/tools/"
+	"res://data/items/tools/",
+	"res://data/items/consumables/",
+	"res://data/items/gear/"
 ]
 const NODE_DIRS: Array[String] = [
 	"res://data/nodes/graves/",
@@ -38,7 +40,6 @@ var gold_coins: int = 0
 # Auto-populated registries so any system can look content up by id.
 var item_db: Dictionary = {}          # item_id -> Item resource
 var node_db: Dictionary = {}          # node_id -> HarvestNode resource
-var nodes_by_skill: Dictionary = {}   # skill_key -> Array[HarvestNode]
 var encounter_db: Dictionary = {}     # encounter_id -> Encounter resource
 
 enum SkillType { GRAVEROBBING, LUMBERING, SPELUNKING }
@@ -48,8 +49,15 @@ const MAX_LEVEL: int = 100
 var skills: Dictionary = {
 	Ids.SKILL_GRAVEROBBING: {"level": 1, "xp": 0.0},
 	Ids.SKILL_LUMBERING: {"level": 1, "xp": 0.0},
-	Ids.SKILL_SPELUNKING: {"level": 1, "xp": 0.0}
+	Ids.SKILL_SPELUNKING: {"level": 1, "xp": 0.0},
+	# Production skills (P3/P5): leveled via crafting stations, not nodes.
+	Ids.SKILL_ALCHEMY: {"level": 1, "xp": 0.0},
+	Ids.SKILL_FORGE: {"level": 1, "xp": 0.0}
 }
+
+## Gather elixirs (P3): effect id -> {"magnitude": float, "until": unix ts}.
+## One buff per effect channel; drinking again refreshes/replaces it.
+var active_buffs: Dictionary = {}
 
 func _ready() -> void:
 	_build_item_database()
@@ -77,6 +85,7 @@ func reset_state() -> void:
 	active_node_data = null
 	inventory.clear()
 	equipped_tools.clear()
+	active_buffs.clear()
 	for skill_name in skills.keys():
 		skills[skill_name] = {"level": 1, "xp": 0.0}
 	_setup_starting_equipment()
@@ -92,15 +101,10 @@ func _build_item_database() -> void:
 
 func _build_node_registry() -> void:
 	node_db.clear()
-	nodes_by_skill.clear()
 	for dir_path in NODE_DIRS:
 		for res in _load_resources_in_dir(dir_path):
 			if res is HarvestNode and res.id != "":
 				node_db[res.id] = res
-				var skill_key = get_skill_key(res)
-				if not nodes_by_skill.has(skill_key):
-					nodes_by_skill[skill_key] = []
-				nodes_by_skill[skill_key].append(res)
 
 func _load_resources_in_dir(dir_path: String) -> Array:
 	var result: Array = []
@@ -111,8 +115,11 @@ func _load_resources_in_dir(dir_path: String) -> Array:
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".tres"):
-			var res = load(dir_path + file_name.replace(".remap", ""))
+		# Exported builds list text resources as "<name>.tres.remap"; trim the
+		# suffix so they still match, and load the original path (Godot remaps it).
+		var res_file = file_name.trim_suffix(".remap")
+		if not dir.current_is_dir() and res_file.ends_with(".tres"):
+			var res = load(dir_path + res_file)
 			if res:
 				result.append(res)
 		file_name = dir.get_next()
@@ -155,12 +162,6 @@ func _setup_starting_equipment() -> void:
 
 func get_equipped_tool(type_enum: int) -> ToolData:
 	return equipped_tools.get(type_enum, null)
-
-func owns_tool(tool_id: String) -> bool:
-	for t in inventory:
-		if t is ToolData and t.id == tool_id:
-			return true
-	return false
 
 ## The tool that represents this type's current progression tier.
 func get_current_tool_of_type(type_enum: int) -> ToolData:
@@ -341,6 +342,11 @@ func get_gather_modifiers(node: HarvestNode) -> Dictionary:
 	mods.rare_add += GroundsManager.get_bonus(Ids.EFFECT_RARE_CHANCE_PCT) / 100.0
 	mods.double_chance += GroundsManager.get_bonus(Ids.EFFECT_DOUBLE_DROP_PCT) / 100.0
 
+	# Brewed buffs (P3): short-lived elixir/incense channels, same spice again.
+	mods.xp_mult += get_buff_bonus(Ids.EFFECT_HARVEST_XP_PCT) / 100.0
+	mods.rare_add += get_buff_bonus(Ids.EFFECT_RARE_CHANCE_PCT) / 100.0
+	mods.double_chance += get_buff_bonus(Ids.EFFECT_DOUBLE_DROP_PCT) / 100.0
+
 	# Node affix: a penalty the node imposes on the loop (applied after bonuses,
 	# so a rich tool can soften but not erase it). (if/elif rather than match so
 	# the Ids.AFFIX_* constants are plain runtime comparisons, not const patterns.)
@@ -359,6 +365,32 @@ func get_effective_duration(node: HarvestNode) -> float:
 	if not SPEED_BONUSES_ENABLED:
 		return node.base_duration
 	return node.base_duration / get_gather_modifiers(node).speed_mult
+
+# --- Timed gather buffs (P3 elixirs) ---
+
+## Lays a timed buff on an effect channel (replacing any previous one there).
+func apply_timed_buff(effect: String, magnitude: float, minutes: float) -> void:
+	active_buffs[effect] = {
+		"magnitude": magnitude,
+		"until": Time.get_unix_time_from_system() + minutes * 60.0,
+	}
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+
+## The live buff magnitude for an effect channel; expired buffs are pruned.
+func get_buff_bonus(effect: String) -> float:
+	if not active_buffs.has(effect):
+		return 0.0
+	var buff = active_buffs[effect]
+	if Time.get_unix_time_from_system() >= float(buff.get("until", 0.0)):
+		active_buffs.erase(effect)
+		return 0.0
+	return float(buff.get("magnitude", 0.0))
+
+## Seconds a channel's buff has left (0 = none) — for UI readouts.
+func buff_seconds_left(effect: String) -> float:
+	if not active_buffs.has(effect):
+		return 0.0
+	return maxf(0.0, float(active_buffs[effect].get("until", 0.0)) - Time.get_unix_time_from_system())
 
 # --- Skills / XP ---
 
@@ -577,11 +609,16 @@ func accrue_offline(node: HarvestNode, seconds: float) -> Dictionary:
 				gains[item_id] = gains.get(item_id, 0) + loot[item_id]
 		xp_total += node.base_xp * mods.xp_mult
 
-	# Bank in one pass (overflow past a full pack is simply lost — a reason to
-	# raise the Ossuary), then grant the XP once.
+	# Bank in one pass, then grant the XP once. Overflow past a full pack is
+	# lost (a reason to raise the Ossuary) but COUNTED, so the welcome-back
+	# summary can say so instead of losing it silently.
+	var lost := 0
 	for item_id in gains:
 		var item = find_item_by_id(item_id)
 		if item:
-			InventoryManager.add_item(item, gains[item_id])
+			var overflow = InventoryManager.add_item(item, gains[item_id])
+			if overflow > 0:
+				lost += overflow
+				gains[item_id] -= overflow
 	add_xp(get_skill_key(node), xp_total)
-	return {"gains": gains, "xp": xp_total, "harvests": harvests, "seconds": seconds}
+	return {"gains": gains, "xp": xp_total, "harvests": harvests, "seconds": seconds, "lost": lost}

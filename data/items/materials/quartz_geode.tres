@@ -10,3 +10,4 @@ name = "Quartz Geode"
 description = "A hollow stone lined with clear quartz teeth."
 icon = ExtResource("2_icon")
 sell_value = 30
+rarity = 2

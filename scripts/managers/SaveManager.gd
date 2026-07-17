@@ -5,8 +5,7 @@
 extends Node
 
 const SAVE_PATH: String = "user://graveyard_shift_save.json"
-const SAVE_VERSION: int = 2
-const AUTOSAVE_INTERVAL: float = 30.0
+const SAVE_VERSION: int = 3
 
 ## Offline progress: free window everyone gets, plus a minimum gap before it's
 ## worth granting. The Grave-Lantern structure extends the cap (offline_hours).
@@ -28,8 +27,11 @@ func _late_init() -> void:
 
 func _process(delta: float) -> void:
 	if not _loaded: return
+	# Cadence comes from Settings (DEP-7); 0 = autosave off (quit still saves).
+	var interval = SettingsManager.get_autosave_seconds()
+	if interval <= 0.0: return
 	_autosave_accum += delta
-	if _autosave_accum >= AUTOSAVE_INTERVAL:
+	if _autosave_accum >= interval:
 		_autosave_accum = 0.0
 		save_game()
 
@@ -44,6 +46,9 @@ func hard_reset() -> void:
 	GameManager.reset_state()
 	MinionManager.reset_state()
 	GroundsManager.reset_state()
+	AlchemyManager.reset_state()
+	ForgeManager.reset_state()
+	StatsManager.reset_state()
 	TutorialManager.reset_state()
 	save_game()
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
@@ -57,14 +62,20 @@ func save_game() -> void:
 		"timestamp": Time.get_unix_time_from_system(),
 		"gold": GameManager.gold_coins,
 		"skills": GameManager.skills,
+		"buffs": GameManager.active_buffs,
 		"equipped_tools": _get_equipped_tool_ids(),
 		"owned_tools": _get_owned_tool_ids(),
 		"active_node_id": GameManager.active_node_data.id if GameManager.active_node_data else "",
 		"purchased_slots": InventoryManager.purchased_slots,
 		"tutorial_complete": TutorialManager.tutorial_complete,
+		"known_recipes": {
+			"alchemy": AlchemyManager.get_known_recipes(),
+			"forge": ForgeManager.get_known_recipes(),
+		},
 		"inventory": InventoryManager.get_save_data(),
 		"minions": MinionManager.get_save_data(),
-		"grounds": GroundsManager.get_save_data()
+		"grounds": GroundsManager.get_save_data(),
+		"stats": StatsManager.get_save_data()
 	}
 
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -129,6 +140,18 @@ func load_game() -> void:
 
 	GameManager.gold_coins = int(data.get("gold", 0))
 
+	GameManager.active_buffs.clear()
+	var saved_buffs = data.get("buffs", {})
+	for effect in saved_buffs:
+		GameManager.active_buffs[effect] = {
+			"magnitude": float(saved_buffs[effect].get("magnitude", 0.0)),
+			"until": float(saved_buffs[effect].get("until", 0.0)),
+		}
+
+	var saved_known = data.get("known_recipes", {})
+	AlchemyManager.load_known_recipes(saved_known.get("alchemy", []))
+	ForgeManager.load_known_recipes(saved_known.get("forge", []))
+
 	var saved_skills = data.get("skills", {})
 	for skill_name in saved_skills:
 		if GameManager.skills.has(skill_name):
@@ -154,6 +177,7 @@ func load_game() -> void:
 	InventoryManager.refresh_capacity()
 	MinionManager.restore_from_save(data.get("minions", {}))
 	GroundsManager.restore_from_save(data.get("grounds", {}))
+	StatsManager.restore_from_save(data.get("stats", {}))
 	_ensure_default_equipment()
 
 	# Pick the previous node back up so the player doesn't have to re-click it
@@ -188,8 +212,10 @@ func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 		match v:
 			1:
 				migrated = _migrate_v1_to_v2(migrated)
-			# 2:
-			#     migrated = _migrate_v2_to_v3(migrated)   # <- next bump slots in here
+			2:
+				migrated = _migrate_v2_to_v3(migrated)
+			# 3:
+			#     migrated = _migrate_v3_to_v4(migrated)   # <- next bump slots in here
 			_:
 				push_warning("SaveManager: no migration step for v%d." % v)
 				return {}
@@ -205,6 +231,12 @@ func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 ## discard) so the migration chain is complete and the decision is documented.
 func _migrate_v1_to_v2(_data: Dictionary) -> Dictionary:
 	return {}
+
+## v2 → v3 (P2a combat stakes). New fields are all additive with safe defaults
+## (minions.exhausted_until = {}) and every loader already .get-defaults them,
+## so a v2 save carries forward unchanged.
+func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
+	return data
 
 ## Copies the current save to a timestamped .bak so an incompatible file (e.g. a
 ## save from a newer build) is never silently overwritten.
@@ -228,14 +260,25 @@ func _accrue_offline(node_id: String, saved_ts: int) -> void:
 	var cap_hours = OFFLINE_BASE_HOURS + GroundsManager.get_bonus(Ids.EFFECT_OFFLINE_HOURS)
 	var capped = clampf(elapsed, 0.0, cap_hours * 3600.0)
 
-	var result = GameManager.accrue_offline(node, capped)
+	# Requiem Incense: offline seconds a lit censer covered count for more.
+	# Read active_buffs directly — the buff may have expired mid-absence and
+	# get_buff_bonus would prune it before it pays out.
+	var censer: Dictionary = GameManager.active_buffs.get(Ids.EFFECT_OFFLINE_GAIN_PCT, {})
+	var covered = clampf(float(censer.get("until", 0.0)) - float(saved_ts), 0.0, capped)
+	var bonus_seconds = covered * float(censer.get("magnitude", 0.0)) / 100.0
+
+	var result = GameManager.accrue_offline(node, capped + bonus_seconds)
 	if result.is_empty() or int(result.get("harvests", 0)) <= 0: return
 
 	var total_items := 0
 	for item_id in result["gains"]:
 		total_items += int(result["gains"][item_id])
-	NotificationManager.show_item("Welcome back — the grounds worked %s while you were gone: +%d materials, +%d XP" \
-		% [_fmt_duration(capped), total_items, int(result["xp"])], 1)
+	var summary = "Welcome back — the grounds worked %s while you were gone: +%d materials, +%d XP" \
+		% [_fmt_duration(capped), total_items, int(result["xp"])]
+	var lost := int(result.get("lost", 0))
+	if lost > 0:
+		summary += " (%d lost — the pack was full)" % lost
+	NotificationManager.show_item(summary, 1)
 
 func _fmt_duration(seconds: float) -> String:
 	var h = int(seconds) / 3600

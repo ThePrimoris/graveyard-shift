@@ -17,12 +17,13 @@
 class_name ContentValidator
 extends RefCounted
 
-const ITEM_DIRS: Array[String] = ["res://data/items/materials/", "res://data/items/tools/"]
+const ITEM_DIRS: Array[String] = ["res://data/items/materials/", "res://data/items/tools/", "res://data/items/consumables/", "res://data/items/gear/"]
 const NODE_DIRS: Array[String] = ["res://data/nodes/graves/", "res://data/nodes/trees/", "res://data/nodes/mines/"]
 const ZONE_DIRS: Array[String] = ["res://data/zones/"]
 const MINION_DIRS: Array[String] = ["res://data/minions/"]
 const ENCOUNTER_DIRS: Array[String] = ["res://data/encounters/"]
 const STRUCTURE_DIRS: Array[String] = ["res://data/structures/"]
+const RECIPE_DIRS: Array[String] = ["res://data/recipes/alchemy/", "res://data/recipes/forge/"]
 
 const NODE_LOOT_POOLS: Array[String] = ["common_pool", "rare_pool", "hit_pool", "break_pool"]
 
@@ -33,9 +34,29 @@ static func validate() -> Array[String]:
 
 	# --- Build the id sets we validate references against ---
 	var item_ids := {}
+	## Recipe scrolls found during the item pass: {path, recipe_id}.
+	var scrolls: Array = []
 	for e in _load_dirs(ITEM_DIRS):
 		if e.res is Item and e.res.id != "":
 			item_ids[e.res.id] = true
+		# Gear passives must ride a combat channel the code actually reads.
+		if e.res is Gear:
+			var piece: Gear = e.res
+			if piece.passive_effect != "" and not Ids.COMBAT_EFFECT_ALL.has(piece.passive_effect):
+				errors.append("%s: unknown gear passive '%s' (not in Ids.COMBAT_EFFECT_ALL)" % [e.path, piece.passive_effect])
+		# Consumables must carry a use effect the code actually resolves.
+		if e.res is Consumable:
+			var consumable: Consumable = e.res
+			if not Ids.CONSUME_ALL.has(consumable.use_effect):
+				errors.append("%s: unknown use_effect '%s' (not in Ids.CONSUME_ALL)" % [e.path, consumable.use_effect])
+			if consumable.use_effect in [Ids.CONSUME_ATK_PCT, Ids.CONSUME_POISON, Ids.CONSUME_ATK_DEF_PCT, Ids.CONSUME_POISON_WEAKEN] \
+					and consumable.duration_turns <= 0:
+				errors.append("%s: timed effect '%s' needs duration_turns > 0" % [e.path, consumable.use_effect])
+			if consumable.use_effect == Ids.CONSUME_POISON_WEAKEN and consumable.secondary_magnitude <= 0.0:
+				errors.append("%s: poison_weaken needs secondary_magnitude > 0" % e.path)
+			# Scrolls are checked against recipe ids after the recipe pass below.
+			if consumable.use_effect == Ids.CONSUME_LEARN_RECIPE:
+				scrolls.append({"path": e.path, "recipe_id": consumable.taught_recipe_id})
 
 	var encounter_ids := {}
 	for e in _load_dirs(ENCOUNTER_DIRS):
@@ -106,6 +127,38 @@ static func validate() -> Array[String]:
 				if not Ids.ACTIVE_ALL.has(ability.effect):
 					errors.append("%s: active '%s' has unknown effect '%s' (not in Ids.ACTIVE_ALL)" % [e.path, ability.id, ability.effect])
 
+	# --- Recipes (P3): inputs resolve, output exists, timings sane ---
+	var recipe_ids := {}
+	var scroll_taught_recipes := {}  # id -> path, to confirm a scroll teaches it
+	for e in _load_dirs(RECIPE_DIRS):
+		if not (e.res is Recipe):
+			continue
+		var recipe: Recipe = e.res
+		if recipe.id != "":
+			recipe_ids[recipe.id] = true
+			if recipe.scroll_taught:
+				scroll_taught_recipes[recipe.id] = e.path
+		if recipe.output_item == null:
+			errors.append("%s: recipe has no output_item" % e.path)
+		if recipe.inputs.is_empty():
+			errors.append("%s: recipe has no inputs" % e.path)
+		for input_id in recipe.inputs:
+			if not item_ids.has(input_id):
+				errors.append("%s: input references unknown item '%s'" % [e.path, input_id])
+			if int(recipe.inputs[input_id]) <= 0:
+				errors.append("%s: input '%s' amount must be positive" % [e.path, input_id])
+		if recipe.base_seconds <= 0.0:
+			errors.append("%s: base_seconds must be positive" % e.path)
+
+	# --- Recipe scrolls: each names a real recipe; each scroll-taught recipe
+	# has at least one scroll that teaches it (else it's unlearnable) ---
+	for scroll in scrolls:
+		if not recipe_ids.has(scroll.recipe_id):
+			errors.append("%s: taught_recipe_id '%s' matches no recipe" % [scroll.path, scroll.recipe_id])
+		scroll_taught_recipes.erase(scroll.recipe_id)
+	for recipe_id in scroll_taught_recipes:
+		errors.append("%s: scroll_taught recipe '%s' has no scroll item that teaches it" % [scroll_taught_recipes[recipe_id], recipe_id])
+
 	# --- Encounters: every listed enemy must resolve ---
 	for e in _load_dirs(ENCOUNTER_DIRS):
 		if not (e.res is Encounter):
@@ -152,8 +205,10 @@ static func _load_dirs(dirs: Array[String]) -> Array:
 		dir.list_dir_begin()
 		var file_name := dir.get_next()
 		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				var full := dir_path + file_name.replace(".remap", "")
+			# Exported builds list text resources as "<name>.tres.remap".
+			var res_file := file_name.trim_suffix(".remap")
+			if not dir.current_is_dir() and res_file.ends_with(".tres"):
+				var full := dir_path + res_file
 				var res = load(full)
 				if res != null:
 					out.append({"res": res, "path": full})

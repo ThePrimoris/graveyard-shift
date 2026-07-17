@@ -10,6 +10,7 @@ tool_type = 1
 tool_tier = 1
 speed_multiplier = 1.1
 id = "galvanized_hatchet"
+rarity = 1
 name = "Steel Hatchet"
 type = 1
 description = "A galvanized steel hatchet."

@@ -4,13 +4,22 @@
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/withered_heart.tres" id="3_l0"]
 [ext_resource type="Resource" path="res://data/items/materials/bone_marrow.tres" id="3_l1"]
+[ext_resource type="Resource" path="res://data/items/consumables/scroll_wardens_draught.tres" id="3_l2"]
+[ext_resource type="Texture2D" path="res://icons/enemies/crypt_warden.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
 item = ExtResource("3_l0")
-weight = 60.0
+weight = 52.0
 min_amount = 1
 max_amount = 2
+
+[sub_resource type="Resource" id="Loot2"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l2")
+weight = 8.0
+min_amount = 1
+max_amount = 1
 
 [sub_resource type="Resource" id="Loot1"]
 script = ExtResource("2_loot")
@@ -23,6 +32,7 @@ max_amount = 4
 script = ExtResource("1_enemy")
 id = "crypt_warden"
 name = "The Cursed Warden of the Old Crypt"
+icon = ExtResource("9_icon")
 glyph = "☠"
 description = "Forty years dead and still refusing visitors."
 base_hp = 300
@@ -34,5 +44,5 @@ enrage_per_segment = 0.25
 xp_reward = 120.0
 gold_min = 40
 gold_max = 80
-loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1")])
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1"), SubResource("Loot2")])
 metadata/_custom_type_script = "res://data/EnemyData.gd"

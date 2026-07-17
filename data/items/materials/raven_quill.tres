@@ -10,3 +10,4 @@ name = "Raven Quill"
 description = "A jet-black flight feather, sharp enough to write in blood."
 icon = ExtResource("2_icon")
 sell_value = 140
+rarity = 3

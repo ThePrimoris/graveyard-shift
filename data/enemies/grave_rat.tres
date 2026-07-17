@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://data/EnemyData.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/jagged_fangs.tres" id="3_l0"]
+[ext_resource type="Texture2D" path="res://icons/enemies/grave_rat.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
@@ -13,6 +14,7 @@ weight = 25.0
 script = ExtResource("1_enemy")
 id = "grave_rat"
 name = "Grave Rat"
+icon = ExtResource("9_icon")
 glyph = "🐀"
 description = "Fat on things best not considered."
 base_hp = 8

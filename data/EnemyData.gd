@@ -1,12 +1,15 @@
 class_name Enemy
 extends Resource
 
+
 ## One foe type for the combat screen.
 
 @export_category("Identity")
 @export var id: String = ""
 @export var name: String = ""
-## Placeholder art until enemies get real icons.
+## Portrait shown on the enemy card / boss banner (icons/enemies/<id>.png).
+@export var icon: Texture2D
+## Text fallback when no icon is set.
 @export var glyph: String = "☠"
 @export_multiline var description: String = ""
 

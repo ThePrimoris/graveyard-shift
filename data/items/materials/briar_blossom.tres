@@ -10,3 +10,4 @@ name = "Briar Blossom"
 description = "A rare bloom from the blackthorn, petals like dried blood."
 icon = ExtResource("2_icon")
 sell_value = 28
+rarity = 1

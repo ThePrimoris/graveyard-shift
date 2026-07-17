@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/jade_idol.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_jade_idol"
+name = "Jade Idol"
+description = "Carve a pocket god from living jade. Apologize to it."
+inputs = {"imperial_jade_knot": 3, "malachite_flake": 6, "amber_droplet": 4}
+output_item = ExtResource("2_out")
+required_level = 32
+base_seconds = 14.0
+base_xp = 44.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

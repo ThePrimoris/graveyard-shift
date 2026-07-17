@@ -40,9 +40,6 @@ func refresh_capacity() -> void:
 		slots.pop_back()
 	inventory_updated.emit()
 
-func get_total_slots() -> int:
-	return slots.size()
-
 ## Empties the whole inventory back to base capacity (Settings hard reset).
 func reset_state() -> void:
 	purchased_slots = 0

@@ -168,3 +168,6 @@ func update_ui() -> void:
 				btn.text = minion.name.left(1) if minion else "?"
 			btn.tooltip_text = "Graveyard Plot %d — %s (Lv %d). Click to change." \
 				% [i + 1, minion.name if minion else occupant, MinionManager.get_level(occupant)]
+			if MinionManager.is_exhausted(occupant):
+				btn.tooltip_text += "\nEXHAUSTED — battle-ready in %dm" \
+					% maxi(1, int(ceil(MinionManager.exhaustion_left(occupant) / 60.0)))

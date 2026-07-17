@@ -8,6 +8,9 @@ extends Resource
 ## Material recipe for this tier: { item_id: amount }.
 @export var cost: Dictionary[String, int] = {}
 
+## Gold component of this tier's cost (P4 / DEP-4 gold sink). 0 = free.
+@export var gold: int = 0
+
 ## Effect magnitude ADDED when this tier is built (cumulative up the ladder).
 @export var magnitude: float = 0.0
 

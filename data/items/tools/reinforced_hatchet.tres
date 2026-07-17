@@ -11,6 +11,7 @@ tool_tier = 2
 speed_multiplier = 1.2
 yield_bonus = 10
 id = "reinforced_hatchet"
+rarity = 2
 name = "Tungsten Hatchet"
 type = 1
 description = "A reinforced tungsten hatchet."

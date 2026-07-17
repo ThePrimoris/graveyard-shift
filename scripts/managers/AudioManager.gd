@@ -30,6 +30,8 @@ var _view_music := {
 	Ids.VIEW_INVENTORY: "amb_graveyard",
 	Ids.VIEW_SHOP: "amb_graveyard",
 	Ids.VIEW_FOREST: "amb_forest",
+	Ids.VIEW_ALCHEMY: "amb_alchemy",
+	Ids.VIEW_FORGE: "amb_quarry",
 	Ids.VIEW_QUARRY: "amb_quarry",
 	Ids.VIEW_COMBAT: "amb_combat",
 }

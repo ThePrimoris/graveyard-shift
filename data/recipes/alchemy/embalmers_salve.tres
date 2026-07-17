@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/consumables/embalmers_salve.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "brew_embalmers_salve"
+name = "Embalmer's Salve"
+description = "Render dead flesh in fresh blood into an unguent that mends both."
+inputs = {"flesh": 2, "blood": 2}
+output_item = ExtResource("2_out")
+required_level = 1
+base_seconds = 4.0
+base_xp = 8.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

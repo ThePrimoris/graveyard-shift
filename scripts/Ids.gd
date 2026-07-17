@@ -28,9 +28,17 @@ const EFFECT_DOUBLE_DROP_PCT := "double_drop_pct"
 const EFFECT_GROUNDS_YIELD_PCT := "grounds_yield_pct"
 const EFFECT_INVENTORY_SLOTS := "inventory_slots"
 const EFFECT_OFFLINE_HOURS := "offline_hours"
+# Wave-two structure channels (P4 / DEP-9):
+const EFFECT_OFFERING_PCT := "offering_pct"            ## Mausoleum: +% altar offering XP
+const EFFECT_SELL_PCT := "sell_pct"                    ## Counting House: +% item sell value
+const EFFECT_ALCHEMY_SPEED_PCT := "alchemy_speed_pct"  ## Apothecary: +% brew speed
+const EFFECT_EXHAUST_HASTE_PCT := "exhaust_haste_pct"  ## Incense: exhausted minions rest this % quicker
+const EFFECT_OFFLINE_GAIN_PCT := "offline_gain_pct"    ## Incense: offline seconds it covers pay +%
 const EFFECT_ALL: Array[String] = [
 	EFFECT_HARVEST_XP_PCT, EFFECT_RARE_CHANCE_PCT, EFFECT_DOUBLE_DROP_PCT,
 	EFFECT_GROUNDS_YIELD_PCT, EFFECT_INVENTORY_SLOTS, EFFECT_OFFLINE_HOURS,
+	EFFECT_OFFERING_PCT, EFFECT_SELL_PCT, EFFECT_ALCHEMY_SPEED_PCT,
+	EFFECT_EXHAUST_HASTE_PCT, EFFECT_OFFLINE_GAIN_PCT,
 ]
 
 # --- Minion active-rune effects (combat) ------------------------------
@@ -65,7 +73,12 @@ const AFFIX_ALL: Array[String] = [
 const SKILL_GRAVEROBBING := "graverobbing"
 const SKILL_LUMBERING := "lumbering"
 const SKILL_SPELUNKING := "spelunking"
-const SKILL_ALL: Array[String] = [SKILL_GRAVEROBBING, SKILL_LUMBERING, SKILL_SPELUNKING]
+## Alchemy (P3) and Forge (P5) are PRODUCTION skills: they live in
+## GameManager.skills and use the shared XP curve, but have recipes
+## (CraftingManager subclasses) instead of nodes.
+const SKILL_ALCHEMY := "alchemy"
+const SKILL_FORGE := "forge"
+const SKILL_ALL: Array[String] = [SKILL_GRAVEROBBING, SKILL_LUMBERING, SKILL_SPELUNKING, SKILL_ALCHEMY, SKILL_FORGE]
 
 # --- Scene-tree group names (the "groups + tick" broadcast pattern) ----
 const GROUP_UI_UPDATES := "ui_updates"
@@ -81,6 +94,8 @@ const VIEW_QUARRY := "quarry"
 const VIEW_INVENTORY := "inventory"
 const VIEW_SHOP := "shop"
 const VIEW_COMBAT := "combat"
+const VIEW_ALCHEMY := "alchemy_lab"
+const VIEW_FORGE := "forge_hall"
 
 # --- Named tutorial beats (fired via TutorialManager.notify_event) ----
 const EVENT_BOOK_OPENED := "book_opened"
@@ -109,6 +124,31 @@ const COMBAT_EFFECT_ALL: Array[String] = [
 	MINION_TAUNT, MINION_REVIVE,
 ]
 
+# --- Consumable use effects (DEP-2 / P2a) -----------------------------
+# Set on Consumable.use_effect; resolved by CombatView's Item command (combat
+# effects) or the exhaustion system (cures). ContentValidator enforces these.
+const CONSUME_HEAL_PCT := "consume_heal_pct"              ## heal the acting minion this % of max HP
+const CONSUME_ATK_PCT := "consume_atk_pct"                ## +% ATK for duration_turns of its turns
+const CONSUME_POISON := "consume_poison"                  ## poison the target foe: magnitude dmg for duration_turns
+const CONSUME_CURE_EXHAUSTION := "consume_cure_exhaustion"  ## rouse an exhausted minion
+const CONSUME_ATK_DEF_PCT := "consume_atk_def_pct"        ## +% ATK and -% damage taken for duration_turns
+const CONSUME_POISON_WEAKEN := "consume_poison_weaken"    ## poison + sap the foe's blows by secondary_magnitude%
+const CONSUME_REVIVE_ONCE := "consume_revive_once"        ## the drinker rises once at magnitude% HP this battle
+## Gather elixirs (P3): drunk from the inventory, they lay a timed buff on
+## GameManager.active_buffs that get_gather_modifiers reads until it expires.
+const CONSUME_GATHER_XP_BUFF := "consume_gather_xp_buff"      ## +magnitude% harvest XP for buff_minutes
+const CONSUME_GATHER_RARE_BUFF := "consume_gather_rare_buff"  ## +magnitude% rare chance for buff_minutes
+const CONSUME_LEARN_RECIPE := "consume_learn_recipe"          ## studies a scroll: teaches taught_recipe_id
+const CONSUME_INCENSE_EXHAUST := "consume_incense_exhaust"    ## grounds: minions rest magnitude% quicker for buff_minutes
+const CONSUME_INCENSE_DOUBLE := "consume_incense_double"      ## grounds: +magnitude% double-harvest chance for buff_minutes
+const CONSUME_INCENSE_OFFLINE := "consume_incense_offline"    ## grounds: offline gains +magnitude% while it burns
+const CONSUME_ALL: Array[String] = [
+	CONSUME_HEAL_PCT, CONSUME_ATK_PCT, CONSUME_POISON, CONSUME_CURE_EXHAUSTION,
+	CONSUME_ATK_DEF_PCT, CONSUME_POISON_WEAKEN, CONSUME_REVIVE_ONCE,
+	CONSUME_GATHER_XP_BUFF, CONSUME_GATHER_RARE_BUFF, CONSUME_LEARN_RECIPE,
+	CONSUME_INCENSE_EXHAUST, CONSUME_INCENSE_DOUBLE, CONSUME_INCENSE_OFFLINE,
+]
+
 # --- Sound effect ids (AudioManager.play_sfx). Each matches audio/sfx/<id>.wav. ---
 const SFX_UI_CLICK := "ui_click"
 const SFX_HARVEST_TICK := "harvest_tick"
@@ -116,7 +156,13 @@ const SFX_ITEM_PICKUP := "item_pickup"
 const SFX_LEVEL_UP := "level_up"
 const SFX_BUILD := "build"
 const SFX_COMBAT_HIT := "combat_hit"
+const SFX_BREW := "brew"                    ## a brew finishes at the Still
+const SFX_SMITH := "smith"                  ## a smith finishes at the Forge
+const SFX_POTION := "potion"                ## any consumable is drunk/used
+const SFX_VICTORY_STING := "victory_sting"  ## combat won
+const SFX_DEFEAT_STING := "defeat_sting"    ## combat lost
 const SFX_ALL: Array[String] = [
 	SFX_UI_CLICK, SFX_HARVEST_TICK, SFX_ITEM_PICKUP,
 	SFX_LEVEL_UP, SFX_BUILD, SFX_COMBAT_HIT,
+	SFX_BREW, SFX_SMITH, SFX_POTION, SFX_VICTORY_STING, SFX_DEFEAT_STING,
 ]

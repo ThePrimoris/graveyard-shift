@@ -13,6 +13,46 @@ tables, so the tables always read as "what's left".
 
 ## ✅ Done
 
+- **COR-1 — dead `nodes_by_skill` deleted.** The registry was built and never
+  read; removed the field and its build loop in `_build_node_registry`. A
+  future almanac can rebuild it from `node_db` in a few lines.
+- **COR-4 — dead helpers removed.** `get_total_slots`, `is_max`, `owns_tool`
+  cut; the one test caller now checks `GameManager.inventory` directly.
+- **COR-5 — offering XP decoupled.** `Item.offering_value` (default -1 =
+  derive from `sell_value`) feeds `MinionManager.get_offering_xp`, so economy
+  re-pricing never silently shifts minion leveling. Unsellable items can now
+  opt in to being offerable.
+- **COR-6 — offline overflow surfaced.** `accrue_offline` counts items lost to
+  a full pack (`lost` in its result); the welcome-back toast reports it.
+- **DEP-7 — settings depth.** Autosave cadence dropdown (15s/30s/1m/5m/off) in
+  Settings, persisted in `SettingsManager`; SaveManager reads it live. Off
+  still saves on quit.
+- **QA-1 — test foundation.** SmokeTest now covers: the four active runes'
+  distinct effects, offline accrual (incl. breakables and overflow loss),
+  exhaustion, consumables in combat, alchemy brewing, elixir buffs, wave-two
+  structure effects, save v3 migration, offering_value, autosave persistence.
+  Also hardened the save backup (never overwrites an existing `.pretest.bak`).
+- **DEP-2 — combat stakes (P2a).** Consumable item type (`ConsumableData`,
+  `data/items/consumables/`): Embalmer's Salve (heal), War Draught (ATK surge),
+  Venom Phial (poison-over-turns), Grave Tonic (cure). In-battle Item command;
+  statuses (atk-up on members, poison on foes) ride the Sunder pattern. Defeat
+  EXHAUSTS the warband (`MinionManager.exhausted_until`, 5 min rest); rouse
+  with gold from the defeat panel, a tonic, or time. Save bumped to v3.
+- **DEP-3 (alchemy half) — P3 landed.** Alchemy production skill: 4th skill in
+  `GameManager.skills`, `AlchemyManager` autoload brews `Recipe` resources
+  (`data/recipes/alchemy/`) on the harvest-timer pattern with auto-repeat; the
+  Caretaker's Still view + nav button; 6 recipes consuming necromantic matter
+  + herbs; 2 gather elixirs feed a new timed-buff channel in
+  `get_gather_modifiers` (drunk from the inventory). Forge half still parked.
+- **DEP-9 — wave-two structures (P4).** Mausoleum (`offering_pct`), Counting
+  House (`sell_pct`), Reliquary (`rare_chance_pct`), plus the Apothecary
+  (`alchemy_speed_pct`). All pure `.tres` + placement; procedural-box fallback
+  art. Effects wired in MinionManager / InventoryView / AlchemyManager.
+- **DEP-4 — gold sinks.** Battle supplies sold for gold in the shop, gold
+  components on every wave-two structure tier (`StructureTier.gold`), and the
+  post-defeat gold rouse.
+- **Rarity audit.** 19 materials still at default COMMON raised to value bands
+  (10/30/80/200 g); tools map rarity to tier. Authored rarities untouched.
 - **COR-3 — magic strings centralized.** New `scripts/Ids.gd` holds the wiring
   strings (effects, actives, affixes, skill keys, groups, views, tutorial
   events) as flat constants with `*_ALL` lists; raw literals replaced across
@@ -40,45 +80,20 @@ tables, so the tables always read as "what's left".
 ---
 
 ### Top picks (highest value for the effort)
-- **QA-1** — widen automated coverage (combat, offline accrual, save round-trip).
-  Combat and saves both just changed; lock them in before building further.
-- **DEP-2** — combat stakes (status effects, consumables/heal, defeat cost).
-  Builds directly on the new Sunder status layer and active runes.
-> DEP-3 is reconceived (no crafting layer) and parked pending the future
-> Forge/Alchemy skills — see its note below. A material-catalog audit is the
-> only near-term slice.
-
-**Quick wins** (P3/S, grab opportunistically): COR-1, COR-4, COR-5, COR-6,
-DEP-7, DEP-9, DOC-1/2/3.
+- **P5 Forge** (roadmap) — the second production skill; needs the gear-slot
+  design decision first (see `docs/ROADMAP.md` Phase 5).
+- **DEP-8** — minion deployment; exhaustion now gives it its tension
+  (slotted = fighting, deployed = gathering).
 
 ---
-
-## Correctness & cleanup
-
-| ID | Item | Pri | Effort |
-|---|---|---|---|
-| COR-1 | `nodes_by_skill` registry is built but never read | P3 | S |
-| COR-4 | Dead helpers: `get_total_slots`, `is_max`, `owns_tool` | P3 | S |
-| COR-5 | Minion offering-XP is coupled to item `sell_value` (price changes shift leveling) | P3 | S |
-| COR-6 | Offline overflow past a full pack is silently lost | P3 | S |
-
-## Testing & tooling
-
-| ID | Item | Pri | Effort |
-|---|---|---|---|
-| QA-1 | No automated coverage for combat, Necronomicon, offline accrual, or save round-trip | P2 | M |
 
 ## Systems & depth
 
 | ID | Item | Pri | Effort |
 |---|---|---|---|
-| DEP-2 | Combat stakes: healing/consumables, status effects, defeat consequences | P2 | L |
-| DEP-3 | Material purpose — most of the ~40 materials have no sink; reserve fits for future Forge/Alchemy skills, cull/re-theme the rest (no crafting UI) | P2 | M |
-| DEP-4 | Gold sinks beyond tool tiers + backpack slots | P3 | M |
+| DEP-3 | Forge half: metalworking (ores) + jewelry (gems) sinks; then cull/re-theme any still-orphaned materials | P2 | L |
 | DEP-6 | Stats/tracking (totals gathered, playtime) + goals/achievements | P3 | M |
-| DEP-7 | Settings depth — volume sliders now done; autosave interval/toggle remains | P3 | S |
 | DEP-8 | "Deploy minions to nodes" system that activates the 5 flavor affixes | P3 | L |
-| DEP-9 | Wave-two structures: Mausoleum, Counting House, Reliquary | P3 | S each |
 
 ## Architecture & performance
 

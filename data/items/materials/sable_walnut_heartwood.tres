@@ -10,3 +10,4 @@ name = "Sable Walnut Heartwood"
 description = "Near-black heartwood, dense as iron and twice as stubborn."
 icon = ExtResource("2_icon")
 sell_value = 18
+rarity = 1

@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/thornheart_bud.tres" id="3_l0"]
 [ext_resource type="Resource" path="res://data/items/materials/blackthorn_timber.tres" id="3_l1"]
+[ext_resource type="Texture2D" path="res://icons/enemies/thornbound_husk.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
 script = ExtResource("2_loot")
@@ -23,6 +24,7 @@ max_amount = 2
 script = ExtResource("1_enemy")
 id = "thornbound_husk"
 name = "Thornbound Husk"
+icon = ExtResource("9_icon")
 glyph = "🌿"
 base_hp = 38
 atk = 4.5

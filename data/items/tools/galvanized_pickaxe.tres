@@ -9,6 +9,7 @@ speed_multiplier = 1.1
 tool_type = 2
 tool_tier = 1
 id = "galvanized_pickaxe"
+rarity = 1
 name = "Steel Pickaxe"
 type = 1
 icon = ExtResource("9_icon")

@@ -483,6 +483,83 @@ func _build_minion_left(into: PanelContainer, minion: Minion) -> void:
 		if a and MinionManager.has_ability(minion.id, a.id): owned += 1
 	col.add_child(_kv_row("Runes inked", "%d of %d" % [owned, minion.abilities.size()], INK_MID))
 
+	# Armaments (P5 Forge): weapon + trinket slots, combat only.
+	col.add_child(_rule())
+	col.add_child(_ink_line("ARMAMENTS — forged gear, borne in battle", INK_FAINT, 10))
+	col.add_child(_gear_row(minion.id, Gear.GearSlot.WEAPON, "Weapon"))
+	col.add_child(_gear_row(minion.id, Gear.GearSlot.TRINKET, "Trinket"))
+
+## One armament row: slot name, the worn piece (or "bare hands"/"bare"), and
+## a Change button opening a menu of owned gear for that slot.
+func _gear_row(minion_id: String, slot: int, slot_name: String) -> HBoxContainer:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var worn = MinionManager.get_gear(minion_id, slot)
+	var name_lbl = Label.new()
+	name_lbl.text = slot_name
+	name_lbl.custom_minimum_size = Vector2(64, 0)
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.add_theme_color_override("font_color", INK_FAINT)
+	row.add_child(name_lbl)
+
+	if worn and worn.icon:
+		var pic = TextureRect.new()
+		pic.custom_minimum_size = Vector2(22, 22)
+		pic.expand_mode = 1
+		pic.stretch_mode = 5
+		pic.texture = worn.icon
+		row.add_child(pic)
+
+	var worn_lbl = Label.new()
+	worn_lbl.text = worn.name if worn else ("bare hands" if slot == Gear.GearSlot.WEAPON else "bare")
+	worn_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	worn_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	worn_lbl.add_theme_font_size_override("font_size", 12)
+	worn_lbl.add_theme_color_override("font_color", INK if worn else INK_FAINT)
+	if worn:
+		worn_lbl.tooltip_text = "%s — %s" % [worn.name, worn.stat_line()]
+	row.add_child(worn_lbl)
+
+	var change = _ink_button("Change")
+	change.custom_minimum_size = Vector2(0, 24)
+	change.add_theme_font_size_override("font_size", 11)
+	change.pressed.connect(_open_gear_menu.bind(minion_id, slot, change))
+	row.add_child(change)
+	return row
+
+## Pops a menu under the Change button: every owned piece for the slot, plus
+## an unequip entry when something is worn.
+func _open_gear_menu(minion_id: String, slot: int, anchor: Button) -> void:
+	var menu = PopupMenu.new()
+	var choices: Array = []  # index-aligned gear ids; "" = unequip
+	if MinionManager.get_gear(minion_id, slot) != null:
+		menu.add_item("Go bare (unequip)")
+		choices.append("")
+	for item_id in GameManager.item_db:
+		var item = GameManager.item_db[item_id]
+		if item is Gear and item.slot == slot and InventoryManager.get_item_count(item_id) > 0:
+			menu.add_item("%s  (%s)" % [item.name, item.stat_line()])
+			choices.append(item_id)
+	if choices.is_empty():
+		menu.add_item("Nothing forged for this slot yet — visit the Forge")
+		menu.set_item_disabled(0, true)
+		choices.append("__none")
+	menu.index_pressed.connect(func(index: int):
+		var pick = str(choices[index])
+		if pick == "__none":
+			return
+		if pick == "":
+			MinionManager.unequip_gear(minion_id, slot)
+		else:
+			var piece = GameManager.find_item_by_id(pick)
+			if piece is Gear:
+				MinionManager.equip_gear(minion_id, piece)
+		_rebuild())
+	add_child(menu)
+	menu.popup_hide.connect(menu.queue_free)
+	menu.popup(Rect2i(Vector2i(anchor.get_screen_position() + Vector2(0, anchor.size.y + 2)), Vector2i(0, 0)))
+
 func _build_minion_right(into: PanelContainer, minion: Minion) -> void:
 	var col = _page_col(into)
 	var raised = MinionManager.is_raised(minion.id)

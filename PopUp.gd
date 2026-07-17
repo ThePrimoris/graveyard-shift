@@ -17,6 +17,12 @@ func _ready() -> void:
 func setup(item_name: String, amount: int):
 	name_label.text = item_name
 	amount_label.text = "+" + str(amount)
+	# Text-only toasts (no item icon) hide the icon well entirely — an empty
+	# square next to the message reads as a rendering bug.
+	if icon_node:
+		icon_node.visible = false
+	# Announcements read odd as "+1"; only real item stacks show an amount.
+	amount_label.visible = amount > 1
 	anim.play("pop_up")
 
 ## This handles the dynamic icon assignment from your Item Resource file
@@ -28,3 +34,5 @@ func setup_with_resource(item_name: String, amount: int, item_resource: Resource
 	if item_resource and "icon" in item_resource and item_resource.icon:
 		if icon_node:
 			icon_node.texture = item_resource.icon
+			icon_node.visible = true
+		amount_label.visible = true

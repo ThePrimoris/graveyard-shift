@@ -10,3 +10,4 @@ name = "Amber Droplet"
 description = "A bead of fossil resin, warm to the touch."
 icon = ExtResource("2_icon")
 sell_value = 15
+rarity = 1

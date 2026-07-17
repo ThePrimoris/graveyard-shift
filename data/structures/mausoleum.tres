@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="Structure" format=3]
+
+[ext_resource type="Script" path="res://data/StructureData.gd" id="1_struct"]
+[ext_resource type="Script" path="res://data/StructureTierData.gd" id="2_tier"]
+
+[sub_resource type="Resource" id="T0"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"bones": 40, "grave_dust": 10})
+gold = 150
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T1"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"cracked_skull": 12, "slate_slab": 20})
+gold = 350
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T2"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"bone_marrow": 20, "granite_cobble": 25})
+gold = 700
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T3"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"withered_heart": 10, "basalt_debris": 30})
+gold = 1200
+magnitude = 10.0
+
+[sub_resource type="Resource" id="T4"]
+script = ExtResource("2_tier")
+cost = Dictionary[String, int]({"dryads_heartstone": 3, "obsidian_shard": 8})
+gold = 2000
+magnitude = 10.0
+
+[resource]
+script = ExtResource("1_struct")
+id = "mausoleum"
+name = "The Mausoleum"
+description = "A vaulted house for honored dead. Rites performed in its shadow carry further — every altar offering feeds minions more."
+sort_order = 5
+effect = "offering_pct"
+effect_unit = "%"
+effect_label = "offering XP"
+grid_cell = Vector2i(2, 0)
+footprint = Vector2i(1, 1)
+tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

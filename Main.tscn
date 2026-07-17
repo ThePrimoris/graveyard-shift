@@ -20,9 +20,12 @@
 [ext_resource type="Resource" path="res://data/zones/hollow_crag.tres" id="4_zm3"]
 [ext_resource type="Resource" path="res://data/zones/peridotite_pits.tres" id="4_zm4"]
 [ext_resource type="Resource" path="res://data/zones/obsidian_chasm.tres" id="4_zm5"]
+[ext_resource type="Script" path="res://scenes/views/AlchemyView.gd" id="3_alch"]
+[ext_resource type="Script" path="res://scenes/views/ForgeView.gd" id="3_forge"]
 [ext_resource type="PackedScene" uid="uid://cxo40vvphjf5d" path="res://scenes/NavigationPanel.tscn" id="5_nav"]
 [ext_resource type="PackedScene" uid="uid://d0g704i1cfeqy" path="res://scenes/PlotsBar.tscn" id="5_plots"]
 [ext_resource type="PackedScene" uid="uid://b8lvvrgeuhmvl" path="res://scenes/inventory/InventorySlot.tscn" id="5_slot"]
+[ext_resource type="Texture2D" path="res://theme/backdrops/bg_graveyard.png" id="6_backdrop"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_view"]
 content_margin_left = 264.0
@@ -42,6 +45,18 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_ctl")
+
+[node name="Backdrop" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_backdrop")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="MainViewContainer" type="Control" parent="." unique_id=1731523579]
 layout_mode = 1
@@ -84,6 +99,7 @@ theme_override_constants/separation = 8
 
 [node name="ZoneTitle" type="Label" parent="MainViewContainer/GraveyardView/VBoxContainer/ContentRow/ZonePanel/ZoneVBox" unique_id=-348308722]
 layout_mode = 2
+theme_type_variation = &"SectionLabel"
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
 theme_override_font_sizes/font_size = 12
 text = "ZONES"
@@ -136,6 +152,7 @@ theme_override_constants/separation = 8
 
 [node name="ZoneTitle" type="Label" parent="MainViewContainer/ForestView/VBoxContainer/ContentRow/ZonePanel/ZoneVBox" unique_id=1057727604]
 layout_mode = 2
+theme_type_variation = &"SectionLabel"
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
 theme_override_font_sizes/font_size = 12
 text = "ZONES"
@@ -188,6 +205,7 @@ theme_override_constants/separation = 8
 
 [node name="ZoneTitle" type="Label" parent="MainViewContainer/QuarryView/VBoxContainer/ContentRow/ZonePanel/ZoneVBox" unique_id=-106001900]
 layout_mode = 2
+theme_type_variation = &"SectionLabel"
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
 theme_override_font_sizes/font_size = 12
 text = "ZONES"
@@ -526,6 +544,32 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_plain")
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="AlchemyView" type="PanelContainer" parent="MainViewContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
+script = ExtResource("3_alch")
+
+[node name="ForgeView" type="PanelContainer" parent="MainViewContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
+script = ExtResource("3_forge")
+
 [node name="CombatView" type="PanelContainer" parent="MainViewContainer" unique_id=466554620]
 unique_name_in_owner = true
 visible = false
@@ -555,6 +599,7 @@ theme_override_constants/separation = 10
 
 [node name="GameTitleLabel" type="Label" parent="SideNav/SideVBox" unique_id=11798164]
 layout_mode = 2
+theme_type_variation = &"HeaderLabel"
 theme_override_colors/font_color = Color(0.83, 0.64, 0.27, 1)
 theme_override_font_sizes/font_size = 19
 text = "GRAVEYARD SHIFT"

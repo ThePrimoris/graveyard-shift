@@ -10,3 +10,4 @@ name = "Malachite Flake"
 description = "A banded green flake, cool and glassy."
 icon = ExtResource("2_icon")
 sell_value = 16
+rarity = 1

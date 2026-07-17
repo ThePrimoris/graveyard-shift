@@ -10,6 +10,7 @@ tool_tier = 2
 speed_multiplier = 1.2
 yield_bonus = 10
 id = "reinforced_shovel"
+rarity = 2
 name = "Tungsten Shovel"
 type = 1
 description = "A reinforced tungsten shovel."

@@ -12,6 +12,8 @@ const GROUNDS_VIEW_SCRIPT = preload("res://scenes/views/GroundsView.gd")
 @onready var inventory_view: PanelContainer = %InventoryView
 @onready var shop_view: PanelContainer = %ShopView
 @onready var combat_view: PanelContainer = %CombatView
+@onready var alchemy_view: PanelContainer = %AlchemyView
+@onready var forge_view: PanelContainer = %ForgeView
 
 var open_settings_panel: Node = null
 var open_grounds_panel: Node = null
@@ -65,6 +67,8 @@ func switch_view(target_view: String) -> void:
 	if inventory_view: inventory_view.visible = (target_view == Ids.VIEW_INVENTORY)
 	if shop_view: shop_view.visible = (target_view == Ids.VIEW_SHOP)
 	if combat_view: combat_view.visible = (target_view == Ids.VIEW_COMBAT)
+	if alchemy_view: alchemy_view.visible = (target_view == Ids.VIEW_ALCHEMY)
+	if forge_view: forge_view.visible = (target_view == Ids.VIEW_FORGE)
 
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 

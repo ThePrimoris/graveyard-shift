@@ -222,6 +222,8 @@ func _rebuild_panel() -> void:
 
 	var rule := HSeparator.new()
 	panel_box.add_child(rule)
+	if next_tier.gold > 0:
+		panel_box.add_child(_gold_cost_row(next_tier.gold))
 	for item_id in next_tier.cost:
 		panel_box.add_child(_cost_row(item_id, next_tier.cost[item_id]))
 
@@ -249,9 +251,25 @@ func _cost_row(item_id: String, need: int) -> HBoxContainer:
 	cost_rows.append({"id": item_id, "need": need, "label": have_lbl})
 	return row
 
+## Gold tier component (P4): rendered like a material row, checked against
+## the purse. Uses the "__gold" sentinel id in cost_rows.
+func _gold_cost_row(need: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	var name_lbl := Label.new()
+	name_lbl.text = "%d Gold" % need
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.add_theme_color_override("font_color", COL_GOLD)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_lbl)
+	var have_lbl := Label.new()
+	have_lbl.add_theme_font_size_override("font_size", 12)
+	row.add_child(have_lbl)
+	cost_rows.append({"id": "__gold", "need": need, "label": have_lbl})
+	return row
+
 func _refresh_costs() -> void:
 	for r in cost_rows:
-		var have := InventoryManager.get_item_count(r["id"])
+		var have: int = GameManager.gold_coins if r["id"] == "__gold" else InventoryManager.get_item_count(r["id"])
 		var ok: bool = have >= r["need"]
 		r["label"].text = "have %d %s" % [have, "✓" if ok else "✗"]
 		r["label"].add_theme_color_override("font_color", COL_GREEN if ok else COL_RUST)

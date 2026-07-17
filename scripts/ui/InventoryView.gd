@@ -39,6 +39,8 @@ extends PanelContainer
 var selected_item: Item = null
 # True when the selected item is sitting in an equipment slot (not the grid)
 var selected_is_equipped: bool = false
+## Code-built "Drink" button for gather elixirs (P3), inserted above Destroy.
+var use_button: Button
 
 func _ready() -> void:
 	add_to_group(Ids.GROUP_UI_UPDATES)
@@ -46,6 +48,13 @@ func _ready() -> void:
 	sell_button.pressed.connect(_on_sell_pressed)
 	equip_button.pressed.connect(_on_equip_pressed)
 	destroy_button.pressed.connect(_on_destroy_pressed)
+
+	use_button = Button.new()
+	use_button.theme_type_variation = &"ActionButton"
+	use_button.visible = false
+	use_button.pressed.connect(_on_use_pressed)
+	destroy_button.get_parent().add_child(use_button)
+	destroy_button.get_parent().move_child(use_button, destroy_button.get_index())
 	sell_slider.value_changed.connect(_on_sell_qty_changed)
 	all_but1_button.pressed.connect(func(): sell_slider.value = maxf(1.0, sell_slider.max_value - 1.0))
 	all_button.pressed.connect(func(): sell_slider.value = sell_slider.max_value)
@@ -159,7 +168,9 @@ func _on_item_selected(item: Item) -> void:
 	_display_item_details(item)
 
 func _get_unit_sell_value(item: Item) -> int:
-	return maxi(1, item.sell_value)
+	# Counting House (P4): built tiers raise every sale's take.
+	var mult := 1.0 + GroundsManager.get_bonus(Ids.EFFECT_SELL_PCT) / 100.0
+	return maxi(1, int(round(item.sell_value * mult)))
 
 func _display_item_details(item: Item) -> void:
 	details_content.visible = true
@@ -183,6 +194,23 @@ func _display_item_details(item: Item) -> void:
 	if is_tool:
 		equip_button.text = "Unequip" if selected_is_equipped else "Equip"
 	destroy_button.visible = not selected_is_equipped and not is_tool
+
+	# Gather elixirs (P3) are drunk from here and incense burned from here;
+	# combat potions from battle. Recipe scrolls are studied from here too.
+	var drinkable = item is Consumable and item.is_gather_elixir() and count > 0
+	var burnable = item is Consumable and item.is_incense() and count > 0
+	var studyable = item is Consumable and item.is_recipe_scroll() and count > 0
+	use_button.visible = drinkable or burnable or studyable
+	use_button.disabled = false
+	if drinkable:
+		use_button.text = "Drink (%d min buff)" % int(item.buff_minutes)
+	elif burnable:
+		use_button.text = "Burn (%d min)" % int(item.buff_minutes)
+	elif studyable:
+		var station := _scroll_station(item)
+		var known = station != null and station.known_recipe_ids.has(item.taught_recipe_id)
+		use_button.text = "Already studied" if known else "Study"
+		use_button.disabled = known
 
 	var can_sell = item.is_sellable and not selected_is_equipped and count > 0
 	sell_panel.visible = can_sell
@@ -219,6 +247,7 @@ func _on_sell_pressed() -> void:
 		var qty = mini(int(sell_slider.value), InventoryManager.get_item_count(item.id))
 		if qty > 0 and InventoryManager.remove_item(item.id, qty):
 			GameManager.gold_coins += value * qty
+			StatsManager.bump(StatsManager.STAT_GOLD_EARNED, value * qty)
 		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func _on_equip_pressed() -> void:
@@ -230,6 +259,60 @@ func _on_equip_pressed() -> void:
 	else:
 		if GameManager.equip_tool(selected_item):
 			selected_is_equipped = true
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+
+## The crafting station whose recipe_db holds this scroll's taught recipe.
+func _scroll_station(scroll: Consumable) -> CraftingManager:
+	for station in [AlchemyManager, ForgeManager]:
+		if station.find_recipe_by_id(scroll.taught_recipe_id) != null:
+			return station
+	return null
+
+## Studies a recipe scroll: teaches its recipe and consumes one from the pack.
+func _study_scroll(scroll: Consumable) -> void:
+	var station := _scroll_station(scroll)
+	if station == null or not station.learn_recipe(scroll.taught_recipe_id):
+		return
+	InventoryManager.remove_item(scroll.id, 1)
+	AudioManager.play_sfx(Ids.SFX_LEVEL_UP)
+	var recipe = station.find_recipe_by_id(scroll.taught_recipe_id)
+	NotificationManager.show_item("Recipe learned — %s" % recipe.name, 1)
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+
+## Burns an incense: lays its grounds-wide timed buff and consumes one.
+func _burn_incense(incense: Consumable) -> void:
+	var effect := incense.incense_channel()
+	if effect == "": return
+	InventoryManager.remove_item(incense.id, 1)
+	AudioManager.play_sfx(Ids.SFX_POTION)
+	GameManager.apply_timed_buff(effect, incense.magnitude, incense.buff_minutes)
+	# Lighting a Corpse-Candle also stirs minions already resting.
+	if incense.use_effect == Ids.CONSUME_INCENSE_EXHAUST:
+		MinionManager.hasten_exhaustion(incense.magnitude)
+	NotificationManager.show_item("%s burns — %d minutes" % [incense.name, int(incense.buff_minutes)], 1)
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+
+## Drinks a gather elixir: lays its timed buff and consumes one from the pack.
+func _on_use_pressed() -> void:
+	if not (selected_item is Consumable) or selected_is_equipped: return
+	var elixir: Consumable = selected_item
+	if InventoryManager.get_item_count(elixir.id) <= 0: return
+	if elixir.is_recipe_scroll():
+		_study_scroll(elixir)
+		return
+	if elixir.is_incense():
+		_burn_incense(elixir)
+		return
+	var effect := ""
+	if elixir.use_effect == Ids.CONSUME_GATHER_XP_BUFF:
+		effect = Ids.EFFECT_HARVEST_XP_PCT
+	elif elixir.use_effect == Ids.CONSUME_GATHER_RARE_BUFF:
+		effect = Ids.EFFECT_RARE_CHANCE_PCT
+	if effect == "": return
+	InventoryManager.remove_item(elixir.id, 1)
+	AudioManager.play_sfx(Ids.SFX_POTION)
+	GameManager.apply_timed_buff(effect, elixir.magnitude, elixir.buff_minutes)
+	NotificationManager.show_item("%s — +%.0f%% for %d minutes" % [elixir.name, elixir.magnitude, int(elixir.buff_minutes)], 1)
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func _on_destroy_pressed() -> void:
