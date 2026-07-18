@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/dryad_heart_effigy.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_dryad_heart_effigy"
+name = "Dryad-Heart Effigy"
+description = "Carve heartstone and heartwood into one small figure. Work gently; it is carrying something for you."
+inputs = {"dryads_heartstone": 1, "heartwood_core": 1, "raven_quill": 6, "angel_oak": 4}
+output_item = ExtResource("2_out")
+required_level = 68
+scroll_taught = true
+base_seconds = 20.0
+base_xp = 80.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

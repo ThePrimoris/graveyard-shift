@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/slagheart_censer.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_slagheart_censer"
+name = "Slagheart Censer"
+description = "Cage an ember that refuses to die inside granite ribs, and let it smoke."
+inputs = {"cinder_slag": 3, "granite_cobble": 8, "slate_slab": 4}
+output_item = ExtResource("2_out")
+required_level = 30
+scroll_taught = true
+base_seconds = 12.0
+base_xp = 38.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

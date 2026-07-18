@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/quartz_geode.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "gravelight_lantern"
+name = "Gravelight Lantern"
+description = "A quartz heart burning with corpse-light in a cage of blackened branches. The dead move quicker inside its glow."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 80
+rarity = 2
+is_stackable = false
+max_stack = 1
+slot = 0
+atk_bonus = 4.0
+hp_bonus = 8
+passive_effect = "minion_speed_pct"
+passive_magnitude = 6.0
+metadata/_custom_type_script = "res://data/GearData.gd"

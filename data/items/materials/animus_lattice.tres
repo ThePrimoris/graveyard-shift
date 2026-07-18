@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/cobalt_powder.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "animus_lattice"
+name = "Animus Lattice"
+description = "The chassis threaded with cobalt veins and a living jade nerve. It flinches when hammered now, which the old manuals call progress."
+icon = ExtResource("2_icon")
+type = 0
+sell_value = 250
+is_sellable = false
+rarity = 3
+metadata/_custom_type_script = "res://data/ItemData.gd"

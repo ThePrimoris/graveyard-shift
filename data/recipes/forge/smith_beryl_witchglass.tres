@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/beryl_witchglass.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_beryl_witchglass"
+name = "Beryl Witchglass"
+description = "Polish a beryl cluster to a lens and anneal it until it stops showing what is and starts showing where to cut."
+inputs = {"beryl_cluster": 4, "quartz_geode": 3}
+output_item = ExtResource("2_out")
+required_level = 26
+base_seconds = 11.0
+base_xp = 34.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

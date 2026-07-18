@@ -40,11 +40,13 @@ static func validate() -> Array[String]:
 	for e in _load_dirs(ITEM_DIRS):
 		if e.res is Item and e.res.id != "":
 			item_ids[e.res.id] = true
-		# Gear passives must ride a combat channel the code actually reads.
+		# Gear passives must ride a channel the code actually reads: combat
+		# (get_minion_effect) or gather (get_worn_gear_bonus).
 		if e.res is Gear:
 			var piece: Gear = e.res
-			if piece.passive_effect != "" and not Ids.COMBAT_EFFECT_ALL.has(piece.passive_effect):
-				errors.append("%s: unknown gear passive '%s' (not in Ids.COMBAT_EFFECT_ALL)" % [e.path, piece.passive_effect])
+			if piece.passive_effect != "" \
+					and not (Ids.COMBAT_EFFECT_ALL.has(piece.passive_effect) or Ids.EFFECT_ALL.has(piece.passive_effect)):
+				errors.append("%s: unknown gear passive '%s' (not a known combat or gather effect)" % [e.path, piece.passive_effect])
 		# Consumables must carry a use effect the code actually resolves.
 		if e.res is Consumable:
 			var consumable: Consumable = e.res

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/peridotite_chunk.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "peridot_offering_bowl"
+name = "Peridot Offering-Bowl"
+description = "Olivine hollowed to a shallow bowl. The altar takes what is offered from it with a sharper appetite."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 180
+rarity = 2
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 0
+passive_effect = "offering_pct"
+passive_magnitude = 6.0
+metadata/_custom_type_script = "res://data/GearData.gd"

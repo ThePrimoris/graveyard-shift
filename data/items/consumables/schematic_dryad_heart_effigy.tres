@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Consumable" format=3]
+
+[ext_resource type="Script" path="res://data/ConsumableData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/scroll_war_draught.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "schematic_dryad_heart_effigy"
+name = "Schematic: Dryad-Heart Effigy"
+description = "Carving lines traced on a pressed angel-oak leaf. The final cut is marked simply: gently."
+icon = ExtResource("2_icon")
+type = 4
+sell_value = 100
+rarity = 4
+use_effect = "consume_learn_recipe"
+taught_recipe_id = "smith_dryad_heart_effigy"
+metadata/_custom_type_script = "res://data/ConsumableData.gd"

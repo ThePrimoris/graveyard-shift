@@ -104,6 +104,10 @@ var acting_index: int = 0
 var auto_mode: bool = false
 var paused: bool = true
 
+## The view to return to when the fight ends (flee, victory, defeat). Set by
+## Control.switch_view when combat opens; defaults to the Graveyard.
+var return_view: String = Ids.VIEW_GRAVEYARD
+
 var auto_button: Button
 var pause_label: Label
 var enemy_holder: VBoxContainer
@@ -459,7 +463,7 @@ func _flee() -> void:
 	fight_state = "idle"
 	item_menu_open = false
 	_log("The warband withdraws.")
-	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)
+	get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", return_view)
 
 # --- Enemy actions ---
 
@@ -711,14 +715,10 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 
 	party.clear()
 	used_actives.clear()
-	# Muster the slotted warband, minus anyone exhausted (DEP-2). If no plots
-	# are filled, fall back to every battle-ready raised minion.
-	var ids: Array = []
-	for minion_id in MinionManager.plots:
-		if minion_id != "" and not ids.has(minion_id) and not MinionManager.is_exhausted(minion_id):
-			ids.append(minion_id)
-	if ids.is_empty():
-		ids = MinionManager.battle_ready_ids()
+	# Muster the slotted warband, minus anyone exhausted (DEP-2). Only minions
+	# slotted into plots march — no plots filled means no warband (the confront
+	# gate blocks this case; an empty party just leaves the fight idle).
+	var ids: Array = MinionManager.plotted_battle_ready_ids()
 	for minion_id in ids:
 		var minion = MinionManager.find_minion_by_id(minion_id)
 		party.append({
@@ -1135,7 +1135,7 @@ func _rebuild_command_panel() -> void:
 			command_holder.add_child(_menu_header("VICTORY"))
 			command_holder.add_child(_menu_row("Collect & Return", true, true, func():
 				fight_state = "idle"
-				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)))
+				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", return_view)))
 		"defeat":
 			command_holder.add_child(_menu_header("DEFEAT"))
 			# The between-fights heal (DEP-2): pay gold or spend a Grave Tonic
@@ -1165,7 +1165,7 @@ func _rebuild_command_panel() -> void:
 						_rebuild_command_panel()))
 			command_holder.add_child(_menu_row("Retreat", true, true, func():
 				fight_state = "idle"
-				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", Ids.VIEW_GRAVEYARD)))
+				get_tree().call_group(Ids.GROUP_VIEW_MANAGER, "switch_view", return_view)))
 		_:
 			var can_command = waiting_for_command and not auto_mode
 			if item_menu_open and can_command:

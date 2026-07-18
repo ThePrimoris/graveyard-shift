@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/peridot_offering_bowl.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_peridot_offering_bowl"
+name = "Peridot Offering-Bowl"
+description = "Hollow a chunk of peridotite over slow heat, seed it with an acorn that will never sprout, and offer it to the altar's appetite."
+inputs = {"peridotite_chunk": 6, "nickel_granule": 4, "petrified_acorn": 2}
+output_item = ExtResource("2_out")
+required_level = 42
+scroll_taught = true
+base_seconds = 14.0
+base_xp = 50.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

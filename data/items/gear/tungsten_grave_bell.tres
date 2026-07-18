@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/tungsten_lump.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "tungsten_grave_bell"
+name = "Tungsten Grave-Bell"
+description = "A dolorous bell too heavy for any steeple. Every foe's fury answers its toll."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 120
+rarity = 2
+is_stackable = false
+max_stack = 1
+slot = 0
+atk_bonus = 6.0
+hp_bonus = 20
+passive_effect = "minion_taunt"
+passive_magnitude = 1.0
+metadata/_custom_type_script = "res://data/GearData.gd"

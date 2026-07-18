@@ -20,3 +20,6 @@ Thumbs.db
 /tests
 /tests
 .DS_Store
+tests/GroundsShot.gd
+tests/Screenshot.gd
+tests/SmokeTest.gd

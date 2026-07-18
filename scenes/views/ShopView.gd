@@ -10,14 +10,20 @@ const TIER_COSTS: Dictionary = {
 	ToolData.ToolTier.TEMPERED: {"gold": 1000, "materials": {"rotten_logs": 90, "stone_debris": 60}}
 }
 
-# Recipe scrolls (Alchemy rework): one-time gold sinks that teach a crafting
-# recipe when studied from the backpack. The shop never sells finished potions —
-# brewing is the player's job. item_id -> gold price.
+# Recipe scrolls & schematics (Alchemy/Forge reworks): one-time gold sinks that
+# teach a crafting recipe when studied from the backpack. The shop never sells
+# finished potions or gear — brewing and smithing are the player's job.
+# item_id -> gold price.
 const SCROLL_PRICES: Dictionary = {
 	"scroll_war_draught": 150,
 	"scroll_vigil_incense": 300,
 	"scroll_surgeons_paste": 500,
 	"scroll_requiem_incense": 2000,
+	"schematic_quartz_chime": 250,
+	"schematic_tungsten_grave_bell": 450,
+	"schematic_slagheart_censer": 700,
+	"schematic_peridot_offering_bowl": 1000,
+	"schematic_jade_deathmask": 1600,
 }
 
 var gold_label: Label
@@ -101,7 +107,7 @@ func _build_shop() -> void:
 	vbox.add_child(scrolls_header)
 
 	var scrolls_hint = Label.new()
-	scrolls_hint.text = "Formulae for the Caretaker's Still. Buy the scroll, study it from the backpack, and the recipe is yours for good."
+	scrolls_hint.text = "Formulae for the Caretaker's Still and schematics for the Boneyard Anvil. Buy one, study it from the backpack, and the recipe is yours for good."
 	scrolls_hint.add_theme_font_size_override("font_size", 12)
 	scrolls_hint.add_theme_color_override("font_color", Color(0.65, 0.7, 0.72))
 	vbox.add_child(scrolls_hint)

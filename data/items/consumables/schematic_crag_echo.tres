@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Consumable" format=3]
+
+[ext_resource type="Script" path="res://data/ConsumableData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/scroll_war_draught.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "schematic_crag_echo"
+name = "Schematic: Echo of the Crag"
+description = "Chiseled onto a slate flake by something with no hands to spare. It shows how a stone learns to answer back."
+icon = ExtResource("2_icon")
+type = 4
+sell_value = 60
+rarity = 3
+use_effect = "consume_learn_recipe"
+taught_recipe_id = "smith_crag_echo"
+metadata/_custom_type_script = "res://data/ConsumableData.gd"

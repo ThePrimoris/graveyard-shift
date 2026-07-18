@@ -6,11 +6,11 @@
 [resource]
 script = ExtResource("1_recipe")
 id = "smith_golem_core"
-name = "Golem Core"
-description = "Thirty bones, a good skull, and enough tungsten to make the dead take orders. The Forge's answer to Alchemy's Great Work."
-inputs = {"bones": 30, "cracked_skull": 6, "tungsten_lump": 10, "basalt_debris": 12}
+name = "The Golem Work: Core"
+description = "Strike the lattice's keystone vertebra until it hums with borrowed purpose. The last of the Golem Work — carry it to the Ritual Altar and give the bones something to gather around."
+inputs = {"animus_lattice": 1, "resonant_geode": 2, "obsidian_shard": 12, "cobalt_powder": 10}
 output_item = ExtResource("2_out")
-required_level = 35
-base_seconds = 120.0
-base_xp = 400.0
+required_level = 75
+base_seconds = 180.0
+base_xp = 1200.0
 metadata/_custom_type_script = "res://data/RecipeData.gd"

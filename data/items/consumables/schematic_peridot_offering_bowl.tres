@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Consumable" format=3]
+
+[ext_resource type="Script" path="res://data/ConsumableData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/scroll_war_draught.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "schematic_peridot_offering_bowl"
+name = "Schematic: Peridot Offering-Bowl"
+description = "A sexton's sketch of a hollowed olivine bowl, with notes on what the altar prefers to eat from."
+icon = ExtResource("2_icon")
+type = 4
+sell_value = 100
+rarity = 2
+use_effect = "consume_learn_recipe"
+taught_recipe_id = "smith_peridot_offering_bowl"
+metadata/_custom_type_script = "res://data/ConsumableData.gd"

@@ -37,10 +37,12 @@ var plots: Array = ["", "", "", ""]
 ## tired, not gone — but they cannot muster for combat until rested or cured.
 var exhausted_until: Dictionary = {}
 
-## Gear (P5 Forge): minion_id -> { slot_key (String) -> item_id }.
-## Five named slots per minion (two relics + three trinkets), COMBAT ONLY —
-## bonuses feed get_hp / get_atk / get_minion_effect, never the gather channels.
-## Relics are unique-equipped: a minion may bear only one copy of a relic.
+## Gear (P5 Forge, reworked): minion_id -> { slot_key (String) -> item_id }.
+## Five named slots per minion (two relics + three trinkets). Flat stats feed
+## get_hp / get_atk; a piece's one passive channel is either combat (MINION_*,
+## per-minion via get_minion_effect) or gather (EFFECT_*, warband-wide via
+## get_worn_gear_bonus while the bearer holds a plot). All gear is
+## unique-equipped: a minion may bear only one copy of a given piece.
 var gear: Dictionary = {}
 
 const RELIC_SLOTS: Array[String] = ["relic_0", "relic_1"]
@@ -185,10 +187,12 @@ func get_atk(minion_id: String) -> float:
 	var base = minion.base_atk + (level - 1) * minion.atk_per_level + _gear_atk(minion_id)
 	return base * (1.0 + get_minion_effect(minion_id, Ids.MINION_ATK_PCT) / 100.0)
 
-## Sum of one passive effect across a SINGLE minion's own unlocked abilities
-## AND its worn gear (P5 trinket channels). Combat effects buff the minion
-## itself, so they read per-minion — unlike get_passive_bonus, which
-## aggregates the whole slotted warband for gather.
+## Sum of one COMBAT passive (MINION_*) across a SINGLE minion's own unlocked
+## abilities AND its worn gear. Combat effects buff the minion itself, so they
+## read per-minion. Gather channels (EFFECT_*) never route through here — they
+## are warband-wide and read by get_passive_bonus (runes) and
+## get_worn_gear_bonus (gear); the disjoint namespaces keep a piece from ever
+## paying twice.
 func get_minion_effect(minion_id: String, effect: String) -> float:
 	if not roster.has(minion_id): return 0.0
 	var minion = find_minion_by_id(minion_id)
@@ -253,7 +257,25 @@ func get_passive_bonus(effect: String) -> float:
 				total += ability.magnitude
 	return total
 
-# --- Gear (P5 Forge: 2 relics + 3 trinkets per minion, combat only) ---
+## Sum of one GATHER passive (EFFECT_*) across every slotted minion's worn
+## gear — the forge's skilling trinkets. Mirrors get_passive_bonus exactly:
+## plots only, deduped, so deployed minions never count (their pace must stay
+## player-independent). Only ever queried with EFFECT_* ids; combat gear reads
+## per-minion through get_minion_effect instead.
+func get_worn_gear_bonus(effect: String) -> float:
+	var total := 0.0
+	var seen: Array = []
+	for minion_id in plots:
+		if minion_id == "" or seen.has(minion_id): continue
+		seen.append(minion_id)
+		if not roster.has(minion_id): continue
+		for slot_key in GEAR_SLOTS:
+			var piece = get_gear(minion_id, slot_key)
+			if piece and piece.passive_effect == effect:
+				total += piece.passive_magnitude
+	return total
+
+# --- Gear (P5 Forge: 2 relics + 3 trinkets per minion) ---
 
 ## The named slots a gear category can occupy.
 func slots_for_category(category: int) -> Array[String]:
@@ -268,7 +290,8 @@ func get_gear(minion_id: String, slot_key: String) -> Gear:
 ## Equips a piece of gear from the pack. With no slot_key, the first empty
 ## slot of the piece's category is used (or the first slot, swapping out its
 ## occupant, when all are full). Whatever was worn returns to the pack; fails
-## if the pack can't hold the swap-out. Relics are unique-equipped.
+## if the pack can't hold the swap-out. All gear is unique-equipped per minion,
+## which also caps a gather trinket at one copy per plotted minion (×4).
 func equip_gear(minion_id: String, piece: Gear, slot_key: String = "") -> bool:
 	if piece == null or not is_raised(minion_id): return false
 	if InventoryManager.get_item_count(piece.id) <= 0: return false
@@ -281,13 +304,12 @@ func equip_gear(minion_id: String, piece: Gear, slot_key: String = "") -> bool:
 				break
 	elif not slots.has(slot_key):
 		return false
-	if piece.slot == Gear.GearSlot.RELIC:
-		for other_key in RELIC_SLOTS:
-			if other_key == slot_key: continue
-			var worn = get_gear(minion_id, other_key)
-			if worn != null and worn.id == piece.id:
-				NotificationManager.show_item("Only one %s may be borne" % piece.name, 1)
-				return false
+	for other_key in slots:
+		if other_key == slot_key: continue
+		var worn = get_gear(minion_id, other_key)
+		if worn != null and worn.id == piece.id:
+			NotificationManager.show_item("Only one %s may be borne" % piece.name, 1)
+			return false
 	var previous = get_gear(minion_id, slot_key)
 	if previous != null and not InventoryManager.has_room_for(previous):
 		NotificationManager.show_item("Inventory full — cannot swap gear", 1)
@@ -375,6 +397,19 @@ func battle_ready_ids() -> Array:
 			ids.append(minion_id)
 	return ids
 
+## Battle-ready minions currently slotted into plots, in plot order (deduped).
+## The warband that actually marches to combat: only slotted minions fight, so
+## an empty set of plots means no fight rather than dragging every raised
+## minion in. `include_exhausted` counts spent minions too, for gating messages.
+func plotted_battle_ready_ids(include_exhausted: bool = false) -> Array:
+	var ids: Array = []
+	for minion_id in plots:
+		if minion_id == "" or ids.has(minion_id):
+			continue
+		if include_exhausted or not is_exhausted(minion_id):
+			ids.append(minion_id)
+	return ids
+
 # --- The Offering Rite (Ritual Altar) ---
 
 ## XP one unit of this item yields when offered at the altar. An explicit
@@ -382,8 +417,9 @@ func battle_ready_ids() -> Array:
 ## their sell_value (unsellable items with no offering_value can't be offered).
 func get_offering_xp(item: Item) -> float:
 	if item == null: return 0.0
-	# Mausoleum (P4): built tiers amplify every offering.
-	var potency := 1.0 + GroundsManager.get_bonus(Ids.EFFECT_OFFERING_PCT) / 100.0
+	# Mausoleum (P4) tiers and worn offering gear (Forge) amplify every offering.
+	var potency := 1.0 + (GroundsManager.get_bonus(Ids.EFFECT_OFFERING_PCT) \
+		+ get_worn_gear_bonus(Ids.EFFECT_OFFERING_PCT)) / 100.0
 	if item.offering_value >= 0:
 		return float(item.offering_value) * OFFERING_XP_PER_GOLD * potency
 	if not item.is_sellable: return 0.0

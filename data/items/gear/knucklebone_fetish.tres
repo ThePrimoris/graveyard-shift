@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/bones.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "knucklebone_fetish"
+name = "Knucklebone Fetish"
+description = "Finger-bones of a tireless digger, wired into a clacking charm. The whole warband works a little keener for its rattle."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 25
+rarity = 1
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 4
+passive_effect = "harvest_xp_pct"
+passive_magnitude = 3.0
+metadata/_custom_type_script = "res://data/GearData.gd"

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/dryads_heartstone.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "dryad_heart_effigy"
+name = "Dryad-Heart Effigy"
+description = "Heartstone and heartwood carved into a small standing figure. Once a battle, it spends a life that is not its bearer's."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 400
+rarity = 4
+is_stackable = false
+max_stack = 1
+slot = 0
+atk_bonus = 0.0
+hp_bonus = 20
+passive_effect = "minion_revive"
+passive_magnitude = 1.0
+metadata/_custom_type_script = "res://data/GearData.gd"

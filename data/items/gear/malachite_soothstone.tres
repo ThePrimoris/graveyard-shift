@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/malachite_flake.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "malachite_soothstone"
+name = "Malachite Sooth-Stone"
+description = "A green worry-stone that drinks the panic out of dead flesh. The bearer's frame knits itself thicker."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 40
+rarity = 1
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 8
+passive_effect = "minion_hp_pct"
+passive_magnitude = 4.0
+metadata/_custom_type_script = "res://data/GearData.gd"

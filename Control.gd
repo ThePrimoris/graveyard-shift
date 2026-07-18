@@ -21,6 +21,10 @@ var open_settings_panel: Node = null
 var open_achievements_panel: Node = null
 var open_almanac_panel: Node = null
 
+## The view currently shown, so combat can send the player back where they came
+## from instead of always dumping them on the Graveyard.
+var current_view: String = ""
+
 func _ready() -> void:
 	add_to_group(Ids.GROUP_UI_UPDATES)
 	add_to_group(Ids.GROUP_VIEW_MANAGER)
@@ -86,6 +90,13 @@ func _on_game_tick() -> void:
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func switch_view(target_view: String) -> void:
+	# Remember where the player was when they enter combat, so the fight can
+	# return them here afterward rather than always to the Graveyard.
+	if target_view == Ids.VIEW_COMBAT and current_view != "" and current_view != Ids.VIEW_COMBAT \
+			and combat_view:
+		combat_view.return_view = current_view
+	current_view = target_view
+
 	if graveyard_view: graveyard_view.visible = (target_view == Ids.VIEW_GRAVEYARD)
 	if forest_view: forest_view.visible = (target_view == Ids.VIEW_FOREST)
 	if quarry_view: quarry_view.visible = (target_view == Ids.VIEW_QUARRY)

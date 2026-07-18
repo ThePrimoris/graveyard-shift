@@ -5,18 +5,18 @@
 
 [resource]
 script = ExtResource("1_item")
-id = "beryl_signet"
-name = "Beryl Signet"
-description = "A sea-green stone in a scavenged ring. Its wearer strikes with uncanny precision."
+id = "beryl_witchglass"
+name = "Beryl Witchglass"
+description = "A lens of sea-green beryl set in nickel. Through it, every seam and artery shows."
 icon = ExtResource("2_icon")
 type = 3
-sell_value = 100
+sell_value = 130
 rarity = 2
 is_stackable = false
 max_stack = 1
 slot = 1
 atk_bonus = 0.0
-hp_bonus = 8
+hp_bonus = 10
 passive_effect = "minion_crit_pct"
-passive_magnitude = 10.0
+passive_magnitude = 8.0
 metadata/_custom_type_script = "res://data/GearData.gd"

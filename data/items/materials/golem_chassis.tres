@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/granite_cobble.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "golem_chassis"
+name = "Golem Chassis"
+description = "A giant's scaffold of tungsten-pinned bone and granite. It stands patiently in the forge's corner, waiting to be given a reason."
+icon = ExtResource("2_icon")
+type = 0
+sell_value = 150
+is_sellable = false
+rarity = 3
+metadata/_custom_type_script = "res://data/ItemData.gd"

@@ -358,8 +358,9 @@ func _on_item_selected(item: Item) -> void:
 	_display_item_details(item)
 
 func _get_unit_sell_value(item: Item) -> int:
-	# Counting House (P4): built tiers raise every sale's take.
-	var mult := 1.0 + GroundsManager.get_bonus(Ids.EFFECT_SELL_PCT) / 100.0
+	# Counting House (P4) tiers and worn sell gear (Forge) raise every sale's take.
+	var mult := 1.0 + (GroundsManager.get_bonus(Ids.EFFECT_SELL_PCT) \
+		+ MinionManager.get_worn_gear_bonus(Ids.EFFECT_SELL_PCT)) / 100.0
 	return maxi(1, int(round(item.sell_value * mult)))
 
 func _display_item_details(item: Item) -> void:

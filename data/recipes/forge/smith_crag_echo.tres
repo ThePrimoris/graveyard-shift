@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/crag_echo.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_crag_echo"
+name = "Echo of the Crag"
+description = "Seat a resonant geode in tungsten and granite, and hammer until it starts hammering back."
+inputs = {"resonant_geode": 1, "granite_cobble": 10, "tungsten_lump": 4}
+output_item = ExtResource("2_out")
+required_level = 33
+scroll_taught = true
+base_seconds = 14.0
+base_xp = 46.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

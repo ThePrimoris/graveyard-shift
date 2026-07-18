@@ -25,6 +25,7 @@ const COL_TEXT_HI := Color(0.91, 0.886, 0.83)
 const COL_RUST := Color(0.76, 0.353, 0.29)
 const COL_RARE_TEXT := Color(0.88, 0.64, 0.6)
 const COL_GREEN_TEXT := Color(0.55, 0.82, 0.5)
+const COL_GOLD_TEXT := Color(0.83, 0.64, 0.27)
 const SEGMENT_COLOR := Color("#b5623a")
 
 # Gerund the views hand us -> the noun used in headers and on the button.
@@ -55,6 +56,16 @@ const VERB_NOUNS := {"Chopping": "Cut", "Mining": "Break", "Digging": "Dig"}
 @onready var segment_box: VBoxContainer = %SegmentBox
 @onready var damage_meter: Panel = %DamageMeter
 @onready var damage_fill: Panel = %DamageFill
+
+# Every normal card is pinned to this height so its size never changes with
+# state: locked and unlocked cards match, and showing the Deploy / Collect /
+# Recall row no longer makes a card taller than its neighbours (which used to
+# jog the whole grid and force needless scrolling). This is a floor set to the
+# tallest real state — an unlocked card hosting a deployed minion (the
+# Collect/Recall row) lays out at 319px in the live scene, so the floor sits
+# just above it and every other state (277 with no row, 187 locked) snaps up
+# to match. Boss cards opt out via set_large().
+const CARD_MIN_HEIGHT := 320.0
 
 var action_verb: String = "Harvest"
 var node_title: String = ""
@@ -97,8 +108,18 @@ func _build_deploy_row() -> void:
 	deploy_row = HBoxContainer.new()
 	deploy_row.add_theme_constant_override("separation", 6)
 	deploy_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Full-width strip in the card body, NOT tucked into the narrow icon column:
+	# the "⛏ Zombie — 6/80  Collect  Recall" row is ~217px wide and would grow
+	# the icon column (and the whole card) past its neighbours. Given the card's
+	# full content width it fits with room to spare, so deploying never resizes
+	# the card. A fixed height keeps every state the same size vertically too.
+	deploy_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	deploy_row.custom_minimum_size = Vector2(0, 30)
 	deploy_row.visible = false
-	action_button.get_parent().add_child(deploy_row)
+	# Sits between the node body and the bottom progress bar, spanning the card.
+	var root := body.get_parent()
+	root.add_child(deploy_row)
+	root.move_child(deploy_row, bottom_row.get_index())
 
 	deploy_button = Button.new()
 	deploy_button.text = "Deploy"
@@ -132,16 +153,24 @@ func _build_deploy_row() -> void:
 	recall_button.pressed.connect(func(): recall_requested.emit())
 	deploy_row.add_child(recall_button)
 
-## Drives the deployment controls. Pass {} to hide them (locked/boss cards,
-## or when the skill's deployment sits on a different node); {"mode": "free"}
-## for the Deploy button; {"mode": "here", "minion_name", "count", "cap",
-## "full"} when this node hosts the deployed minion.
+## Drives the deployment controls. Called only on unlocked cards, so the row
+## always stays on screen — nothing below it shifts as the state changes.
+## {"mode": "free"}: an enabled Deploy button. {} (the skill's one deployment
+## sits on ANOTHER node): the Deploy button stays put but greyed out, so a
+## deployment elsewhere never makes this card's icon and Dig button jump.
+## {"mode": "here", "minion_name", "count", "cap", "full"}: this node hosts the
+## minion, so Deploy is swapped for the satchel status + Collect/Recall. Between
+## the fixed height (CARD_MIN_HEIGHT) and the full-width row, deploying never
+## resizes or shifts any card.
 func set_deploy_state(state: Dictionary) -> void:
 	if deploy_row == null: return
 	var mode = str(state.get("mode", ""))
-	deploy_row.visible = mode != ""
-	deploy_button.visible = mode == "free"
+	deploy_row.visible = true
 	var here = mode == "here"
+	deploy_button.visible = not here
+	deploy_button.disabled = mode != "free"
+	deploy_button.tooltip_text = "Send a minion to gather here while you work elsewhere — even offline" if mode == "free" \
+		else "One minion works each ground — recall it from its post to redeploy here"
 	deploy_status.visible = here
 	collect_button.visible = here
 	recall_button.visible = here
@@ -191,17 +220,26 @@ func show_unlocked() -> void:
 	action_button.visible = true
 	icon_rect.self_modulate = Color.WHITE
 
-## Boss card: flavour text and a single "Confront" button, no harvesting.
-func show_boss(desc_text: String, button_label: String) -> void:
+## Combat card: flavour text, an encounter subtitle (boss vs. regular fight,
+## plus recommended level), the loot ledger, and a single "Confront" button.
+## `is_real_boss` decides the label and its colour, so a multi-foe fight no
+## longer masquerades as a boss. Call set_drops(...) beforehand to fill the
+## loot column (has_loot then shows it here).
+func show_encounter(desc_text: String, is_real_boss: bool, subtitle: String, button_label: String, has_loot: bool) -> void:
 	title_label.text = node_title
 	title_label.remove_theme_color_override("font_color")
 	desc_label.visible = true
 	desc_label.text = desc_text
 	stats_label.visible = true
-	stats_label.text = "☠ Boss Encounter"
-	stats_label.add_theme_color_override("font_color", COL_RUST)
+	stats_label.text = subtitle
+	stats_label.add_theme_color_override("font_color", COL_RUST if is_real_boss else COL_GOLD_TEXT)
+	# Relabel the loot column for combat and keep the rare column tucked away.
+	common_header.text = "Drops"
+	common_header.tooltip_text = "What the fallen may leave behind"
 	top_row.visible = false
-	columns.visible = false
+	columns.visible = has_loot
+	divider.visible = false
+	rare_col.visible = false
 	bottom_row.visible = false
 	damage_meter.visible = false
 	segment_box.visible = false
@@ -214,6 +252,9 @@ func show_boss(desc_text: String, button_label: String) -> void:
 # --- Setup ---
 
 func setup_card(title_text: String, desc_text: String, verb: String, _max_duration: float) -> void:
+	# Pin the height (keep the scene's width) so every state renders the same
+	# size. Boss cards override this in set_large().
+	custom_minimum_size = Vector2(custom_minimum_size.x, CARD_MIN_HEIGHT)
 	node_title = title_text
 	title_label.text = title_text
 	desc_label.text = desc_text

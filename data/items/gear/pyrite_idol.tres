@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="Gear" format=3]
 
 [ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
-[ext_resource type="Texture2D" path="res://icons/items/nickel_blade.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://icons/items/pyrite_dust.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_item")
-id = "nickel_blade"
-name = "Nickel Blade"
-description = "A plain, honest edge smithed from bright granules. The dead swing it without complaint."
+id = "pyrite_idol"
+name = "Pyrite Grinning Idol"
+description = "Fool's gold pressed into a fool's grin. Merchants haggle worse beneath its glitter."
 icon = ExtResource("2_icon")
 type = 3
-sell_value = 30
+sell_value = 55
 rarity = 1
 is_stackable = false
 max_stack = 1
-slot = 0
-atk_bonus = 2.0
+slot = 1
+atk_bonus = 0.0
 hp_bonus = 0
-passive_effect = ""
-passive_magnitude = 0.0
+passive_effect = "sell_pct"
+passive_magnitude = 4.0
 metadata/_custom_type_script = "res://data/GearData.gd"

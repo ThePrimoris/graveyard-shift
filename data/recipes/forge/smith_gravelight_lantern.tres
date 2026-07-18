@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/gravelight_lantern.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_gravelight_lantern"
+name = "Gravelight Lantern"
+description = "Cage a quartz heart in blackened branches and pour in enough grave-heat to wake its glow."
+inputs = {"quartz_geode": 3, "pyrite_dust": 4, "brittle_branches": 4}
+output_item = ExtResource("2_out")
+required_level = 14
+base_seconds = 9.0
+base_xp = 24.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/materials/animus_lattice.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_animus_lattice"
+name = "The Golem Work: Animus Lattice"
+description = "Thread the chassis with cobalt veins and a living jade nerve. The second of the Golem Work: a body that flinches when struck."
+inputs = {"golem_chassis": 1, "basalt_debris": 12, "cobalt_powder": 8, "living_jade_core": 1, "sable_walnut_heartwood": 4}
+output_item = ExtResource("2_out")
+required_level = 55
+base_seconds = 150.0
+base_xp = 700.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

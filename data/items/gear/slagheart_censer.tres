@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/cinder_slag.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "slagheart_censer"
+name = "Slagheart Censer"
+description = "Emberslate coals that never quite die, swinging in a granite cage. Riches come easier in its smoke."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 150
+rarity = 2
+is_stackable = false
+max_stack = 1
+slot = 1
+atk_bonus = 0.0
+hp_bonus = 0
+passive_effect = "double_drop_pct"
+passive_magnitude = 5.0
+metadata/_custom_type_script = "res://data/GearData.gd"

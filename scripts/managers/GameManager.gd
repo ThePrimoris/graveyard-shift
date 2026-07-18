@@ -336,6 +336,12 @@ func get_gather_modifiers(node: HarvestNode) -> Dictionary:
 	mods.rare_add += MinionManager.get_passive_bonus(Ids.EFFECT_RARE_CHANCE_PCT) / 100.0
 	mods.double_chance += MinionManager.get_passive_bonus(Ids.EFFECT_DOUBLE_DROP_PCT) / 100.0
 
+	# Worn gear (Forge rework): skilling trinkets on slotted minions, same
+	# spice channels as the runes above.
+	mods.xp_mult += MinionManager.get_worn_gear_bonus(Ids.EFFECT_HARVEST_XP_PCT) / 100.0
+	mods.rare_add += MinionManager.get_worn_gear_bonus(Ids.EFFECT_RARE_CHANCE_PCT) / 100.0
+	mods.double_chance += MinionManager.get_worn_gear_bonus(Ids.EFFECT_DOUBLE_DROP_PCT) / 100.0
+
 	# Graveyard structures (the Grounds): global build bonuses, same spice
 	# channels — never raw speed.
 	mods.xp_mult += GroundsManager.get_bonus(Ids.EFFECT_HARVEST_XP_PCT) / 100.0

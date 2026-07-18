@@ -5,18 +5,18 @@
 
 [resource]
 script = ExtResource("1_item")
-id = "quartz_charm"
-name = "Quartz Charm"
-description = "A cloudy crystal on a leather cord. It hums against dead ribs, thickening them."
+id = "quartz_chime"
+name = "Chime of Small Fortunes"
+description = "Slivers of singing quartz on gut string. Their note picks out what the eye would miss."
 icon = ExtResource("2_icon")
 type = 3
-sell_value = 40
-rarity = 1
+sell_value = 90
+rarity = 2
 is_stackable = false
 max_stack = 1
 slot = 1
 atk_bonus = 0.0
-hp_bonus = 12
-passive_effect = ""
-passive_magnitude = 0.0
+hp_bonus = 0
+passive_effect = "rare_chance_pct"
+passive_magnitude = 4.0
 metadata/_custom_type_script = "res://data/GearData.gd"

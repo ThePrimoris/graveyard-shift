@@ -285,10 +285,16 @@ func _on_boss_confront(node_data: HarvestNode) -> void:
 	if MinionManager.roster.is_empty():
 		NotificationManager.show_item("You need a warband — raise minions in the Necronomicon first", 1)
 		return
+	# Only slotted minions march: an empty set of plots is no warband, so combat
+	# no longer starts by dragging in every raised minion.
+	var slotted := MinionManager.plotted_battle_ready_ids(true)
+	if slotted.is_empty():
+		NotificationManager.show_item("Slot minions into your plots before marching to battle", 1)
+		return
 	# Exhaustion (DEP-2): a broken warband can't march straight back in.
-	if MinionManager.battle_ready_ids().is_empty():
+	if MinionManager.plotted_battle_ready_ids().is_empty():
 		var soonest := INF
-		for minion_id in MinionManager.roster:
+		for minion_id in slotted:
 			soonest = minf(soonest, MinionManager.exhaustion_left(minion_id))
 		NotificationManager.show_item("The warband is exhausted — rest %d more minute(s), pay to rouse them, or brew a tonic" \
 			% maxi(1, int(ceil(soonest / 60.0))), 1)
@@ -511,6 +517,45 @@ func _chance_entries(pool: Array) -> Array:
 	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
 	return entries
 
+## Subtitle line for a combat node's card: distinguishes a lone boss from a
+## group fight (fixing the "everything says Boss Encounter" bug) and always
+## names the recommended level so the player can size the fight up.
+func _encounter_subtitle(node: HarvestNode, encounter, real_boss: bool) -> String:
+	var lv := node.required_level
+	if real_boss:
+		return "☠ Boss Encounter — Recommended Lv %d" % lv
+	var foes := 0
+	if encounter != null:
+		for enemy in encounter.enemies:
+			if enemy != null:
+				foes += 1
+	if foes <= 0:
+		return "⚔ Combat Encounter — Recommended Lv %d" % lv
+	return "⚔ Combat — %d %s · Recommended Lv %d" % [foes, "foe" if foes == 1 else "foes", lv]
+
+## Aggregated loot rows across every foe in an encounter, for the confront
+## card's Drops column. Enemy loot weights are literal percentages, so a
+## shared item keeps its best chance and the widest amount range. Each row:
+## { "item", "pct" (0..100), "min_amount", "max_amount" }.
+func _encounter_drop_entries(encounter) -> Array:
+	if encounter == null: return []
+	var by_item: Dictionary = {}
+	for enemy in encounter.enemies:
+		if enemy == null: continue
+		for row in enemy.loot_pool:
+			if row == null or row.item == null or row.weight <= 0.0: continue
+			if by_item.has(row.item.id):
+				var e = by_item[row.item.id]
+				e["pct"] = maxf(e["pct"], row.weight)
+				e["min_amount"] = mini(e["min_amount"], row.min_amount)
+				e["max_amount"] = maxi(e["max_amount"], row.max_amount)
+			else:
+				by_item[row.item.id] = {"item": row.item, "pct": row.weight,
+					"min_amount": row.min_amount, "max_amount": row.max_amount}
+	var entries: Array = by_item.values()
+	entries.sort_custom(func(a, b): return a["pct"] > b["pct"])
+	return entries.slice(0, HarvestNode.MAX_LOOT_ENTRIES)
+
 func update_ui() -> void:
 	_update_header()
 	_update_zone_buttons()
@@ -529,7 +574,12 @@ func update_ui() -> void:
 				# card itself explains what level unseals it.
 				card.show_locked(node.description, GameManager.get_node_requirement_text(node))
 			elif node.is_boss:
-				card.show_boss(node.description, "Confront")
+				var encounter = GameManager.find_encounter_by_id(node.encounter_id)
+				var real_boss: bool = encounter != null and encounter.is_boss_encounter()
+				var loot := _encounter_drop_entries(encounter)
+				card.set_drops(loot, [], 0.0, false)
+				card.show_encounter(node.description, real_boss,
+					_encounter_subtitle(node, encounter, real_boss), "Confront", not loot.is_empty())
 				card.action_button.disabled = false
 			else:
 				card.show_unlocked()

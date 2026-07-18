@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/resonant_geode.tres" id="3_l0"]
 [ext_resource type="Resource" path="res://data/items/materials/beryl_cluster.tres" id="3_l1"]
+[ext_resource type="Resource" path="res://data/items/consumables/schematic_crag_echo.tres" id="3_l2"]
 [ext_resource type="Texture2D" path="res://icons/enemies/crag_lurker.png" id="9_icon"]
 
 [sub_resource type="Resource" id="Loot0"]
@@ -16,9 +17,16 @@ max_amount = 2
 [sub_resource type="Resource" id="Loot1"]
 script = ExtResource("2_loot")
 item = ExtResource("3_l1")
-weight = 40.0
+weight = 32.0
 min_amount = 2
 max_amount = 4
+
+[sub_resource type="Resource" id="Loot2"]
+script = ExtResource("2_loot")
+item = ExtResource("3_l2")
+weight = 8.0
+min_amount = 1
+max_amount = 1
 
 [resource]
 script = ExtResource("1_enemy")
@@ -35,4 +43,4 @@ enrage_per_segment = 0.15
 xp_reward = 155.0
 gold_min = 65
 gold_max = 115
-loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1")])
+loot_pool = Array[ExtResource("2_loot")]([SubResource("Loot0"), SubResource("Loot1"), SubResource("Loot2")])

@@ -5,7 +5,7 @@
 extends Node
 
 const SAVE_PATH: String = "user://graveyard_shift_save.json"
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 
 ## Offline progress: free window everyone gets, plus a minimum gap before it's
 ## worth granting. The Grave-Lantern structure extends the cap (offline_hours).
@@ -226,8 +226,10 @@ func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 				migrated = _migrate_v2_to_v3(migrated)
 			3:
 				migrated = _migrate_v3_to_v4(migrated)
-			# 4:
-			#     migrated = _migrate_v4_to_v5(migrated)   # <- next bump slots in here
+			4:
+				migrated = _migrate_v4_to_v5(migrated)
+			# 5:
+			#     migrated = _migrate_v5_to_v6(migrated)   # <- next bump slots in here
 			_:
 				push_warning("SaveManager: no migration step for v%d." % v)
 				return {}
@@ -265,6 +267,62 @@ func _migrate_v3_to_v4(data: Dictionary) -> Dictionary:
 			new_gear[minion_id][target] = old_gear[minion_id][slot_key]
 	minions["gear"] = new_gear
 	data["minions"] = minions
+	return data
+
+## v4 → v5 (Forge rework): the six weapon/jewelry gear pieces are retired for
+## the relic/trinket set (see docs/forge_redesign.md). Each old recipe's FULL
+## inputs, so no smithing labor is lost.
+const _V5_GEAR_REFUNDS: Dictionary = {
+	"nickel_blade": {"nickel_granule": 8, "brittle_branches": 3},
+	"quartz_charm": {"quartz_geode": 3, "rancid_sinew": 2},
+	"tungsten_cleaver": {"tungsten_lump": 10, "sable_walnut_heartwood": 4},
+	"beryl_signet": {"beryl_cluster": 4, "nickel_granule": 5, "pyrite_dust": 3},
+	"cobalt_warpick": {"cobalt_powder": 8, "tungsten_lump": 6, "basalt_debris": 5},
+	"jade_idol": {"imperial_jade_knot": 3, "malachite_flake": 6, "amber_droplet": 4},
+}
+
+## Converts every retired gear piece — packed or worn — into its smithing
+## materials. Refund stacks land in emptied slots first, then append past the
+## end: restore_from_save resizes to the saved array's length and
+## refresh_capacity never trims occupied slots, so overflow survives the load.
+func _migrate_v4_to_v5(data: Dictionary) -> Dictionary:
+	var refunds: Dictionary = {}  # material_id -> total amount
+	var inventory: Array = data.get("inventory", [])
+	for i in range(inventory.size()):
+		var entry = inventory[i]
+		if entry == null or not (entry is Dictionary): continue
+		var gear_id := str(entry.get("id", ""))
+		if not _V5_GEAR_REFUNDS.has(gear_id): continue
+		var count: int = maxi(int(entry.get("quantity", 1)), 1)
+		for mat_id in _V5_GEAR_REFUNDS[gear_id]:
+			refunds[mat_id] = int(refunds.get(mat_id, 0)) + int(_V5_GEAR_REFUNDS[gear_id][mat_id]) * count
+		inventory[i] = null
+	var minions: Dictionary = data.get("minions", {})
+	var gear: Dictionary = minions.get("gear", {})
+	for minion_id in gear:
+		var worn: Dictionary = gear[minion_id]
+		for slot_key in worn.keys():
+			var gear_id := str(worn[slot_key])
+			if not _V5_GEAR_REFUNDS.has(gear_id): continue
+			for mat_id in _V5_GEAR_REFUNDS[gear_id]:
+				refunds[mat_id] = int(refunds.get(mat_id, 0)) + int(_V5_GEAR_REFUNDS[gear_id][mat_id])
+			worn.erase(slot_key)
+	# 250 is the material default max_stack; splitting here keeps the loaded
+	# slots legal without needing the item registry (this step stays pure).
+	var stacks: Array = []
+	for mat_id in refunds:
+		var left := int(refunds[mat_id])
+		while left > 0:
+			var take: int = mini(left, 250)
+			stacks.append({"id": mat_id, "quantity": take})
+			left -= take
+	for i in range(inventory.size()):
+		if stacks.is_empty(): break
+		if inventory[i] == null:
+			inventory[i] = stacks.pop_front()
+	for stack in stacks:
+		inventory.append(stack)
+	data["inventory"] = inventory
 	return data
 
 ## Copies the current save to a timestamped .bak so an incompatible file (e.g. a

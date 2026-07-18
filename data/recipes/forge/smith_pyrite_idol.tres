@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/pyrite_idol.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_pyrite_idol"
+name = "Pyrite Grinning Idol"
+description = "Press fool's gold into a slate mold and give it a grin no merchant can argue with."
+inputs = {"pyrite_dust": 8, "slate_slab": 2}
+output_item = ExtResource("2_out")
+required_level = 10
+base_seconds = 8.0
+base_xp = 18.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/living_jade_heart.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_living_jade_heart"
+name = "Living Jade Heart"
+description = "Set a living core in an imperial jade shell and teach it, gently, to keep time."
+inputs = {"living_jade_core": 1, "imperial_jade_knot": 2, "peridotite_chunk": 4}
+output_item = ExtResource("2_out")
+required_level = 52
+scroll_taught = true
+base_seconds = 16.0
+base_xp = 62.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

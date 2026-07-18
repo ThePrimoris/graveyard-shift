@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/gear/knucklebone_fetish.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_knucklebone_fetish"
+name = "Knucklebone Fetish"
+description = "Wire a digger's knucklebones around a nugget of first ore, and let the anvil teach them to remember work."
+inputs = {"sphalerite_nugget": 6, "bones": 4, "grave_dust": 2}
+output_item = ExtResource("2_out")
+required_level = 1
+base_seconds = 6.0
+base_xp = 10.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

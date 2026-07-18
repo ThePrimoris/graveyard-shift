@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Gear" format=3]
+
+[ext_resource type="Script" path="res://data/GearData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/resonant_geode.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "crag_echo"
+name = "Echo of the Crag"
+description = "A resonant geode torn from the Crag Lurker's hide. It returns every blow struck near it, note for bloody note."
+icon = ExtResource("2_icon")
+type = 3
+sell_value = 200
+rarity = 3
+is_stackable = false
+max_stack = 1
+slot = 0
+atk_bonus = 10.0
+hp_bonus = 0
+passive_effect = "minion_thorns_pct"
+passive_magnitude = 12.0
+metadata/_custom_type_script = "res://data/GearData.gd"
