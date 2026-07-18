@@ -369,10 +369,12 @@ func get_effective_duration(node: HarvestNode) -> float:
 # --- Timed gather buffs (P3 elixirs) ---
 
 ## Lays a timed buff on an effect channel (replacing any previous one there).
-func apply_timed_buff(effect: String, magnitude: float, minutes: float) -> void:
+## `source` names the consumable that laid it, for the sidebar readout.
+func apply_timed_buff(effect: String, magnitude: float, minutes: float, source: String = "") -> void:
 	active_buffs[effect] = {
 		"magnitude": magnitude,
 		"until": Time.get_unix_time_from_system() + minutes * 60.0,
+		"source": source,
 	}
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
@@ -444,10 +446,25 @@ func register_activity(calling_node: Node, node_data: HarvestNode = null) -> boo
 		active_node_data = null
 		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 		return false
+	# Gathering and crafting are exclusive: taking up the spade stops the vat.
+	for station in [AlchemyManager, ForgeManager]:
+		if station.active_recipe != null:
+			NotificationManager.show_item("%s halts — the shift turns to gathering" % station.active_recipe.name, 1)
+			station.stop_brew()
 	active_action_source = calling_node
 	active_node_data = node_data
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 	return true
+
+## Halts any running gather. Combat and the crafting stations call this when
+## they start — the caretaker can't swing a spade and mind a vat or a battle
+## at the same time.
+func stop_gathering() -> void:
+	if active_action_source == null:
+		return
+	active_action_source = null
+	active_node_data = null
+	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 # --- Harvest Resolution ---
 # One code path resolves every harvest, so future bonuses apply consistently.
@@ -502,6 +519,12 @@ func _roll_loot(common_pool: Array, rare_chance: float, rare_pool: Array, double
 			var amount = randi_range(rare.min_amount, maxi(rare.min_amount, rare.max_amount))
 			gains[rare.item.id] = gains.get(rare.item.id, 0) + amount
 	return gains
+
+## One unmodified roll of a node's common/rare pair — the node's raw tables,
+## no player double/rare bonuses. Deployed minions (DEP-8) gather with this:
+## their pace and haul must not swing with the player's loadout.
+func roll_plain_loot(node: HarvestNode) -> Dictionary:
+	return _roll_loot(node.common_pool, node.rare_chance, node.rare_pool, 0.0)
 
 ## Banks rolled gains into the inventory, optionally with pickup toasts.
 func _bank_gains(gains: Dictionary, notify: bool) -> void:

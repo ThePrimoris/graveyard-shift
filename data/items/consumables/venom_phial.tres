@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "venom_phial"
 name = "Venom Phial"
-description = "Nightshade and grave-worm bile. Shatters over a foe, searing it for 4 damage on each of its next 3 turns — poison ignores rage and armor alike."
+description = "Nightshade and grave-worm bile, stoppered while still seething."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 10

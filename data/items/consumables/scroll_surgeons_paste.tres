@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "scroll_surgeons_paste"
 name = "Recipe: Surgeon's Paste"
-description = "A field surgeon's notes, disturbingly practical. Study it to add the Surgeon's Paste to the Still's repertoire."
+description = "A field surgeon's notes, disturbingly practical."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 100

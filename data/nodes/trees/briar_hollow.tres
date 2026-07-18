@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://dyp2dqlnkwlxf"]
 
-[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
-[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/briar_blossom.tres" id="i0"]
 
 [sub_resource type="Resource" id="common0"]
@@ -18,7 +18,5 @@ required_skill = 1
 required_level = 13
 required_tool_type = 1
 base_duration = 8.8
-base_xp = 5
-dig_sections = 0
 affix = "thorn_veil"
 common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" format=3]
+
+[ext_resource type="Script" path="res://data/ItemData.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://icons/items/golem_core.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "golem_core"
+name = "Golem Core"
+description = "A keystone vertebra bound in tungsten, humming with borrowed purpose. Offer it at the Ritual Altar to give the bones something to gather around."
+icon = ExtResource("2_icon")
+type = 0
+sell_value = 300
+is_sellable = false
+rarity = 3
+metadata/_custom_type_script = "res://data/ItemData.gd"

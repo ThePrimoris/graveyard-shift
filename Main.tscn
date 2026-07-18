@@ -2,15 +2,17 @@
 
 [ext_resource type="Script" uid="uid://bnrlhncec7ukt" path="res://Control.gd" id="1_ctl"]
 [ext_resource type="Script" uid="uid://nrgptrpumce6" path="res://data/ZoneData.gd" id="2_zone"]
+[ext_resource type="Script" uid="uid://yoko4phn8s7u" path="res://scenes/views/AlchemyView.gd" id="3_alch"]
 [ext_resource type="Script" uid="uid://bv546d3kr4iqb" path="res://scenes/views/CombatView.gd" id="3_combat"]
 [ext_resource type="Script" uid="uid://d4bv83bjbxn6a" path="res://scenes/views/ForestView.gd" id="3_forest"]
+[ext_resource type="Script" uid="uid://cdjpij66tmub5" path="res://scenes/views/ForgeView.gd" id="3_forge"]
 [ext_resource type="Script" uid="uid://dkh46ubvlp71m" path="res://scenes/views/GraveyardView.gd" id="3_grave"]
+[ext_resource type="Script" uid="uid://c6qpc2rsxuyol" path="res://scenes/views/GroundsView.gd" id="3_grounds"]
 [ext_resource type="Script" uid="uid://bofccwadf0acr" path="res://scripts/ui/InventoryView.gd" id="3_inv"]
 [ext_resource type="Script" uid="uid://doap4rw2v3bm2" path="res://scenes/views/QuarryView.gd" id="3_quarry"]
 [ext_resource type="Script" uid="uid://btc6ab4s1abby" path="res://scenes/views/ShopView.gd" id="3_shop"]
 [ext_resource type="Resource" uid="uid://diivt652yth16" path="res://data/zones/bedlam_asylum.tres" id="4_zbedlam"]
 [ext_resource type="Resource" uid="uid://c6eo5cc7ttn6m" path="res://data/zones/humboldt_graves.tres" id="4_zgrave"]
-[ext_resource type="Resource" path="res://data/zones/shrouded_woods.tres" id="4_ztrees"]
 [ext_resource type="Resource" path="res://data/zones/thornwood_grove.tres" id="4_zl2"]
 [ext_resource type="Resource" path="res://data/zones/shrouded_ashwoods.tres" id="4_zl3"]
 [ext_resource type="Resource" path="res://data/zones/hallowed_thicket.tres" id="4_zl4"]
@@ -20,12 +22,11 @@
 [ext_resource type="Resource" path="res://data/zones/hollow_crag.tres" id="4_zm3"]
 [ext_resource type="Resource" path="res://data/zones/peridotite_pits.tres" id="4_zm4"]
 [ext_resource type="Resource" path="res://data/zones/obsidian_chasm.tres" id="4_zm5"]
-[ext_resource type="Script" path="res://scenes/views/AlchemyView.gd" id="3_alch"]
-[ext_resource type="Script" path="res://scenes/views/ForgeView.gd" id="3_forge"]
+[ext_resource type="Resource" path="res://data/zones/shrouded_woods.tres" id="4_ztrees"]
 [ext_resource type="PackedScene" uid="uid://cxo40vvphjf5d" path="res://scenes/NavigationPanel.tscn" id="5_nav"]
 [ext_resource type="PackedScene" uid="uid://d0g704i1cfeqy" path="res://scenes/PlotsBar.tscn" id="5_plots"]
 [ext_resource type="PackedScene" uid="uid://b8lvvrgeuhmvl" path="res://scenes/inventory/InventorySlot.tscn" id="5_slot"]
-[ext_resource type="Texture2D" path="res://theme/backdrops/bg_graveyard.png" id="6_backdrop"]
+[ext_resource type="Texture2D" uid="uid://ctmpiopppqhbg" path="res://theme/backdrops/bg_graveyard.png" id="6_backdrop"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_view"]
 content_margin_left = 264.0
@@ -46,7 +47,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_ctl")
 
-[node name="Backdrop" type="TextureRect" parent="."]
+[node name="Backdrop" type="TextureRect" parent="." unique_id=1736437834]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -544,7 +545,7 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_plain")
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="AlchemyView" type="PanelContainer" parent="MainViewContainer"]
+[node name="AlchemyView" type="PanelContainer" parent="MainViewContainer" unique_id=1168976681]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -557,7 +558,7 @@ mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
 script = ExtResource("3_alch")
 
-[node name="ForgeView" type="PanelContainer" parent="MainViewContainer"]
+[node name="ForgeView" type="PanelContainer" parent="MainViewContainer" unique_id=1021356996]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -569,6 +570,18 @@ grow_vertical = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxEmpty_view")
 script = ExtResource("3_forge")
+
+[node name="GroundsView" type="PanelContainer" parent="MainViewContainer" unique_id=834694660]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("3_grounds")
 
 [node name="CombatView" type="PanelContainer" parent="MainViewContainer" unique_id=466554620]
 unique_name_in_owner = true
@@ -637,6 +650,18 @@ custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Grounds"
 
+[node name="AlmanacNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=1732091697]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Almanac"
+
+[node name="AchievementsNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=717455020]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Achievements"
+
 [node name="SettingsNavButton" type="Button" parent="SideNav/SideVBox/TopNav" unique_id=797493566]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
@@ -653,17 +678,17 @@ autostart = true
 [node name="NotificationContainer" type="VBoxContainer" parent="." unique_id=1244937049]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 7
+anchors_preset = 5
 anchor_left = 0.5
-anchor_top = 1.0
+anchor_top = 0.0
 anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -20.0
-offset_top = -160.0
-offset_right = 20.0
-offset_bottom = -120.0
+anchor_bottom = 0.0
+offset_left = -220.0
+offset_top = 10.0
+offset_right = 220.0
+offset_bottom = 50.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 1
 mouse_filter = 2
 
 [connection signal="timeout" from="GameTickTimer" to="." method="_on_game_tick"]

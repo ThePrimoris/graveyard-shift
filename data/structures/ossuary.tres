@@ -6,27 +6,27 @@
 [sub_resource type="Resource" id="T0"]
 script = ExtResource("2_tier")
 cost = Dictionary[String, int]({"bones": 20, "stone_debris": 15})
-magnitude = 4.0
+magnitude = 10.0
 
 [sub_resource type="Resource" id="T1"]
 script = ExtResource("2_tier")
 cost = Dictionary[String, int]({"bones": 60, "stone_debris": 50, "rotten_logs": 40})
-magnitude = 4.0
+magnitude = 10.0
 
 [sub_resource type="Resource" id="T2"]
 script = ExtResource("2_tier")
 cost = Dictionary[String, int]({"bones": 150, "granite_cobble": 80, "sphalerite_nugget": 40})
-magnitude = 4.0
+magnitude = 10.0
 
 [sub_resource type="Resource" id="T3"]
 script = ExtResource("2_tier")
 cost = Dictionary[String, int]({"granite_cobble": 220, "tungsten_lump": 60, "beryl_cluster": 10})
-magnitude = 4.0
+magnitude = 10.0
 
 [sub_resource type="Resource" id="T4"]
 script = ExtResource("2_tier")
 cost = Dictionary[String, int]({"basalt_debris": 300, "cobalt_powder": 90, "obsidian_shard": 15})
-magnitude = 4.0
+magnitude = 10.0
 
 [resource]
 script = ExtResource("1_struct")
@@ -37,6 +37,6 @@ sort_order = 1
 effect = "inventory_slots"
 effect_unit = " slots"
 effect_label = "storage"
-grid_cell = Vector2i(3, 0)
+grid_cell = Vector2i(7, 3)
 footprint = Vector2i(2, 2)
 tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GroundsParcel" format=3]
+
+[ext_resource type="Script" path="res://data/ParcelData.gd" id="1_parcel"]
+
+[resource]
+script = ExtResource("1_parcel")
+id = "old_yard"
+name = "The Old Yard"
+description = "The consecrated heart of the grounds — the ritual circle, the chapel, and the bone-house. Yours from the first shovel."
+sort_order = 0
+origin = Vector2i(3, 3)
+size = Vector2i(6, 6)
+cost_gold = 0
+metadata/_custom_type_script = "res://data/ParcelData.gd"

@@ -1,9 +1,15 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://vrqyi1rt1x5y"]
 
-[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
-[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/basalt_debris.tres" id="it0"]
 [ext_resource type="Resource" path="res://data/items/materials/cobalt_powder.tres" id="it1"]
+
+[sub_resource type="Resource" id="break2"]
+script = ExtResource("2_loot")
+item = ExtResource("it0")
+weight = 100.0
+max_amount = 2
 
 [sub_resource type="Resource" id="hit0"]
 script = ExtResource("2_loot")
@@ -15,12 +21,6 @@ script = ExtResource("2_loot")
 item = ExtResource("it1")
 weight = 10.0
 
-[sub_resource type="Resource" id="break2"]
-script = ExtResource("2_loot")
-item = ExtResource("it0")
-weight = 100.0
-max_amount = 2
-
 [resource]
 script = ExtResource("1_node")
 id = "basalt_face"
@@ -31,9 +31,7 @@ required_level = 55
 required_tool_type = 2
 base_duration = 4.5
 base_xp = 28
-hit_damage = 0.125
 affix = "volcanic_gas"
-common_pool = Array[ExtResource("2_loot")]([])
-rare_pool = Array[ExtResource("2_loot")]([])
+hit_damage = 0.125
 hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0"), SubResource("hit1")])
 break_pool = Array[ExtResource("2_loot")]([SubResource("break2")])

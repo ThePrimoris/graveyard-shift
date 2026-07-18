@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "lichs_balm"
 name = "Lich's Balm"
-description = "Moss that remembers being alive, worked into marrow-fat. Restores a minion to full health mid-battle."
+description = "Moss that remembers being alive, worked into marrow-fat."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 40

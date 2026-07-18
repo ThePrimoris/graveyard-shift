@@ -11,6 +11,8 @@ func _init() -> void:
 	ambience_color = Color(0.039, 0.055, 0.051)
 	icon_path = "res://icons/skills/alchemy.png"
 	backdrop = "res://theme/backdrops/bg_alchemy.png"
+	# The vat-work materials (Prima Materia and its successors).
+	fallback_category = "The Great Work"
 
 func _ready() -> void:
 	station = AlchemyManager

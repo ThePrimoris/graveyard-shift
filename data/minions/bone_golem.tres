@@ -1,0 +1,128 @@
+[gd_resource type="Resource" script_class="Minion" format=3]
+
+[ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
+[ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/bone_golem.png" id="3_icon"]
+
+[sub_resource type="Resource" id="Ability0"]
+script = ExtResource("2_ability")
+id = "grave_sturdy"
+name = "Grave-Sturdy"
+description = "Built from bones that already survived being buried once. +12% max HP."
+kind = 0
+tier = 1
+cost = 1
+effect = "minion_hp_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability1"]
+script = ExtResource("2_ability")
+id = "reliquary_frame"
+name = "Reliquary Frame"
+description = "Its ribcage doubles as a teaching collection. +4% harvest XP while slotted."
+kind = 0
+tier = 1
+cost = 1
+effect = "harvest_xp_pct"
+magnitude = 4.0
+
+[sub_resource type="Resource" id="Ability2"]
+script = ExtResource("2_ability")
+id = "rattling_volley"
+name = "Rattling Volley"
+description = "It flings a fistful of its own knuckles across the field. Strikes every foe at once, once per battle."
+kind = 1
+tier = 2
+cost = 2
+effect = "active_rattling_volley"
+magnitude = 0.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
+id = "marrow_mortar"
+name = "Marrow Mortar"
+description = "The Forge sealed its joints with living marrow. Heals 4% of max HP on each of its turns."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["grave_sturdy"])
+effect = "minion_regen_pct"
+magnitude = 4.0
+
+[sub_resource type="Resource" id="Ability4"]
+script = ExtResource("2_ability")
+id = "ossified_plates"
+name = "Ossified Plates"
+description = "Layer on layer of fused bone, sharp where it matters. Reflects 15% of the damage it takes."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["grave_sturdy"])
+effect = "minion_thorns_pct"
+magnitude = 15.0
+
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "crushing_fists"
+name = "Crushing Fists"
+description = "Each hand is a mace with opinions. +16% attack."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["ossified_plates"])
+effect = "minion_atk_pct"
+magnitude = 16.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "risen_wrath"
+name = "Risen Wrath"
+description = "Every felled foe is spare parts, and it knows it. +10% attack for each enemy it destroys in a fight."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["crushing_fists"])
+effect = "minion_frenzy_pct"
+magnitude = 10.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "monument"
+name = "Monument"
+description = "It plants itself like a headstone and dares the field. Enemies prefer to strike the golem."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["ossified_plates"])
+effect = "minion_taunt"
+magnitude = 1.0
+
+[sub_resource type="Resource" id="Ability8"]
+script = ExtResource("2_ability")
+id = "unquiet_foundation"
+name = "Unquiet Foundation"
+description = "Knock it down and the bones simply file back into place. Once per fight it reassembles, rising at 25% HP."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["monument", "crushing_fists"])
+effect = "minion_revive"
+magnitude = 1.0
+
+[resource]
+script = ExtResource("1_minion")
+id = "bone_golem"
+name = "Bone Golem"
+icon = ExtResource("3_icon")
+sort_order = 7
+description = "Not raised — assembled. Thirty spare skeletons' worth of scaffolding around a tungsten-bound core, hammered together at the Boneyard Forge. It moves like a rockslide with a schedule."
+base_hp = 45
+base_atk = 3.0
+hp_per_level = 8
+atk_per_level = 0.6
+speed = 0.6
+raise_cost = Dictionary[String, int]({
+"golem_core": 1
+})
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7"), SubResource("Ability8")])
+metadata/_custom_type_script = "res://data/MinionData.gd"

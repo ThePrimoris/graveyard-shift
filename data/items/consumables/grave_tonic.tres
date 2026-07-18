@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "grave_tonic"
 name = "Grave Tonic"
-description = "Cold blue restoration for the twice-dead. Instantly rouses one exhausted minion back to battle-readiness."
+description = "Cold blue restoration for the twice-dead."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 15

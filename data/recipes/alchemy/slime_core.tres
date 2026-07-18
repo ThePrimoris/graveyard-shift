@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/materials/slime_core.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "brew_slime_core"
+name = "The Lesser Coagulation"
+description = "Cyst and resin, dust and lichen, stirred until the mixture starts stirring back. A humbler cousin of the Great Work — the vat's first attempt at company."
+inputs = {"verdigris_cyst": 3, "bloodsap_resin": 4, "grave_dust": 10, "pale_lichen": 6}
+output_item = ExtResource("2_out")
+required_level = 20
+base_seconds = 60.0
+base_xp = 150.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

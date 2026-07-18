@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "scroll_wardens_draught"
 name = "Recipe: Warden's Draught"
-description = "The crypt warden's own fortifying measure, prised from its post. Study it to add the Warden's Draught to the Still's repertoire."
+description = "The crypt warden's own fortifying measure, prised from its post."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 50

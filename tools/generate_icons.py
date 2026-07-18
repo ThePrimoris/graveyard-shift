@@ -1415,6 +1415,8 @@ ITEMS = {
     "prima_materia": ("golem_heart", (216, 196, 130), (170, 150, 90)),
     "seed_of_flesh": ("gland", (218, 146, 146), None),
     "homunculus_heart": ("heart", (196, 84, 96), None),
+    "slime_core": ("golem_heart", (96, 190, 110), (60, 150, 80)),
+    "golem_core": ("golem_heart", (222, 216, 198), (150, 140, 120)),
     # forged gear (P5): weapons from ores, trinkets from gems
     "nickel_blade": ("blade", (200, 206, 210), (110, 82, 58)),
     "tungsten_cleaver": ("hatchet", (140, 148, 164), (74, 60, 48)),
@@ -1451,6 +1453,8 @@ SKILLS = {
 
 UI = {
     "mortimer": ("ghost", (206, 210, 218), None),
+    # The Necronomicon: shown in the ritual circle once the tome is taken.
+    "necronomicon": ("book", (58, 47, 82), (154, 125, 224)),
 }
 
 MINIONS = {
@@ -1459,6 +1463,8 @@ MINIONS = {
     "ghoul": ("ghoul", (150, 156, 120), (100, 110, 80)),
     "undead_hound": ("hound", (128, 116, 104), (80, 70, 62)),
     "homunculus": ("homunculus", (206, 178, 150), (110, 190, 170)),
+    "slime": ("slime", (96, 190, 110), (60, 150, 80)),
+    "bone_golem": ("golem", (222, 216, 198), (150, 140, 120)),
 }
 
 # Enemy portraits (P8): replace the combat emoji glyphs. Shapes are the same

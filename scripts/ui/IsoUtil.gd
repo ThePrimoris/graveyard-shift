@@ -8,8 +8,9 @@ extends RefCounted
 ## Full iso tile diamond size in world units (2:1 classic isometric).
 const TILE_W: float = 96.0
 const TILE_H: float = 48.0
-## The plot is a GRID x GRID field of tiles.
-const GRID: int = 5
+## The full grounds are a GRID x GRID field of cells; parcels carve the
+## buildable land out of it and the rest stays wilderness (data/parcels/).
+const GRID: int = 12
 
 ## Grid cell (may be fractional) -> world position of that cell's top corner.
 static func cell_to_world(cx: float, cy: float) -> Vector2:

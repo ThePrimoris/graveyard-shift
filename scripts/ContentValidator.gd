@@ -23,6 +23,7 @@ const ZONE_DIRS: Array[String] = ["res://data/zones/"]
 const MINION_DIRS: Array[String] = ["res://data/minions/"]
 const ENCOUNTER_DIRS: Array[String] = ["res://data/encounters/"]
 const STRUCTURE_DIRS: Array[String] = ["res://data/structures/"]
+const PARCEL_DIRS: Array[String] = ["res://data/parcels/"]
 const RECIPE_DIRS: Array[String] = ["res://data/recipes/alchemy/", "res://data/recipes/forge/"]
 
 const NODE_LOOT_POOLS: Array[String] = ["common_pool", "rare_pool", "hit_pool", "break_pool"]
@@ -92,7 +93,28 @@ static func validate() -> Array[String]:
 			if zone.nodes[i] == null:
 				errors.append("%s: nodes[%d] is null (broken node reference)" % [e.path, i])
 
-	# --- Structures: known effect, cost items exist ---
+	# --- Parcels: sane rectangles inside the grid, no overlaps ---
+	var parcels: Array = []
+	for e in _load_dirs(PARCEL_DIRS):
+		if not (e.res is GroundsParcel):
+			continue
+		var parcel: GroundsParcel = e.res
+		if parcel.id == "":
+			errors.append("%s: parcel has no id" % e.path)
+		if parcel.size.x <= 0 or parcel.size.y <= 0:
+			errors.append("%s: parcel size must be positive" % e.path)
+		if parcel.origin.x < 0 or parcel.origin.y < 0 \
+				or parcel.origin.x + parcel.size.x > IsoUtil.GRID or parcel.origin.y + parcel.size.y > IsoUtil.GRID:
+			errors.append("%s: parcel exceeds the %dx%d grid" % [e.path, IsoUtil.GRID, IsoUtil.GRID])
+		for other in parcels:
+			var q: GroundsParcel = other.res
+			if Rect2i(parcel.origin, parcel.size).intersects(Rect2i(q.origin, q.size)):
+				errors.append("%s: parcel overlaps '%s'" % [e.path, q.id])
+		parcels.append(e)
+
+	# --- Structures: known effect, cost items exist, stand fully on one
+	# parcel, and never overlap each other ---
+	var placed: Array = []
 	for e in _load_dirs(STRUCTURE_DIRS):
 		if not (e.res is Structure):
 			continue
@@ -107,6 +129,18 @@ static func validate() -> Array[String]:
 			for cost_id in tier.cost:
 				if not item_ids.has(cost_id):
 					errors.append("%s: tier %d cost references unknown item '%s'" % [e.path, i + 1, cost_id])
+		var on_parcel := false
+		for pe in parcels:
+			if pe.res.contains_footprint(structure.grid_cell, structure.footprint):
+				on_parcel = true
+				break
+		if not on_parcel:
+			errors.append("%s: footprint at %s size %s stands on no parcel" % [e.path, structure.grid_cell, structure.footprint])
+		for other in placed:
+			var o: Structure = other.res
+			if Rect2i(structure.grid_cell, structure.footprint).intersects(Rect2i(o.grid_cell, o.footprint)):
+				errors.append("%s: footprint overlaps '%s'" % [e.path, o.id])
+		placed.append(e)
 
 	# --- Minions: raise cost items exist, ability effects are known ---
 	for e in _load_dirs(MINION_DIRS):

@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "widows_phial"
 name = "Widow's Phial"
-description = "Silkgland venom, patient and cruel. Shatters over a foe: 7 damage on each of its next 3 turns, and its blows land 20% softer."
+description = "Silkgland venom, patient and cruel."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 24

@@ -168,11 +168,113 @@ func _build_cards() -> void:
 					return
 				GameManager.register_activity(card, node_data)
 			)
+			# Deployment (DEP-8): send a minion to work this node unattended.
+			card.deploy_requested.connect(_open_deploy_picker.bind(node_data, card))
+			card.collect_requested.connect(func(): MinionManager.collect(_get_skill_key()))
+			card.recall_requested.connect(func(): MinionManager.recall(_get_skill_key()))
 		cards.append(card)
 
 ## True while an Unstable Seams node is sealed shut after a vent break.
 func _is_locked(node_id: String) -> bool:
 	return node_locked.get(node_id, 0.0) > 0.0
+
+# --- Deployment picker (DEP-8) ---
+# A popup grid of raised minions, in the PlotsBar picker's mold: pick one to
+# send afield to this node. One deployment per gathering skill.
+
+var deploy_picker: PopupPanel = null
+
+func _open_deploy_picker(node_data: HarvestNode, card) -> void:
+	_close_deploy_picker()
+	if MinionManager.sorted_ids(true).is_empty():
+		NotificationManager.show_item("No minions raised yet — open the Necronomicon at the circle", 1)
+		return
+
+	deploy_picker = PopupPanel.new()
+	var pstyle := StyleBoxFlat.new()
+	pstyle.bg_color = Color(0.078, 0.071, 0.11, 0.99)
+	pstyle.set_border_width_all(1)
+	pstyle.border_color = Color(progress_color.r * 0.6, progress_color.g * 0.6, progress_color.b * 0.6)
+	pstyle.set_corner_radius_all(10)
+	pstyle.content_margin_left = 12
+	pstyle.content_margin_right = 12
+	pstyle.content_margin_top = 10
+	pstyle.content_margin_bottom = 12
+	deploy_picker.add_theme_stylebox_override("panel", pstyle)
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	deploy_picker.add_child(col)
+
+	var title = Label.new()
+	title.text = "DEPLOY TO %s" % node_data.name.to_upper()
+	title.theme_type_variation = &"SectionLabel"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(title)
+
+	var grid = GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	col.add_child(grid)
+
+	for minion_id in MinionManager.sorted_ids(true):
+		grid.add_child(_make_deploy_tile(minion_id, node_data))
+
+	add_child(deploy_picker)
+	deploy_picker.popup_hide.connect(_close_deploy_picker)
+	deploy_picker.reset_size()
+	var size = deploy_picker.get_contents_minimum_size() + Vector2(24, 22)
+	var anchor: Control = card.deploy_button if card.deploy_button.visible else card
+	var pos = anchor.get_screen_position() + Vector2(anchor.size.x * 0.5 - size.x * 0.5, -size.y - 10)
+	deploy_picker.popup(Rect2i(Vector2i(pos), Vector2i(size)))
+
+## One picker tile. Disabled with a reason when the minion can't take this
+## post: resting (exhausted), afield under another skill, or already here.
+func _make_deploy_tile(minion_id: String, node_data: HarvestNode) -> Button:
+	var minion = MinionManager.find_minion_by_id(minion_id)
+	var tile = Button.new()
+	tile.custom_minimum_size = Vector2(104, 88)
+
+	var skill_key = GameManager.get_skill_key(node_data)
+	var afield = MinionManager.deployed_skill_of(minion_id)
+	var here = afield == skill_key \
+		and str(MinionManager.deployment_for(skill_key).get("node_id", "")) == node_data.id
+	var plot = MinionManager.plot_of(minion_id)
+
+	var suffix = ""
+	if here:
+		suffix = "  (here)"
+		tile.disabled = true
+	elif MinionManager.is_exhausted(minion_id):
+		suffix = "  (resting)"
+		tile.disabled = true
+	elif afield != "" and afield != skill_key:
+		suffix = "  (afield — %s)" % afield.capitalize()
+		tile.disabled = true
+	elif plot != -1:
+		suffix = "  (Plot %d)" % (plot + 1)
+
+	tile.text = "%s\nLv %d%s" % [minion.name, MinionManager.get_level(minion_id), suffix]
+	if minion.icon:
+		tile.icon = minion.icon
+		tile.expand_icon = true
+		tile.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		tile.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tile.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tile.add_theme_font_size_override("font_size", 12)
+	tile.tooltip_text = "%s — deploying pulls it from its plot" % minion.name if plot != -1 \
+		else minion.name
+
+	tile.pressed.connect(func():
+		MinionManager.deploy(minion_id, node_data.id)
+		_close_deploy_picker())
+	return tile
+
+func _close_deploy_picker() -> void:
+	if is_instance_valid(deploy_picker):
+		deploy_picker.queue_free()
+	deploy_picker = null
 
 ## Confront launches the node's encounter, warband permitting.
 func _on_boss_confront(node_data: HarvestNode) -> void:
@@ -423,6 +525,8 @@ func update_ui() -> void:
 			var node = display_nodes[i]
 
 			if not GameManager.is_node_accessible(node):
+				# Locked nodes stay on the page so the goal is visible; the
+				# card itself explains what level unseals it.
 				card.show_locked(node.description, GameManager.get_node_requirement_text(node))
 			elif node.is_boss:
 				card.show_boss(node.description, "Confront")
@@ -437,3 +541,20 @@ func update_ui() -> void:
 					card.set_drops(_table_entries(node.common_pool), _table_entries(node.rare_pool), node.rare_chance + mods.rare_add)
 				card.set_bonuses(mods)
 				card.action_button.disabled = _is_locked(node.id)
+				card.set_deploy_state(_deploy_state_for(node))
+
+## The deployment-control state for one node's card: the Deploy button while
+## the skill's post is free, the satchel status when THIS node hosts the
+## minion, hidden when the deployment sits on a different node.
+func _deploy_state_for(node: HarvestNode) -> Dictionary:
+	var skill_key = GameManager.get_skill_key(node)
+	var dep = MinionManager.deployment_for(skill_key)
+	if dep.is_empty():
+		return {"mode": "free"}
+	if str(dep.get("node_id", "")) != node.id:
+		return {}
+	var minion = MinionManager.find_minion_by_id(str(dep.get("minion_id", "")))
+	var count = MinionManager.carry_count(skill_key)
+	var cap = MinionManager.carry_capacity()
+	return {"mode": "here", "minion_name": minion.name if minion else "?",
+		"count": count, "cap": cap, "full": count >= cap}

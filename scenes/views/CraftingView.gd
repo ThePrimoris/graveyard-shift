@@ -18,6 +18,10 @@ const COL_GOLD := Color(0.83, 0.64, 0.27)
 const COL_RUST := Color(0.76, 0.353, 0.29)
 const COL_GREEN := Color(0.55, 0.82, 0.5)
 
+## Tab order for the category shelves; categories not listed (the subclass's
+## fallback_category among them) come after these, in first-seen order.
+const CATEGORY_ORDER: Array[String] = ["Potions", "Elixirs", "Candles & Incense", "Relics", "Trinkets"]
+
 ## Config — set by the subclass in _init.
 var station: CraftingManager = null
 var view_title: String = "Crafting"
@@ -28,13 +32,22 @@ var ambience_color := Color(0.043, 0.039, 0.063)
 var icon_path: String = ""
 ## The painted scene behind the station (theme/backdrops/*.png; "" = tint).
 var backdrop: String = ""
+## Section name for recipes whose output fits no shared category (Alchemy's
+## vat-work materials, for instance).
+var fallback_category: String = "Other Works"
 
 var header_level_label: Label
 var header_bar: ProgressBar
 var header_xp_label: Label
 var grid: HFlowContainer
-## recipe_id -> {card, need_labels: {item_id: Label}, button, bar, pct, lock_label}
+## recipe_id -> {card, need_labels: {item_id: Label}, button, bar, pct,
+## lock_label, unknown_lbl}
 var rows: Dictionary = {}
+## One shelf per output category, shown one at a time behind a tab row
+## (a Still with many recipes shouldn't be a scroll marathon).
+var category_grids: Dictionary = {}   # category -> HFlowContainer
+var tab_buttons: Dictionary = {}      # category -> Button
+var current_category: String = ""
 
 func _ready() -> void:
 	add_to_group(Ids.GROUP_UI_UPDATES)
@@ -128,18 +141,109 @@ func _build() -> void:
 	header_xp_label.add_theme_color_override("font_color", COL_TEXT_MID)
 	level_col.add_child(header_xp_label)
 
-	# The recipe grid.
+	# The recipe shelves: one tab per output category (potions, incense, gear
+	# slots...), one shown at a time — a shelf you flip to, not a scroll
+	# marathon. Cards are still all built once so refresh-in-place holds.
+
+	# category -> recipes, keeping the station's sort inside each shelf.
+	var by_category: Dictionary = {}
+	for recipe_id in station.sorted_ids():
+		var recipe: Recipe = station.find_recipe_by_id(recipe_id)
+		var cat := _category_of(recipe)
+		if not by_category.has(cat):
+			by_category[cat] = []
+		by_category[cat].append(recipe)
+
+	var ordered: Array[String] = []
+	for cat in CATEGORY_ORDER:
+		if by_category.has(cat):
+			ordered.append(cat)
+	for cat in by_category:
+		if cat not in ordered:
+			ordered.append(cat)
+
+	# The tab row, in the zone-selector's mold: toggle buttons, one pressed.
+	var tab_row = HBoxContainer.new()
+	tab_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(tab_row)
+	for cat in ordered:
+		var tab = Button.new()
+		tab.text = "%s (%d)" % [cat, by_category[cat].size()]
+		tab.toggle_mode = true
+		tab.custom_minimum_size = Vector2(0, 34)
+		tab.add_theme_font_size_override("font_size", 13)
+		tab.pressed.connect(_select_category.bind(cat))
+		tab_row.add_child(tab)
+		tab_buttons[cat] = tab
+
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(scroll)
-	grid = HFlowContainer.new()
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 14)
-	grid.add_theme_constant_override("v_separation", 14)
-	scroll.add_child(grid)
+	var section_col = VBoxContainer.new()
+	section_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_col.add_theme_constant_override("separation", 8)
+	scroll.add_child(section_col)
 
-	for recipe_id in station.sorted_ids():
-		_build_recipe_card(station.find_recipe_by_id(recipe_id))
+	for cat in ordered:
+		grid = HFlowContainer.new()
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_theme_constant_override("h_separation", 14)
+		grid.add_theme_constant_override("v_separation", 14)
+		grid.visible = false
+		section_col.add_child(grid)
+		category_grids[cat] = grid
+		for recipe in by_category[cat]:
+			_build_recipe_card(recipe)
+
+	if not ordered.is_empty():
+		_select_category(ordered[0])
+
+## Shows one category's shelf and presses its tab.
+func _select_category(cat: String) -> void:
+	current_category = cat
+	for c in category_grids:
+		category_grids[c].visible = c == cat
+	for c in tab_buttons:
+		tab_buttons[c].set_pressed_no_signal(c == cat)
+
+## The hint shown on a scroll recipe that hasn't been studied yet: that it's
+## unknown, and where its scroll can actually be found (shop stock and enemy
+## loot pools are both checked, so the hint never lies).
+func _unknown_hint(recipe: Recipe) -> String:
+	var scroll: Consumable = null
+	for item_id in GameManager.item_db:
+		var item = GameManager.item_db[item_id]
+		if item is Consumable and item.taught_recipe_id == recipe.id:
+			scroll = item
+			break
+	var sources: Array[String] = []
+	if scroll != null:
+		if preload("res://scenes/views/ShopView.gd").SCROLL_PRICES.has(scroll.id):
+			sources.append("sold at the Shop")
+		var droppers: Array[String] = []
+		for encounter_id in GameManager.encounter_db:
+			for enemy in GameManager.encounter_db[encounter_id].enemies:
+				if enemy == null: continue
+				for drop in enemy.loot_pool:
+					if drop != null and drop.item != null and drop.item.id == scroll.id \
+							and not droppers.has(enemy.name):
+						droppers.append(enemy.name)
+		if not droppers.is_empty():
+			sources.append("dropped by %s" % " and ".join(droppers))
+	if sources.is_empty():
+		return "Recipe unknown — find its scroll and study it."
+	return "Recipe unknown — its scroll is %s." % " or ".join(sources)
+
+## The shelf a recipe's product belongs on, read off the output item.
+func _category_of(recipe: Recipe) -> String:
+	var out = recipe.output_item
+	if out is Consumable:
+		if out.is_incense(): return "Candles & Incense"
+		if out.is_gather_elixir(): return "Elixirs"
+		return "Potions"
+	if out is Gear:
+		return "Relics" if out.slot == Gear.GearSlot.RELIC else "Trinkets"
+	return fallback_category
 
 func _build_recipe_card(recipe: Recipe) -> void:
 	var card = PanelContainer.new()
@@ -186,6 +290,26 @@ func _build_recipe_card(recipe: Recipe) -> void:
 	meta_lbl.add_theme_color_override("font_color", COL_TEXT_MID)
 	name_col.add_child(meta_lbl)
 
+	# What the product actually does, stated on the card — the hover tooltip
+	# keeps the flavor prose, but the rules never hide behind it.
+	if recipe.output_item and recipe.output_item.effect_line() != "":
+		var effect_lbl = Label.new()
+		effect_lbl.text = recipe.output_item.effect_line()
+		effect_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		effect_lbl.add_theme_font_size_override("font_size", 11)
+		effect_lbl.add_theme_color_override("font_color", Color(accent.r, accent.g, accent.b).lightened(0.25))
+		col.add_child(effect_lbl)
+
+	# Why a scroll recipe can't be brewed yet, and where its scroll is found.
+	# Hidden once learned (update_ui toggles it).
+	var unknown_lbl = Label.new()
+	unknown_lbl.visible = false
+	unknown_lbl.text = _unknown_hint(recipe)
+	unknown_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	unknown_lbl.add_theme_font_size_override("font_size", 11)
+	unknown_lbl.add_theme_color_override("font_color", COL_RUST)
+	col.add_child(unknown_lbl)
+
 	var lock_label = Label.new()
 	lock_label.text = "Lv %d" % recipe.required_level
 	lock_label.add_theme_font_size_override("font_size", 12)
@@ -225,11 +349,6 @@ func _build_recipe_card(recipe: Recipe) -> void:
 	fill.set_corner_radius_all(5)
 	bar.add_theme_stylebox_override("fill", fill)
 	bar_row.add_child(bar)
-	var pct = Label.new()
-	pct.custom_minimum_size = Vector2(36, 0)
-	pct.add_theme_font_size_override("font_size", 11)
-	pct.add_theme_color_override("font_color", COL_TEXT_MID)
-	bar_row.add_child(pct)
 
 	var button = Button.new()
 	button.custom_minimum_size = Vector2(0, 32)
@@ -238,7 +357,7 @@ func _build_recipe_card(recipe: Recipe) -> void:
 	col.add_child(button)
 
 	rows[recipe.id] = {"card": card, "need_labels": need_labels, "button": button,
-		"bar": bar, "pct": pct, "lock_label": lock_label}
+		"bar": bar, "lock_label": lock_label, "unknown_lbl": unknown_lbl}
 
 func _on_craft_pressed(recipe: Recipe) -> void:
 	AudioManager.play_sfx(Ids.SFX_UI_CLICK)
@@ -255,10 +374,8 @@ func _process(_delta: float) -> void:
 		if recipe != null and recipe_id == recipe.id:
 			var t = clampf(station.brew_progress / station.get_effective_seconds(recipe), 0.0, 1.0)
 			row["bar"].value = t
-			row["pct"].text = "%d%%" % int(round(t * 100))
 		elif row["bar"].value != 0.0:
 			row["bar"].value = 0.0
-			row["pct"].text = ""
 
 func update_ui() -> void:
 	if header_level_label == null: return
@@ -279,6 +396,7 @@ func update_ui() -> void:
 		var unlocked = level >= recipe.required_level
 		var learned = station.is_learned(recipe)
 		row["card"].modulate.a = 1.0 if (unlocked and learned) else 0.55
+		row["unknown_lbl"].visible = not learned
 		row["lock_label"].text = ("Lv %d" % recipe.required_level) if learned else "Scroll"
 		row["lock_label"].add_theme_color_override("font_color", COL_GREEN if (unlocked and learned) else COL_RUST)
 		for item_id in row["need_labels"]:
@@ -293,7 +411,7 @@ func update_ui() -> void:
 		row["button"].theme_type_variation = &"DangerButton" if crafting else &"ActionButton"
 		row["button"].disabled = not crafting and not station.can_brew(recipe)
 		if not learned:
-			row["button"].tooltip_text = "Recipe not yet learned — find or buy its scroll and study it."
+			row["button"].tooltip_text = row["unknown_lbl"].text
 		elif not unlocked:
 			row["button"].tooltip_text = "Requires %s level %d" % [station.skill_key.capitalize(), recipe.required_level]
 		else:

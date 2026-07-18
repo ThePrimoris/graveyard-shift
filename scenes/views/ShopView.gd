@@ -124,7 +124,8 @@ func _build_shop() -> void:
 		var sinfo = Label.new()
 		sinfo.custom_minimum_size = Vector2(500, 0)
 		sinfo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sinfo.tooltip_text = item.description
+		sinfo.tooltip_text = item.description if item.effect_line() == "" \
+			else "%s\n\n%s" % [item.description, item.effect_line()]
 		srow.add_child(sinfo)
 
 		var sbtn = Button.new()
@@ -228,8 +229,8 @@ func _on_buy_scroll_pressed(item_id: String) -> void:
 		NotificationManager.show_item(item.name, 1, item)
 
 func _on_buy_slot_pressed() -> void:
-	if InventoryManager.purchase_slot():
-		NotificationManager.show_item("Backpack expanded (+1 slot)", 1)
+	if InventoryManager.purchase_tab():
+		NotificationManager.show_item("Backpack expanded — a new tab of %d slots" % InventoryManager.page_size(), 1)
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
 func update_ui() -> void:
@@ -273,13 +274,15 @@ func update_ui() -> void:
 		srow["button"].disabled = known or in_pack or GameManager.gold_coins < price
 
 	if slot_label:
-		var extra = InventoryManager.purchased_slots
-		if extra >= InventoryManager.MAX_PURCHASED_SLOTS:
-			slot_label.text = "Backpack: %d slots (%d purchased)\nFully expanded." % [InventoryManager.slots.size(), extra]
-			slot_button.text = "MAX SIZE"
+		var tabs = InventoryManager.tab_count()
+		var per_tab = InventoryManager.page_size()
+		if InventoryManager.purchased_tabs >= InventoryManager.MAX_PURCHASED_TABS:
+			slot_label.text = "Backpack: %d tabs of %d slots (%d total)\nFully expanded." % [
+				tabs, per_tab, InventoryManager.slots.size()]
+			slot_button.text = "MAX TABS"
 			slot_button.disabled = true
 		else:
-			slot_label.text = "Backpack: %d slots (%d of %d purchased)\nEach slot costs more than the last." % [
-				InventoryManager.slots.size(), extra, InventoryManager.MAX_PURCHASED_SLOTS]
-			slot_button.text = "Buy Slot (%d g)" % InventoryManager.get_next_slot_cost()
-			slot_button.disabled = not InventoryManager.can_purchase_slot()
+			slot_label.text = "Backpack: %d of %d tabs, %d slots each\nA new tab adds another %d slots. The Ossuary widens every tab." % [
+				tabs, InventoryManager.BASE_TABS + InventoryManager.MAX_PURCHASED_TABS, per_tab, per_tab]
+			slot_button.text = "Buy Tab (%d g)" % InventoryManager.get_next_tab_cost()
+			slot_button.disabled = not InventoryManager.can_purchase_tab()

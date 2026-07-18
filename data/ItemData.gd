@@ -29,3 +29,9 @@ class_name Item
 # CONSUMABLE is appended last so existing .tres int values keep their meaning.
 enum ItemType { MATERIAL, TOOL, QUEST, MISC, CONSUMABLE }
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
+
+## The mechanical rules line shown separately from the flavor `description`.
+## Subclasses derive it from their effect fields so the UI always states what
+## an item actually does; "" means the item has no effect to state.
+func effect_line() -> String:
+	return ""

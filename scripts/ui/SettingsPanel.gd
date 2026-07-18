@@ -82,6 +82,25 @@ func _ready() -> void:
 	window_dropdown.item_selected.connect(SettingsManager.set_window_choice_by_index)
 	display_row.add_child(window_dropdown)
 
+	# UI scale: fonts and interfaces size independently of the window now that
+	# the window itself is pure workspace.
+	var scale_row = HBoxContainer.new()
+	scale_row.add_theme_constant_override("separation", 12)
+	vbox.add_child(scale_row)
+
+	var scale_label = Label.new()
+	scale_label.text = "UI scale"
+	scale_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scale_row.add_child(scale_label)
+
+	var scale_dropdown = OptionButton.new()
+	scale_dropdown.custom_minimum_size = Vector2(190, 36)
+	for label in SettingsManager.get_ui_scale_labels():
+		scale_dropdown.add_item(label)
+	scale_dropdown.select(SettingsManager.get_ui_scale_index(SettingsManager.ui_scale_choice))
+	scale_dropdown.item_selected.connect(SettingsManager.set_ui_scale_by_index)
+	scale_row.add_child(scale_dropdown)
+
 	# Autosave cadence (DEP-7) — persisted with the other preferences
 	var autosave_row = HBoxContainer.new()
 	autosave_row.add_theme_constant_override("separation", 12)

@@ -1,7 +1,8 @@
 extends Control
 
 const SETTINGS_PANEL_SCRIPT = preload("res://scripts/ui/SettingsPanel.gd")
-const GROUNDS_VIEW_SCRIPT = preload("res://scenes/views/GroundsView.gd")
+const ACHIEVEMENTS_PANEL_SCRIPT = preload("res://scripts/ui/AchievementsPanel.gd")
+const ALMANAC_PANEL_SCRIPT = preload("res://scripts/ui/AlmanacPanel.gd")
 
 @onready var timer: Timer = %GameTickTimer
 
@@ -14,9 +15,11 @@ const GROUNDS_VIEW_SCRIPT = preload("res://scenes/views/GroundsView.gd")
 @onready var combat_view: PanelContainer = %CombatView
 @onready var alchemy_view: PanelContainer = %AlchemyView
 @onready var forge_view: PanelContainer = %ForgeView
+@onready var grounds_view: PanelContainer = %GroundsView
 
 var open_settings_panel: Node = null
-var open_grounds_panel: Node = null
+var open_achievements_panel: Node = null
+var open_almanac_panel: Node = null
 
 func _ready() -> void:
 	add_to_group(Ids.GROUP_UI_UPDATES)
@@ -32,11 +35,21 @@ func _ready() -> void:
 
 	%SettingsNavButton.pressed.connect(_on_settings_pressed)
 
+	var achievements_btn = get_node_or_null("%AchievementsNavButton")
+	if achievements_btn:
+		achievements_btn.pressed.connect(_on_achievements_pressed)
+
+	var almanac_btn = get_node_or_null("%AlmanacNavButton")
+	if almanac_btn:
+		almanac_btn.pressed.connect(_on_almanac_pressed)
+
 	# The Grounds nav button lives beside Shop/Inventory; guard the hookup so a
 	# missing button degrades gracefully instead of crashing the scene.
 	var grounds_btn = get_node_or_null("%GroundsNavButton")
 	if grounds_btn:
 		grounds_btn.pressed.connect(_on_grounds_pressed)
+
+	# The Grounds became a full view (no longer a popup overlay).
 
 	switch_view(Ids.VIEW_GRAVEYARD)
 	update_ui()
@@ -50,12 +63,24 @@ func _on_settings_pressed() -> void:
 	add_child(open_settings_panel)
 
 func _on_grounds_pressed() -> void:
-	if is_instance_valid(open_grounds_panel):
-		open_grounds_panel.queue_free()
-		open_grounds_panel = null
+	AudioManager.play_sfx(Ids.SFX_UI_CLICK)
+	switch_view(Ids.VIEW_GROUNDS)
+
+func _on_achievements_pressed() -> void:
+	if is_instance_valid(open_achievements_panel):
+		open_achievements_panel.queue_free()
+		open_achievements_panel = null
 		return
-	open_grounds_panel = GROUNDS_VIEW_SCRIPT.new()
-	add_child(open_grounds_panel)
+	open_achievements_panel = ACHIEVEMENTS_PANEL_SCRIPT.new()
+	add_child(open_achievements_panel)
+
+func _on_almanac_pressed() -> void:
+	if is_instance_valid(open_almanac_panel):
+		open_almanac_panel.queue_free()
+		open_almanac_panel = null
+		return
+	open_almanac_panel = ALMANAC_PANEL_SCRIPT.new()
+	add_child(open_almanac_panel)
 
 func _on_game_tick() -> void:
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
@@ -69,6 +94,7 @@ func switch_view(target_view: String) -> void:
 	if combat_view: combat_view.visible = (target_view == Ids.VIEW_COMBAT)
 	if alchemy_view: alchemy_view.visible = (target_view == Ids.VIEW_ALCHEMY)
 	if forge_view: forge_view.visible = (target_view == Ids.VIEW_FORGE)
+	if grounds_view: grounds_view.visible = (target_view == Ids.VIEW_GROUNDS)
 
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 

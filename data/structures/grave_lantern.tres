@@ -37,6 +37,6 @@ sort_order = 4
 effect = "offline_hours"
 effect_unit = "h"
 effect_label = "offline time"
-grid_cell = Vector2i(3, 3)
+grid_cell = Vector2i(7, 0)
 footprint = Vector2i(2, 2)
 tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

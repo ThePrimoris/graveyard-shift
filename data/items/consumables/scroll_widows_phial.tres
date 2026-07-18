@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "scroll_widows_phial"
 name = "Recipe: Widow's Phial"
-description = "A recipe scraped from the silk-choked dark. Study it to add the Widow's Phial to the Still's repertoire."
+description = "A recipe scraped from the silk-choked dark."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 40

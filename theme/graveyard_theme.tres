@@ -1,133 +1,11 @@
-[gd_resource type="Theme" load_steps=30 format=3 uid="uid://ctheme0grave1"]
+[gd_resource type="Theme" format=3 uid="uid://ctheme0grave1"]
 
-[ext_resource type="FontFile" path="res://fonts/Alegreya.ttf" id="font_body"]
-[ext_resource type="FontFile" path="res://fonts/Cinzel.ttf" id="font_display"]
-[ext_resource type="Texture2D" path="res://theme/textures/panel_card.png" id="tex_card"]
-[ext_resource type="Texture2D" path="res://theme/textures/panel_inset.png" id="tex_inset"]
-[ext_resource type="Texture2D" path="res://theme/textures/panel_tooltip.png" id="tex_tooltip"]
-[ext_resource type="Texture2D" path="res://theme/textures/divider.png" id="tex_divider"]
-
-[sub_resource type="StyleBoxTexture" id="card_panel"]
-texture = ExtResource("tex_card")
-texture_margin_left = 20.0
-texture_margin_top = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 20.0
-content_margin_left = 12.0
-content_margin_top = 10.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-
-[sub_resource type="StyleBoxTexture" id="panel_bg"]
-texture = ExtResource("tex_card")
-texture_margin_left = 20.0
-texture_margin_top = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 20.0
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-
-[sub_resource type="StyleBoxTexture" id="inset_panel"]
-texture = ExtResource("tex_inset")
-texture_margin_left = 16.0
-texture_margin_top = 16.0
-texture_margin_right = 16.0
-texture_margin_bottom = 16.0
-content_margin_left = 8.0
-content_margin_top = 6.0
-content_margin_right = 8.0
-content_margin_bottom = 6.0
-
-[sub_resource type="StyleBoxTexture" id="well_panel"]
-texture = ExtResource("tex_inset")
-texture_margin_left = 16.0
-texture_margin_top = 16.0
-texture_margin_right = 16.0
-texture_margin_bottom = 16.0
-content_margin_left = 6.0
-content_margin_top = 6.0
-content_margin_right = 6.0
-content_margin_bottom = 6.0
-
-[sub_resource type="StyleBoxTexture" id="tooltip_bg"]
-texture = ExtResource("tex_tooltip")
-texture_margin_left = 18.0
-texture_margin_top = 18.0
-texture_margin_right = 18.0
-texture_margin_bottom = 18.0
-content_margin_left = 14.0
-content_margin_top = 9.0
-content_margin_right = 14.0
-content_margin_bottom = 10.0
-
-[sub_resource type="StyleBoxTexture" id="popup_bg"]
-texture = ExtResource("tex_tooltip")
-texture_margin_left = 18.0
-texture_margin_top = 18.0
-texture_margin_right = 18.0
-texture_margin_bottom = 18.0
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxEmpty" id="btn_focus"]
-
-[sub_resource type="StyleBoxFlat" id="btn_normal"]
-content_margin_left = 14.0
-content_margin_top = 7.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.106, 0.09, 0.153, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.243, 0.204, 0.345, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_color = Color(0, 0, 0, 0.3)
-shadow_size = 2
-shadow_offset = Vector2(0, 2)
-
-[sub_resource type="StyleBoxFlat" id="btn_hover"]
-content_margin_left = 14.0
-content_margin_top = 7.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.157, 0.133, 0.224, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.42, 0.357, 0.58, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_color = Color(0, 0, 0, 0.3)
-shadow_size = 2
-shadow_offset = Vector2(0, 2)
-
-[sub_resource type="StyleBoxFlat" id="btn_pressed"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 7.0
-bg_color = Color(0.071, 0.059, 0.106, 1)
-border_width_left = 1
-border_width_top = 2
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.784, 0.62, 0.29, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+[ext_resource type="FontFile" uid="uid://2xdxmso3hqg" path="res://fonts/Alegreya.ttf" id="font_body"]
+[ext_resource type="FontFile" uid="uid://4614sti1lqs5" path="res://fonts/Cinzel.ttf" id="font_display"]
+[ext_resource type="Texture2D" uid="uid://8n0g6stpcarh" path="res://theme/textures/panel_card.png" id="tex_card"]
+[ext_resource type="Texture2D" uid="uid://dj2pctvvjoh57" path="res://theme/textures/divider.png" id="tex_divider"]
+[ext_resource type="Texture2D" uid="uid://b3ta4e3v3bysj" path="res://theme/textures/panel_inset.png" id="tex_inset"]
+[ext_resource type="Texture2D" uid="uid://bwkdeordl7hcb" path="res://theme/textures/panel_tooltip.png" id="tex_tooltip"]
 
 [sub_resource type="StyleBoxFlat" id="btn_disabled"]
 content_margin_left = 14.0
@@ -145,24 +23,7 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="action_normal"]
-content_margin_left = 14.0
-content_margin_top = 7.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.184, 0.353, 0.216, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.098, 0.216, 0.125, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_color = Color(0, 0, 0, 0.3)
-shadow_size = 2
-shadow_offset = Vector2(0, 2)
+[sub_resource type="StyleBoxEmpty" id="btn_focus"]
 
 [sub_resource type="StyleBoxFlat" id="action_hover"]
 content_margin_left = 14.0
@@ -175,6 +36,25 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 2
 border_color = Color(0.51, 0.71, 0.42, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 2
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="action_normal"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.184, 0.353, 0.216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 2
+border_color = Color(0.098, 0.216, 0.125, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -199,17 +79,17 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="danger_normal"]
+[sub_resource type="StyleBoxFlat" id="btn_hover"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
 content_margin_bottom = 8.0
-bg_color = Color(0.42, 0.196, 0.157, 1)
+bg_color = Color(0.157, 0.133, 0.224, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 2
-border_color = Color(0.27, 0.11, 0.086, 1)
+border_color = Color(0.42, 0.357, 0.58, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -217,6 +97,68 @@ corner_radius_bottom_left = 4
 shadow_color = Color(0, 0, 0, 0.3)
 shadow_size = 2
 shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="btn_normal"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.106, 0.09, 0.153, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 2
+border_color = Color(0.243, 0.204, 0.345, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 2
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="btn_pressed"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 7.0
+bg_color = Color(0.071, 0.059, 0.106, 1)
+border_width_left = 1
+border_width_top = 2
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.784, 0.62, 0.29, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxTexture" id="card_panel"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+texture = ExtResource("tex_card")
+texture_margin_left = 20.0
+texture_margin_top = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="chip_panel"]
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(0.094, 0.078, 0.145, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.243, 0.404, 1)
+corner_radius_top_left = 11
+corner_radius_top_right = 11
+corner_radius_bottom_right = 11
+corner_radius_bottom_left = 11
 
 [sub_resource type="StyleBoxFlat" id="danger_hover"]
 content_margin_left = 14.0
@@ -229,6 +171,25 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 2
 border_color = Color(0.78, 0.44, 0.35, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 2
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="danger_normal"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.42, 0.196, 0.157, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 2
+border_color = Color(0.27, 0.11, 0.086, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -253,28 +214,34 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="chip_panel"]
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
-bg_color = Color(0.094, 0.078, 0.145, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.29, 0.243, 0.404, 1)
-corner_radius_top_left = 11
-corner_radius_top_right = 11
-corner_radius_bottom_right = 11
-corner_radius_bottom_left = 11
-
 [sub_resource type="StyleBoxTexture" id="separator_line"]
+content_margin_top = 4.0
+content_margin_bottom = 4.0
 texture = ExtResource("tex_divider")
 texture_margin_left = 24.0
 texture_margin_right = 24.0
-content_margin_top = 4.0
-content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="inset_panel"]
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+texture = ExtResource("tex_inset")
+texture_margin_left = 16.0
+texture_margin_top = 16.0
+texture_margin_right = 16.0
+texture_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxTexture" id="panel_bg"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("tex_card")
+texture_margin_left = 20.0
+texture_margin_top = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 20.0
 
 [sub_resource type="StyleBoxFlat" id="popup_hover"]
 bg_color = Color(0.176, 0.149, 0.255, 1)
@@ -282,6 +249,17 @@ corner_radius_top_left = 5
 corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxTexture" id="popup_bg"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+texture = ExtResource("tex_tooltip")
+texture_margin_left = 18.0
+texture_margin_top = 18.0
+texture_margin_right = 18.0
+texture_margin_bottom = 18.0
 
 [sub_resource type="StyleBoxFlat" id="progress_bg"]
 bg_color = Color(0.035, 0.031, 0.059, 1)
@@ -303,6 +281,28 @@ corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxTexture" id="tooltip_bg"]
+content_margin_left = 14.0
+content_margin_top = 9.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+texture = ExtResource("tex_tooltip")
+texture_margin_left = 18.0
+texture_margin_top = 18.0
+texture_margin_right = 18.0
+texture_margin_bottom = 18.0
+
+[sub_resource type="StyleBoxTexture" id="well_panel"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+texture = ExtResource("tex_inset")
+texture_margin_left = 16.0
+texture_margin_top = 16.0
+texture_margin_right = 16.0
+texture_margin_bottom = 16.0
 
 [resource]
 default_font = ExtResource("font_body")
@@ -341,8 +341,8 @@ DangerButton/styles/pressed = SubResource("danger_pressed")
 HSeparator/styles/separator = SubResource("separator_line")
 HeaderLabel/base_type = &"Label"
 HeaderLabel/colors/font_color = Color(0.914, 0.886, 0.827, 1)
-HeaderLabel/fonts/font = ExtResource("font_display")
 HeaderLabel/font_sizes/font_size = 22
+HeaderLabel/fonts/font = ExtResource("font_display")
 InsetPanel/base_type = &"PanelContainer"
 InsetPanel/styles/panel = SubResource("inset_panel")
 Label/colors/font_color = Color(0.878, 0.847, 0.769, 1)
@@ -360,8 +360,8 @@ ProgressBar/styles/background = SubResource("progress_bg")
 ProgressBar/styles/fill = SubResource("progress_fill")
 SectionLabel/base_type = &"Label"
 SectionLabel/colors/font_color = Color(0.831, 0.647, 0.298, 1)
-SectionLabel/fonts/font = ExtResource("font_display")
 SectionLabel/font_sizes/font_size = 12
+SectionLabel/fonts/font = ExtResource("font_display")
 TooltipLabel/colors/font_color = Color(0.914, 0.886, 0.827, 1)
 TooltipLabel/font_sizes/font_size = 14
 TooltipPanel/styles/panel = SubResource("tooltip_bg")

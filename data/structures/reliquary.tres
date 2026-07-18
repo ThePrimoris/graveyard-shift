@@ -42,6 +42,6 @@ sort_order = 7
 effect = "rare_chance_pct"
 effect_unit = "%"
 effect_label = "rare-find chance"
-grid_cell = Vector2i(4, 2)
+grid_cell = Vector2i(4, 10)
 footprint = Vector2i(1, 1)
 tiers = Array[ExtResource("2_tier")]([SubResource("T0"), SubResource("T1"), SubResource("T2"), SubResource("T3"), SubResource("T4")])

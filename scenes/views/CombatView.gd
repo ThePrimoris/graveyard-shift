@@ -232,6 +232,8 @@ func _strike_foe(member_idx: int, foe: Dictionary, mult: float) -> int:
 	if int(foe.get("sunder", 0)) > 0:
 		dmg = maxi(1, int(round(dmg * (1.0 + SUNDER_BONUS))))
 	foe["hp"] = maxi(foe["hp"] - dmg, 0)
+	if foe["hp"] <= 0:
+		StatsManager.mark_enemy_slain(str(foe.get("id", "")))
 	_spawn_damage_number(dmg, false)
 	_flash_area(enemy_holder)
 	# Lifesteal (Ghoul): heal the attacker for a share of the damage dealt.
@@ -473,6 +475,7 @@ func _enemy_act(enemy_idx: int) -> void:
 		foe["poison_turns"] = int(foe["poison_turns"]) - 1
 		_check_boss_enrage(foe)
 		if foe["hp"] <= 0:
+			StatsManager.mark_enemy_slain(str(foe.get("id", "")))
 			_log("%s succumbs to the venom (%d) — it falls!" % [foe["name"], venom])
 			if _all_enemies_down():
 				_enter_victory()
@@ -669,6 +672,10 @@ func start_test_encounter(boss: bool = false) -> void:
 		start_encounter_res(encounter)
 
 func _begin_fight(foes: Array, boss: bool) -> void:
+	# Battle stops the shift: no gathering while the warband fights.
+	if GameManager.active_action_source != null:
+		NotificationManager.show_item("The gathering halts — battle calls", 1)
+		GameManager.stop_gathering()
 	is_boss_fight = boss
 	enemies.clear()
 	for enemy in foes:
@@ -676,6 +683,7 @@ func _begin_fight(foes: Array, boss: bool) -> void:
 			"name": enemy.name,
 			"glyph": enemy.glyph,
 			"icon": enemy.icon,
+			"id": enemy.id,
 			"hp": enemy.base_hp,
 			"max_hp": enemy.base_hp,
 			"atk": enemy.atk,
@@ -1167,7 +1175,7 @@ func _rebuild_command_panel() -> void:
 					var consumable: Consumable = entry["item"]
 					var row = _menu_row("%s ×%d" % [consumable.name, entry["count"]], false, true, func():
 						_execute_item(acting_index, consumable))
-					row.tooltip_text = consumable.description
+					row.tooltip_text = consumable.effect_line() + "\n\n" + consumable.description
 					command_holder.add_child(row)
 				command_holder.add_child(_menu_row("Back", false, true, func():
 					item_menu_open = false

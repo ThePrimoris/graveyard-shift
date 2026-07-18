@@ -132,6 +132,10 @@ func start_brew(recipe: Recipe) -> bool:
 		return false
 	for item_id in recipe.inputs:
 		InventoryManager.remove_item(item_id, int(recipe.inputs[item_id]))
+	# Crafting and gathering are exclusive — the station demands full attention.
+	if GameManager.active_action_source != null:
+		NotificationManager.show_item("The gathering halts — the station demands attention", 1)
+		GameManager.stop_gathering()
 	active_recipe = recipe
 	brew_progress = 0.0
 	brew_state_changed.emit()

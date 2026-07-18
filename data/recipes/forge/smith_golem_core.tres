@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Recipe" format=3]
+
+[ext_resource type="Script" path="res://data/RecipeData.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/items/materials/golem_core.tres" id="2_out"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "smith_golem_core"
+name = "Golem Core"
+description = "Thirty bones, a good skull, and enough tungsten to make the dead take orders. The Forge's answer to Alchemy's Great Work."
+inputs = {"bones": 30, "cracked_skull": 6, "tungsten_lump": 10, "basalt_debris": 12}
+output_item = ExtResource("2_out")
+required_level = 35
+base_seconds = 120.0
+base_xp = 400.0
+metadata/_custom_type_script = "res://data/RecipeData.gd"

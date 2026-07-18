@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GroundsParcel" format=3]
+
+[ext_resource type="Script" path="res://data/ParcelData.gd" id="1_parcel"]
+
+[resource]
+script = ExtResource("1_parcel")
+id = "north_rise"
+name = "North Rise"
+description = "A wind-scoured slope behind the chapel. The wardens want trees up there; the lantern wants height."
+sort_order = 1
+origin = Vector2i(3, 0)
+size = Vector2i(6, 3)
+cost_gold = 750
+metadata/_custom_type_script = "res://data/ParcelData.gd"

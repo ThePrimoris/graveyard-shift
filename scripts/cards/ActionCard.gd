@@ -14,6 +14,9 @@ class_name ActionCard
 extends PanelContainer
 
 signal action_triggered
+signal deploy_requested
+signal collect_requested
+signal recall_requested
 
 # Lanternlight tokens (mirror theme/graveyard_theme.tres).
 const COL_CARD_BG := Color(0.078, 0.071, 0.11, 0.97)
@@ -55,6 +58,15 @@ const VERB_NOUNS := {"Chopping": "Cut", "Mining": "Break", "Digging": "Dig"}
 
 var action_verb: String = "Harvest"
 var node_title: String = ""
+
+# Deployment (DEP-8) controls, built in code below the action button so the
+# scene stays untouched: a "Deploy" button when the skill's post is free, or
+# a satchel status chip with Collect/Recall when THIS node hosts the minion.
+var deploy_row: HBoxContainer
+var deploy_button: Button
+var deploy_status: Label
+var collect_button: Button
+var recall_button: Button
 var bar_color: Color = Color("#d4a445")
 var bars: Array = []
 var segments: Array = []
@@ -74,8 +86,73 @@ var _affix_info: Dictionary = {}
 
 func _ready() -> void:
 	action_button.pressed.connect(_on_button_pressed)
+	# The bar itself shows progress; a numeric % readout is just noise.
+	if pct_label:
+		pct_label.visible = false
 	if bars.is_empty():
 		_build_bar()
+	_build_deploy_row()
+
+func _build_deploy_row() -> void:
+	deploy_row = HBoxContainer.new()
+	deploy_row.add_theme_constant_override("separation", 6)
+	deploy_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	deploy_row.visible = false
+	action_button.get_parent().add_child(deploy_row)
+
+	deploy_button = Button.new()
+	deploy_button.text = "Deploy"
+	deploy_button.custom_minimum_size = Vector2(0, 26)
+	deploy_button.add_theme_font_size_override("font_size", 12)
+	deploy_button.tooltip_text = "Send a minion to gather here while you work elsewhere — even offline"
+	deploy_button.pressed.connect(func(): deploy_requested.emit())
+	deploy_row.add_child(deploy_button)
+
+	deploy_status = Label.new()
+	deploy_status.add_theme_font_size_override("font_size", 12)
+	deploy_status.visible = false
+	deploy_row.add_child(deploy_status)
+
+	collect_button = Button.new()
+	collect_button.text = "Collect"
+	collect_button.custom_minimum_size = Vector2(0, 26)
+	collect_button.add_theme_font_size_override("font_size", 12)
+	collect_button.tooltip_text = "Empty the minion's satchel into your pack"
+	collect_button.visible = false
+	collect_button.pressed.connect(func(): collect_requested.emit())
+	deploy_row.add_child(collect_button)
+
+	recall_button = Button.new()
+	recall_button.text = "Recall"
+	recall_button.custom_minimum_size = Vector2(0, 26)
+	recall_button.add_theme_font_size_override("font_size", 12)
+	recall_button.theme_type_variation = &"DangerButton"
+	recall_button.tooltip_text = "Collect the satchel and bring the minion home"
+	recall_button.visible = false
+	recall_button.pressed.connect(func(): recall_requested.emit())
+	deploy_row.add_child(recall_button)
+
+## Drives the deployment controls. Pass {} to hide them (locked/boss cards,
+## or when the skill's deployment sits on a different node); {"mode": "free"}
+## for the Deploy button; {"mode": "here", "minion_name", "count", "cap",
+## "full"} when this node hosts the deployed minion.
+func set_deploy_state(state: Dictionary) -> void:
+	if deploy_row == null: return
+	var mode = str(state.get("mode", ""))
+	deploy_row.visible = mode != ""
+	deploy_button.visible = mode == "free"
+	var here = mode == "here"
+	deploy_status.visible = here
+	collect_button.visible = here
+	recall_button.visible = here
+	if here:
+		var full = bool(state.get("full", false))
+		deploy_status.text = "⛏ %s — %d/%d" % [str(state.get("minion_name", "")),
+			int(state.get("count", 0)), int(state.get("cap", 0))]
+		deploy_status.add_theme_color_override("font_color", COL_RUST if full else COL_GREEN_TEXT)
+		deploy_status.tooltip_text = "Satchel full — collect it so the work can go on" if full \
+			else "Gathering at a steady pace, even while you're away"
+		collect_button.disabled = int(state.get("count", 0)) <= 0
 
 # --- Card states ---
 
@@ -94,6 +171,7 @@ func show_locked(desc_text: String, requirement_text: String) -> void:
 	segment_box.visible = false
 	damage_meter.visible = false
 	action_button.visible = false
+	if deploy_row: deploy_row.visible = false
 	icon_rect.self_modulate = Color(0.1, 0.1, 0.12)
 
 ## Unlocked card: chips, drop ledger, art, button, and the bottom bar.
@@ -130,6 +208,7 @@ func show_boss(desc_text: String, button_label: String) -> void:
 	action_button.visible = true
 	action_button.text = button_label
 	action_button.theme_type_variation = &"DangerButton"
+	if deploy_row: deploy_row.visible = false
 	icon_rect.self_modulate = Color.WHITE
 
 # --- Setup ---
@@ -448,8 +527,6 @@ func _apply_bar_styles() -> void:
 func update_progress(elapsed: float, duration: float) -> void:
 	if duration <= 0.0: return
 	var t = clampf(elapsed / duration, 0.0, 1.0)
-	if pct_label:
-		pct_label.text = "%d%%" % int(round(t * 100))
 
 	# One filled bar = one chop/hit. Section depletion (dig nodes) is driven by
 	# break progress in update_damage, not within-bar progress, so the bar just
@@ -462,8 +539,6 @@ func reset_progress() -> void:
 		bar.value = 0.0
 	for seg in segments:
 		seg.modulate.a = 1.0
-	if pct_label:
-		pct_label.text = "0%"
 
 # --- Misc ---
 

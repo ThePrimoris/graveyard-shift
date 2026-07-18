@@ -1,11 +1,11 @@
 # SaveManager.gd
-# Persists the run to disk (save format v2). Old saves are UPGRADED forward by
+# Persists the run to disk (save format SAVE_VERSION). Old saves are UPGRADED forward by
 # _migrate rather than discarded, so a SAVE_VERSION bump no longer wipes
 # progress; a save from a NEWER build than this one is backed up, not clobbered.
 extends Node
 
 const SAVE_PATH: String = "user://graveyard_shift_save.json"
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 
 ## Offline progress: free window everyone gets, plus a minimum gap before it's
 ## worth granting. The Grave-Lantern structure extends the cap (offline_hours).
@@ -66,7 +66,8 @@ func save_game() -> void:
 		"equipped_tools": _get_equipped_tool_ids(),
 		"owned_tools": _get_owned_tool_ids(),
 		"active_node_id": GameManager.active_node_data.id if GameManager.active_node_data else "",
-		"purchased_slots": InventoryManager.purchased_slots,
+		"purchased_tabs": InventoryManager.purchased_tabs,
+		"tab_names": InventoryManager.tab_names,
 		"tutorial_complete": TutorialManager.tutorial_complete,
 		"known_recipes": {
 			"alchemy": AlchemyManager.get_known_recipes(),
@@ -171,7 +172,14 @@ func load_game() -> void:
 		if tool is ToolData and GameManager.inventory.has(tool):
 			GameManager.equipped_tools[int(type_key)] = tool
 
-	InventoryManager.purchased_slots = int(data.get("purchased_slots", 0))
+	if data.has("purchased_tabs"):
+		InventoryManager.purchased_tabs = int(data.get("purchased_tabs", 0))
+	else:
+		# Pre-tab saves bought single slots; any purchase rounds UP to a whole
+		# tab so nobody's paid-for capacity shrinks.
+		InventoryManager.purchased_tabs = mini(InventoryManager.MAX_PURCHASED_TABS,
+			int(ceil(int(data.get("purchased_slots", 0)) / float(InventoryManager.TAB_BASE_SLOTS))))
+	InventoryManager.tab_names = Array(data.get("tab_names", []))
 	TutorialManager.tutorial_complete = bool(data.get("tutorial_complete", false))
 	InventoryManager.restore_from_save(data.get("inventory", []))
 	InventoryManager.refresh_capacity()
@@ -180,11 +188,13 @@ func load_game() -> void:
 	StatsManager.restore_from_save(data.get("stats", {}))
 	_ensure_default_equipment()
 
-	# Pick the previous node back up so the player doesn't have to re-click it
+	# Pick the previous node back up so the player doesn't have to re-click it.
+	# Offline accrual runs unconditionally: even with no player node left
+	# active, deployed minions (DEP-8) have been gathering.
 	var last_node_id = str(data.get("active_node_id", ""))
 	if last_node_id != "":
 		get_tree().call_group(Ids.GROUP_HARVEST_VIEWS, "resume_node", last_node_id)
-		_accrue_offline(last_node_id, int(data.get("timestamp", 0)))
+	_accrue_offline(last_node_id, int(data.get("timestamp", 0)))
 
 	get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
 
@@ -214,8 +224,10 @@ func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 				migrated = _migrate_v1_to_v2(migrated)
 			2:
 				migrated = _migrate_v2_to_v3(migrated)
-			# 3:
-			#     migrated = _migrate_v3_to_v4(migrated)   # <- next bump slots in here
+			3:
+				migrated = _migrate_v3_to_v4(migrated)
+			# 4:
+			#     migrated = _migrate_v4_to_v5(migrated)   # <- next bump slots in here
 			_:
 				push_warning("SaveManager: no migration step for v%d." % v)
 				return {}
@@ -238,6 +250,23 @@ func _migrate_v1_to_v2(_data: Dictionary) -> Dictionary:
 func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
 	return data
 
+## v3 → v4 (equipment rework): worn gear moves from int slot keys to named
+## string slots — "0" (the old weapon slot; weapons are relics now) becomes
+## "relic_0" and "1" (trinket) becomes "trinket_0". Deployment fields added in
+## the same bump are additive and .get-defaulted, so no work is needed here.
+func _migrate_v3_to_v4(data: Dictionary) -> Dictionary:
+	var minions: Dictionary = data.get("minions", {})
+	var old_gear: Dictionary = minions.get("gear", {})
+	var new_gear: Dictionary = {}
+	for minion_id in old_gear:
+		new_gear[minion_id] = {}
+		for slot_key in old_gear[minion_id]:
+			var target := "relic_0" if str(slot_key) == "0" else "trinket_0"
+			new_gear[minion_id][target] = old_gear[minion_id][slot_key]
+	minions["gear"] = new_gear
+	data["minions"] = minions
+	return data
+
 ## Copies the current save to a timestamped .bak so an incompatible file (e.g. a
 ## save from a newer build) is never silently overwritten.
 func _backup_save(reason: String) -> void:
@@ -249,35 +278,47 @@ func _backup_save(reason: String) -> void:
 	if err != OK:
 		push_warning("SaveManager: could not back up save (error %d)." % err)
 
-## Grants offline harvesting for the node the player left running, capped by
-## the base window plus any Grave-Lantern tiers built.
+## Grants offline progress for the elapsed absence, capped by the base window
+## plus any Grave-Lantern tiers built: the node the player left running, and
+## every deployed minion's satchel (DEP-8).
 func _accrue_offline(node_id: String, saved_ts: int) -> void:
 	if saved_ts <= 0: return
-	var node = GameManager.find_node_by_id(node_id)
-	if node == null: return
 	var elapsed = Time.get_unix_time_from_system() - float(saved_ts)
 	if elapsed < OFFLINE_MIN_SECONDS: return
 	var cap_hours = OFFLINE_BASE_HOURS + GroundsManager.get_bonus(Ids.EFFECT_OFFLINE_HOURS)
 	var capped = clampf(elapsed, 0.0, cap_hours * 3600.0)
 
-	# Requiem Incense: offline seconds a lit censer covered count for more.
-	# Read active_buffs directly — the buff may have expired mid-absence and
-	# get_buff_bonus would prune it before it pays out.
-	var censer: Dictionary = GameManager.active_buffs.get(Ids.EFFECT_OFFLINE_GAIN_PCT, {})
-	var covered = clampf(float(censer.get("until", 0.0)) - float(saved_ts), 0.0, capped)
-	var bonus_seconds = covered * float(censer.get("magnitude", 0.0)) / 100.0
+	var result: Dictionary = {}
+	var node = GameManager.find_node_by_id(node_id)
+	if node != null:
+		# Requiem Incense: offline seconds a lit censer covered count for more.
+		# Read active_buffs directly — the buff may have expired mid-absence and
+		# get_buff_bonus would prune it before it pays out. The stretch is
+		# player-node only; deployments run at their own flat pace (no double dip).
+		var censer: Dictionary = GameManager.active_buffs.get(Ids.EFFECT_OFFLINE_GAIN_PCT, {})
+		var covered = clampf(float(censer.get("until", 0.0)) - float(saved_ts), 0.0, capped)
+		var bonus_seconds = covered * float(censer.get("magnitude", 0.0)) / 100.0
+		result = GameManager.accrue_offline(node, capped + bonus_seconds)
 
-	var result = GameManager.accrue_offline(node, capped + bonus_seconds)
-	if result.is_empty() or int(result.get("harvests", 0)) <= 0: return
+	var dep = MinionManager.accrue_deployments(capped)
 
-	var total_items := 0
-	for item_id in result["gains"]:
-		total_items += int(result["gains"][item_id])
-	var summary = "Welcome back — the grounds worked %s while you were gone: +%d materials, +%d XP" \
-		% [_fmt_duration(capped), total_items, int(result["xp"])]
-	var lost := int(result.get("lost", 0))
-	if lost > 0:
-		summary += " (%d lost — the pack was full)" % lost
+	var harvested = not result.is_empty() and int(result.get("harvests", 0)) > 0
+	var deployed_gain = int(dep.get("gained", 0))
+	if not harvested and deployed_gain <= 0: return
+
+	var summary = "Welcome back — the grounds worked %s while you were gone" % _fmt_duration(capped)
+	if harvested:
+		var total_items := 0
+		for item_id in result["gains"]:
+			total_items += int(result["gains"][item_id])
+		summary += ": +%d materials, +%d XP" % [total_items, int(result["xp"])]
+		var lost := int(result.get("lost", 0))
+		if lost > 0:
+			summary += " (%d lost — the pack was full)" % lost
+	if deployed_gain > 0:
+		summary += " · deployed minions gathered %d into their satchels" % deployed_gain
+		if bool(dep.get("any_full", false)):
+			summary += " (a satchel filled)"
 	NotificationManager.show_item(summary, 1)
 
 func _fmt_duration(seconds: float) -> String:

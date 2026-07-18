@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://dywj8ud8c55x1"]
 
-[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
-[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/amber_droplet.tres" id="i0"]
 
 [sub_resource type="Resource" id="common0"]
@@ -19,5 +19,4 @@ required_level = 4
 required_tool_type = 1
 base_duration = 7.5
 base_xp = 2
-dig_sections = 0
 common_pool = Array[ExtResource("2_loot")]([SubResource("common0")])

@@ -28,8 +28,18 @@ const AUTOSAVE_CHOICES: Array[Dictionary] = [
 	{"id": "off", "label": "Off (save on quit)", "seconds": 0.0},
 ]
 
+## The UI scale choices offered in Settings. With window stretch disabled the
+## window size is pure workspace; this factor alone sizes the interface/fonts.
+const UI_SCALE_CHOICES: Array[Dictionary] = [
+	{"id": "85", "label": "85%", "factor": 0.85},
+	{"id": "100", "label": "100%", "factor": 1.0},
+	{"id": "115", "label": "115%", "factor": 1.15},
+	{"id": "130", "label": "130%", "factor": 1.3},
+]
+
 var window_choice: String = "maximized"
 var autosave_choice: String = "30s"
+var ui_scale_choice: String = "100"
 
 ## Audio volumes (0..1), applied by AudioManager. Kept here so they persist in
 ## the settings file and survive hard resets, alongside the window choice.
@@ -40,6 +50,33 @@ var music_volume: float = 0.55
 func _ready() -> void:
 	load_settings()
 	call_deferred("apply_window_choice")
+	call_deferred("apply_ui_scale")
+
+# --- UI scale ---
+
+func get_ui_scale_labels() -> Array:
+	var labels: Array = []
+	for choice in UI_SCALE_CHOICES:
+		labels.append(choice["label"])
+	return labels
+
+func get_ui_scale_index(choice_id: String) -> int:
+	for i in range(UI_SCALE_CHOICES.size()):
+		if UI_SCALE_CHOICES[i]["id"] == choice_id:
+			return i
+	return 1  # 100%
+
+func set_ui_scale_by_index(index: int) -> void:
+	if index < 0 or index >= UI_SCALE_CHOICES.size(): return
+	ui_scale_choice = UI_SCALE_CHOICES[index]["id"]
+	apply_ui_scale()
+	save_settings()
+
+func apply_ui_scale() -> void:
+	if DisplayServer.get_name() == "headless": return
+	var window = get_window()
+	if window == null: return
+	window.content_scale_factor = float(UI_SCALE_CHOICES[get_ui_scale_index(ui_scale_choice)]["factor"])
 
 # --- Window choice ---
 
@@ -116,6 +153,7 @@ func save_settings() -> void:
 	file.store_string(JSON.stringify({
 		"window_choice": window_choice,
 		"autosave_choice": autosave_choice,
+		"ui_scale_choice": ui_scale_choice,
 		"master_volume": master_volume,
 		"sfx_volume": sfx_volume,
 		"music_volume": music_volume,
@@ -133,6 +171,8 @@ func load_settings() -> void:
 		window_choice = WINDOW_CHOICES[get_choice_index(stored)]["id"]
 		var stored_autosave = str(parsed.get("autosave_choice", "30s"))
 		autosave_choice = AUTOSAVE_CHOICES[get_autosave_index(stored_autosave)]["id"]
+		var stored_scale = str(parsed.get("ui_scale_choice", "100"))
+		ui_scale_choice = UI_SCALE_CHOICES[get_ui_scale_index(stored_scale)]["id"]
 		master_volume = clampf(float(parsed.get("master_volume", master_volume)), 0.0, 1.0)
 		sfx_volume = clampf(float(parsed.get("sfx_volume", sfx_volume)), 0.0, 1.0)
 		music_volume = clampf(float(parsed.get("music_volume", music_volume)), 0.0, 1.0)

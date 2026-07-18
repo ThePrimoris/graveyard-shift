@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "scroll_requiem_incense"
 name = "Recipe: Requiem Incense"
-description = "The long vigil's formula, written for those who leave. Study it to add the Requiem Incense to the Still's repertoire."
+description = "The long vigil's formula, written for those who leave."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 400

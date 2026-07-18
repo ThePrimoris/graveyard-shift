@@ -16,3 +16,7 @@ docs/
 .DS_Store
 .fuse_hidden*
 Thumbs.db
+/tests
+/tests
+/tests
+.DS_Store

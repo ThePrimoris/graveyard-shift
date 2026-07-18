@@ -1,19 +1,19 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://2mt84l28ynpo"]
 
-[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
-[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/slate_slab.tres" id="it0"]
 [ext_resource type="Resource" path="res://data/items/materials/quartz_geode.tres" id="it1"]
-
-[sub_resource type="Resource" id="hit0"]
-script = ExtResource("2_loot")
-item = ExtResource("it0")
-weight = 20.0
 
 [sub_resource type="Resource" id="break1"]
 script = ExtResource("2_loot")
 item = ExtResource("it1")
 weight = 100.0
+
+[sub_resource type="Resource" id="hit0"]
+script = ExtResource("2_loot")
+item = ExtResource("it0")
+weight = 20.0
 
 [resource]
 script = ExtResource("1_node")
@@ -23,11 +23,7 @@ description = "A gas-pressured pocket lined with quartz. Break it for the geode.
 required_skill = 2
 required_level = 13
 required_tool_type = 2
-base_duration = 3.0
-base_xp = 5
-hit_damage = 0.1
 affix = "unstable_seams"
-common_pool = Array[ExtResource("2_loot")]([])
-rare_pool = Array[ExtResource("2_loot")]([])
+hit_damage = 0.1
 hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0")])
 break_pool = Array[ExtResource("2_loot")]([SubResource("break1")])

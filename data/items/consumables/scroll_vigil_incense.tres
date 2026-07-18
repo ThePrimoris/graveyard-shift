@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "scroll_vigil_incense"
 name = "Recipe: Vigil Incense"
-description = "The censer-tender's measures, stained with lichen ash. Study it to add the Vigil Incense to the Still's repertoire."
+description = "The censer-tender's measures, stained with lichen ash."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 60

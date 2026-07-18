@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "corpse_candle"
 name = "Corpse-Candle"
-description = "A tallow taper that burns cold and blue. For 15 minutes the exhausted rest twice as quick — lighting it also stirs those already resting."
+description = "A tallow taper that burns cold and blue. The dead deserve a little light."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 10

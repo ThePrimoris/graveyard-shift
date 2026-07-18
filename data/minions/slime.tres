@@ -1,0 +1,128 @@
+[gd_resource type="Resource" script_class="Minion" format=3]
+
+[ext_resource type="Script" path="res://data/MinionData.gd" id="1_minion"]
+[ext_resource type="Script" path="res://data/MinionAbilityData.gd" id="2_ability"]
+[ext_resource type="Texture2D" path="res://icons/minions/slime.png" id="3_icon"]
+
+[sub_resource type="Resource" id="Ability0"]
+script = ExtResource("2_ability")
+id = "nutrient_sheen"
+name = "Nutrient Sheen"
+description = "Everything sticks to it, and it wastes nothing. +3% chance of a double haul while slotted."
+kind = 0
+tier = 1
+cost = 1
+effect = "double_drop_pct"
+magnitude = 3.0
+
+[sub_resource type="Resource" id="Ability1"]
+script = ExtResource("2_ability")
+id = "amorphous_mass"
+name = "Amorphous Mass"
+description = "There is simply more of it than there appears to be. +12% max HP."
+kind = 0
+tier = 1
+cost = 1
+effect = "minion_hp_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability2"]
+script = ExtResource("2_ability")
+id = "engulfing_lurch"
+name = "Engulfing Lurch"
+description = "It gathers itself into one dense wave and falls on a foe. A single crushing blow, once per battle."
+kind = 1
+tier = 2
+cost = 2
+effect = "active_lurch"
+magnitude = 0.0
+
+[sub_resource type="Resource" id="Ability3"]
+script = ExtResource("2_ability")
+id = "caustic_membrane"
+name = "Caustic Membrane"
+description = "Striking it is a decision the fist regrets. Reflects 12% of the damage it takes."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["amorphous_mass"])
+effect = "minion_thorns_pct"
+magnitude = 12.0
+
+[sub_resource type="Resource" id="Ability4"]
+script = ExtResource("2_ability")
+id = "osmotic_mending"
+name = "Osmotic Mending"
+description = "Wounds don't close — they dissolve. Heals 5% of max HP on each of its turns."
+kind = 0
+tier = 2
+cost = 2
+prerequisites = Array[String](["nutrient_sheen"])
+effect = "minion_regen_pct"
+magnitude = 5.0
+
+[sub_resource type="Resource" id="Ability5"]
+script = ExtResource("2_ability")
+id = "pressured_pseudopod"
+name = "Pressured Pseudopod"
+description = "Ooze, compressed hard enough, is a hammer. +14% attack."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["caustic_membrane"])
+effect = "minion_atk_pct"
+magnitude = 14.0
+
+[sub_resource type="Resource" id="Ability6"]
+script = ExtResource("2_ability")
+id = "split_instinct"
+name = "Split Instinct"
+description = "Part of it is always already moving. +10% charge speed."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["osmotic_mending"])
+effect = "minion_speed_pct"
+magnitude = 10.0
+
+[sub_resource type="Resource" id="Ability7"]
+script = ExtResource("2_ability")
+id = "gel_bastion"
+name = "Gel Bastion"
+description = "It spreads wide and glistens invitingly. Enemies prefer to strike the slime."
+kind = 0
+tier = 3
+cost = 3
+prerequisites = Array[String](["caustic_membrane"])
+effect = "minion_taunt"
+magnitude = 1.0
+
+[sub_resource type="Resource" id="Ability8"]
+script = ExtResource("2_ability")
+id = "endless_ooze"
+name = "Endless Ooze"
+description = "You cannot exhaust what refuses to end. Heals a further 6% of max HP on each of its turns."
+kind = 0
+tier = 4
+cost = 4
+prerequisites = Array[String](["osmotic_mending", "gel_bastion"])
+effect = "minion_regen_pct"
+magnitude = 6.0
+
+[resource]
+script = ExtResource("1_minion")
+id = "slime"
+name = "Slime"
+icon = ExtResource("3_icon")
+sort_order = 6
+description = "Not raised — coagulated. A patient tide of ooze from the Caretaker's vat, the Lesser Coagulation made ambulatory. It absorbs blows, insults, and anything left on the floor."
+base_hp = 26
+base_atk = 2.2
+hp_per_level = 5
+atk_per_level = 0.5
+speed = 0.75
+raise_cost = Dictionary[String, int]({
+"slime_core": 1
+})
+abilities = Array[ExtResource("2_ability")]([SubResource("Ability0"), SubResource("Ability1"), SubResource("Ability2"), SubResource("Ability3"), SubResource("Ability4"), SubResource("Ability5"), SubResource("Ability6"), SubResource("Ability7"), SubResource("Ability8")])
+metadata/_custom_type_script = "res://data/MinionData.gd"

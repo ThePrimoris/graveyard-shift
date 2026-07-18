@@ -68,7 +68,8 @@ func update_ui() -> void:
 	_rebuild()
 
 ## Everything the open pages render that can change under them: navigation,
-## roster state, plots, and the inventory counts the index and altar show.
+## roster state, plots, worn gear, deployments (station rows and satchel
+## counts), and the inventory counts the index and altar show.
 func _state_fingerprint() -> String:
 	var counts: Array = []
 	for item_id in GameManager.item_db:
@@ -76,8 +77,9 @@ func _state_fingerprint() -> String:
 		if held > 0:
 			counts.append("%s:%d" % [item_id, held])
 	counts.sort()
-	return "%s|%d|%s|%s|%s|%s|%s" % [chapter, page, altar_target,
-		str(selected_ability), str(MinionManager.roster), str(MinionManager.plots), str(counts)]
+	return "%s|%d|%s|%s|%s|%s|%s|%s|%s" % [chapter, page, altar_target,
+		str(selected_ability), str(MinionManager.roster), str(MinionManager.plots),
+		str(MinionManager.gear), str(MinionManager.deployments), str(counts)]
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -335,7 +337,12 @@ func _build_index_left(into: PanelContainer) -> void:
 		row.add_theme_font_size_override("font_size", 13)
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		var plot = MinionManager.plot_of(minion_id)
-		var station = ("Plot %d" % (plot + 1)) if plot != -1 else "idle"
+		var afield = MinionManager.deployed_skill_of(minion_id)
+		var station := "idle"
+		if plot != -1:
+			station = "Plot %d" % (plot + 1)
+		elif afield != "":
+			station = "deployed — %s" % afield.capitalize()
 		row.text = "▸ %s   —   Lv %d · %s" % [minion.name, MinionManager.get_level(minion_id), station]
 		row.pressed.connect(open_minion.bind(minion_id))
 		col.add_child(row)
@@ -475,71 +482,114 @@ func _build_minion_left(into: PanelContainer, minion: Minion) -> void:
 	col.add_child(_rule())
 
 	var plot = MinionManager.plot_of(minion.id)
-	var station = ("Plot %d — its inked runes are at work" % (plot + 1)) if plot != -1 else "Idle — click a graveyard plot to station it"
-	col.add_child(_kv_row("Station", station, MOSS if plot != -1 else INK_FAINT))
+	var afield = MinionManager.deployed_skill_of(minion.id)
+	if afield != "":
+		var dep = MinionManager.deployment_for(afield)
+		var post = GameManager.find_node_by_id(str(dep.get("node_id", "")))
+		var station_row = _kv_row("Station", "Deployed — %s (satchel %d/%d)" \
+			% [post.name if post else afield.capitalize(), MinionManager.carry_count(afield), MinionManager.carry_capacity()], MOSS)
+		var recall_btn = _ink_button("Recall")
+		recall_btn.custom_minimum_size = Vector2(0, 22)
+		recall_btn.add_theme_font_size_override("font_size", 10)
+		recall_btn.pressed.connect(func():
+			MinionManager.recall(afield)
+			_rebuild())
+		station_row.add_child(recall_btn)
+		col.add_child(station_row)
+	else:
+		var station = ("Plot %d — its inked runes are at work" % (plot + 1)) if plot != -1 else "Idle — click a graveyard plot to station it"
+		col.add_child(_kv_row("Station", station, MOSS if plot != -1 else INK_FAINT))
 	col.add_child(_kv_row("Skill points", "%d unspent" % MinionManager.get_skill_points(minion.id), INK_MID))
 	var owned := 0
 	for a in minion.abilities:
 		if a and MinionManager.has_ability(minion.id, a.id): owned += 1
 	col.add_child(_kv_row("Runes inked", "%d of %d" % [owned, minion.abilities.size()], INK_MID))
 
-	# Armaments (P5 Forge): weapon + trinket slots, combat only.
+	# Armaments (P5 Forge): 2 relic + 3 trinket sockets, combat only. Drawn as
+	# circular settings inked into the page — relics a size larger than
+	# trinkets. A third socket, unique to each minion, joins this row later in
+	# development; add its category between the divider and the trinkets.
 	col.add_child(_rule())
-	col.add_child(_ink_line("ARMAMENTS — forged gear, borne in battle", INK_FAINT, 10))
-	col.add_child(_gear_row(minion.id, Gear.GearSlot.WEAPON, "Weapon"))
-	col.add_child(_gear_row(minion.id, Gear.GearSlot.TRINKET, "Trinket"))
+	col.add_child(_ink_line("ARMAMENTS — relics and trinkets, borne in battle", INK_FAINT, 10))
+	var sockets = HBoxContainer.new()
+	sockets.alignment = BoxContainer.ALIGNMENT_CENTER
+	sockets.add_theme_constant_override("separation", 10)
+	for i in MinionManager.RELIC_SLOTS.size():
+		sockets.add_child(_gear_socket(minion.id, MinionManager.RELIC_SLOTS[i], "Relic %d" % (i + 1), 52))
+	var divider = Panel.new()
+	divider.custom_minimum_size = Vector2(1, 40)
+	divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var dstyle := StyleBoxFlat.new()
+	dstyle.bg_color = INK_GHOST
+	divider.add_theme_stylebox_override("panel", dstyle)
+	sockets.add_child(divider)
+	for i in MinionManager.TRINKET_SLOTS.size():
+		sockets.add_child(_gear_socket(minion.id, MinionManager.TRINKET_SLOTS[i], "Trinket %d" % (i + 1), 40))
+	col.add_child(sockets)
 
-## One armament row: slot name, the worn piece (or "bare hands"/"bare"), and
-## a Change button opening a menu of owned gear for that slot.
-func _gear_row(minion_id: String, slot: int, slot_name: String) -> HBoxContainer:
-	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+## One circular armament socket: the worn piece's icon set into a ringed
+## setting (gold ring when filled, faint "+" when bare). Clicking it opens
+## the gear menu for that slot.
+func _gear_socket(minion_id: String, slot_key: String, slot_name: String, size_px: int) -> Button:
+	var worn = MinionManager.get_gear(minion_id, slot_key)
+	var socket = Button.new()
+	socket.custom_minimum_size = Vector2(size_px, size_px)
+	socket.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	socket.focus_mode = Control.FOCUS_NONE
 
-	var worn = MinionManager.get_gear(minion_id, slot)
-	var name_lbl = Label.new()
-	name_lbl.text = slot_name
-	name_lbl.custom_minimum_size = Vector2(64, 0)
-	name_lbl.add_theme_font_size_override("font_size", 12)
-	name_lbl.add_theme_color_override("font_color", INK_FAINT)
-	row.add_child(name_lbl)
+	var ring := StyleBoxFlat.new()
+	ring.bg_color = RUNE_FILL
+	ring.set_corner_radius_all(size_px / 2)
+	ring.set_border_width_all(2)
+	ring.border_color = GOLD if worn else RUNE_EDGE
+	var inset := size_px / 6
+	ring.set_content_margin_all(inset)
+	var hover: StyleBoxFlat = ring.duplicate()
+	hover.bg_color = Color("#dbcda7")
+	hover.border_color = GOLD if worn else INK_MID
+	socket.add_theme_stylebox_override("normal", ring)
+	socket.add_theme_stylebox_override("hover", hover)
+	socket.add_theme_stylebox_override("pressed", ring)
+	socket.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 	if worn and worn.icon:
-		var pic = TextureRect.new()
-		pic.custom_minimum_size = Vector2(22, 22)
-		pic.expand_mode = 1
-		pic.stretch_mode = 5
-		pic.texture = worn.icon
-		row.add_child(pic)
+		socket.icon = worn.icon
+		socket.expand_icon = true
+		socket.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	else:
+		socket.text = "+"
+		socket.add_theme_font_size_override("font_size", size_px / 3)
+		socket.add_theme_color_override("font_color", INK_GHOST)
+		socket.add_theme_color_override("font_hover_color", INK_FAINT)
 
-	var worn_lbl = Label.new()
-	worn_lbl.text = worn.name if worn else ("bare hands" if slot == Gear.GearSlot.WEAPON else "bare")
-	worn_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	worn_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	worn_lbl.add_theme_font_size_override("font_size", 12)
-	worn_lbl.add_theme_color_override("font_color", INK if worn else INK_FAINT)
-	if worn:
-		worn_lbl.tooltip_text = "%s — %s" % [worn.name, worn.stat_line()]
-	row.add_child(worn_lbl)
-
-	var change = _ink_button("Change")
-	change.custom_minimum_size = Vector2(0, 24)
-	change.add_theme_font_size_override("font_size", 11)
-	change.pressed.connect(_open_gear_menu.bind(minion_id, slot, change))
-	row.add_child(change)
-	return row
+	socket.tooltip_text = "%s — %s. Click to change." % [slot_name, "%s (%s)" % [worn.name, worn.stat_line()]] if worn \
+		else "%s — empty setting. Click to set a piece." % slot_name
+	socket.pressed.connect(_open_gear_menu.bind(minion_id, slot_key, socket))
+	return socket
 
 ## Pops a menu under the Change button: every owned piece for the slot, plus
-## an unequip entry when something is worn.
-func _open_gear_menu(minion_id: String, slot: int, anchor: Button) -> void:
+## an unequip entry when something is worn. A relic already borne by this
+## minion in another slot is listed but disabled (unique-equipped).
+func _open_gear_menu(minion_id: String, slot_key: String, anchor: Button) -> void:
 	var menu = PopupMenu.new()
 	var choices: Array = []  # index-aligned gear ids; "" = unequip
-	if MinionManager.get_gear(minion_id, slot) != null:
+	if MinionManager.get_gear(minion_id, slot_key) != null:
 		menu.add_item("Go bare (unequip)")
 		choices.append("")
 	for item_id in GameManager.item_db:
 		var item = GameManager.item_db[item_id]
-		if item is Gear and item.slot == slot and InventoryManager.get_item_count(item_id) > 0:
-			menu.add_item("%s  (%s)" % [item.name, item.stat_line()])
+		if item is Gear and MinionManager.slots_for_category(item.slot).has(slot_key) \
+				and InventoryManager.get_item_count(item_id) > 0:
+			var borne_elsewhere := false
+			if item.slot == Gear.GearSlot.RELIC:
+				for other_key in MinionManager.RELIC_SLOTS:
+					if other_key == slot_key: continue
+					var other = MinionManager.get_gear(minion_id, other_key)
+					if other != null and other.id == item_id:
+						borne_elsewhere = true
+			menu.add_item("%s  (%s)%s" % [item.name, item.stat_line(), "  — already borne" if borne_elsewhere else ""])
+			if borne_elsewhere:
+				menu.set_item_disabled(menu.item_count - 1, true)
 			choices.append(item_id)
 	if choices.is_empty():
 		menu.add_item("Nothing forged for this slot yet — visit the Forge")
@@ -550,11 +600,11 @@ func _open_gear_menu(minion_id: String, slot: int, anchor: Button) -> void:
 		if pick == "__none":
 			return
 		if pick == "":
-			MinionManager.unequip_gear(minion_id, slot)
+			MinionManager.unequip_gear(minion_id, slot_key)
 		else:
 			var piece = GameManager.find_item_by_id(pick)
 			if piece is Gear:
-				MinionManager.equip_gear(minion_id, piece)
+				MinionManager.equip_gear(minion_id, piece, slot_key)
 		_rebuild())
 	add_child(menu)
 	menu.popup_hide.connect(menu.queue_free)

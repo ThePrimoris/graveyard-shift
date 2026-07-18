@@ -1,10 +1,16 @@
-[gd_resource type="Resource" script_class="HarvestNode" format=3]
+[gd_resource type="Resource" script_class="HarvestNode" format=3 uid="uid://co3jmbqyjgvpo"]
 
-[ext_resource type="Script" path="res://data/HarvestNodeData.gd" id="1_node"]
-[ext_resource type="Script" path="res://data/LootDropData.gd" id="2_loot"]
+[ext_resource type="Script" uid="uid://dtsbj2qd3j6wd" path="res://data/HarvestNodeData.gd" id="1_node"]
+[ext_resource type="Script" uid="uid://behtbxade6hbe" path="res://data/LootDropData.gd" id="2_loot"]
 [ext_resource type="Resource" path="res://data/items/materials/angel_oak.tres" id="it0"]
 [ext_resource type="Resource" path="res://data/items/materials/petrified_acorn.tres" id="it1"]
 [ext_resource type="Resource" path="res://data/items/materials/velvet_moss.tres" id="it2"]
+
+[sub_resource type="Resource" id="break2"]
+script = ExtResource("2_loot")
+item = ExtResource("it2")
+weight = 100.0
+max_amount = 3
 
 [sub_resource type="Resource" id="hit0"]
 script = ExtResource("2_loot")
@@ -15,12 +21,6 @@ weight = 22.0
 script = ExtResource("2_loot")
 item = ExtResource("it1")
 weight = 4.0
-
-[sub_resource type="Resource" id="break2"]
-script = ExtResource("2_loot")
-item = ExtResource("it2")
-weight = 100.0
-max_amount = 3
 
 [resource]
 script = ExtResource("1_node")
@@ -35,7 +35,5 @@ base_xp = 11
 dig_sections = 2
 affix = "blind_canopies"
 rare_chance = 0.06
-common_pool = Array[ExtResource("2_loot")]([])
-rare_pool = Array[ExtResource("2_loot")]([])
 hit_pool = Array[ExtResource("2_loot")]([SubResource("hit0"), SubResource("hit1")])
 break_pool = Array[ExtResource("2_loot")]([SubResource("break2")])

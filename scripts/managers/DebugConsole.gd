@@ -49,7 +49,7 @@ func execute(command: String) -> String:
 	var response := ""
 	match parts[0].to_lower():
 		"help":
-			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item_id> <amount> — add items\n  grounds <list|raise|max|reset> [id] — preview structures\n  necronomicon <on|off> — toggle the dread tome\n  combat [boss] — stage a test battle\n  help" % ", ".join(GameManager.skills.keys())
+			response = "Commands:\n  level <skill> <amount> — add XP (skills: %s)\n  spawn <item name or id> [amount] — add items ('spawn gold 100' mints gold)\n  grounds <list|raise|max|reset> [id] — preview structures\n  necronomicon <on|off> — toggle the dread tome\n  combat [boss] — stage a test battle\n  help" % ", ".join(GameManager.skills.keys())
 		"level":
 			response = _cmd_level(parts)
 		"spawn":
@@ -79,16 +79,46 @@ func _cmd_level(parts: PackedStringArray) -> String:
 	var skill = GameManager.skills[skill_name]
 	return "Added %d XP to %s — now level %d (%.0f XP into the level)." % [amount, skill_name, skill["level"], skill["xp"]]
 
+## Lowercased, with separators dropped, so "Warden's Draught", wardens_draught
+## and "wardens draught" all name the same thing.
+func _normalize(text: String) -> String:
+	return text.to_lower().replace("_", "").replace(" ", "").replace("-", "").replace("'", "")
+
 func _cmd_spawn(parts: PackedStringArray) -> String:
-	if parts.size() < 3:
-		return "Usage: spawn <item_id> <amount>"
-	var item_id = parts[1].to_lower()
-	var item = GameManager.find_item_by_id(item_id)
+	if parts.size() < 2:
+		return "Usage: spawn <item name or id> [amount]"
+	# The amount is the last token when it's a number; the rest is the name.
+	var amount := 1
+	var name_end := parts.size()
+	if parts.size() >= 3 and parts[parts.size() - 1].is_valid_int():
+		amount = maxi(1, int(parts[parts.size() - 1]))
+		name_end -= 1
+	var query := " ".join(parts.slice(1, name_end))
+	var key := _normalize(query)
+
+	# Currencies aren't inventory items — mint them straight into the purse.
+	if key in ["gold", "goldcoins", "coins", "money"]:
+		GameManager.gold_coins += amount
+		get_tree().call_group(Ids.GROUP_UI_UPDATES, "update_ui")
+		return "Minted %d gold — the purse now holds %d." % [amount, GameManager.gold_coins]
+
+	# Exact id/name match first, then a unique substring match as a courtesy.
+	var item: Item = null
+	var partial: Array = []
+	for item_id in GameManager.item_db:
+		var candidate: Item = GameManager.item_db[item_id]
+		if _normalize(item_id) == key or _normalize(candidate.name) == key:
+			item = candidate
+			break
+		if key != "" and (_normalize(item_id).contains(key) or _normalize(candidate.name).contains(key)):
+			partial.append(candidate)
+	if item == null and partial.size() == 1:
+		item = partial[0]
 	if item == null:
-		return "Unknown item '%s'." % item_id
-	if not parts[2].is_valid_int():
-		return "'%s' is not a whole number." % parts[2]
-	var amount = maxi(1, int(parts[2]))
+		if partial.size() > 1:
+			var names: Array = partial.map(func(p): return p.name)
+			return "Ambiguous item '%s' — matches: %s." % [query, ", ".join(names)]
+		return "Unknown item '%s'." % query
 	var leftover = InventoryManager.add_item(item, amount)
 	if leftover > 0:
 		return "Spawned %d x %s (%d didn't fit — inventory full)." % [amount - leftover, item.name, leftover]
@@ -179,6 +209,8 @@ func _build_ui() -> void:
 
 	input = LineEdit.new()
 	input.placeholder_text = "> command"
+	# Enter must leave the box live for the next command, not kick focus out.
+	input.keep_editing_on_text_submit = true
 	var in_style = StyleBoxFlat.new()
 	in_style.bg_color = Color(0.08, 0.08, 0.08, 0.9)
 	in_style.set_corner_radius_all(4)
@@ -195,6 +227,7 @@ func _build_ui() -> void:
 func _on_submitted(text: String) -> void:
 	input.clear()
 	execute(text)
+	input.grab_focus.call_deferred()
 
 ## Up/down arrows cycle through command history.
 func _on_input_gui(event: InputEvent) -> void:
@@ -203,7 +236,9 @@ func _on_input_gui(event: InputEvent) -> void:
 	if event.keycode == KEY_UP:
 		history_pos = (history.size() - 1) if history_pos == -1 else maxi(0, history_pos - 1)
 		input.text = history[history_pos]
-		input.caret_column = input.text.length()
+		# Deferred: LineEdit resets the caret to 0 after this handler returns,
+		# which is why setting caret_column directly left the cursor on the left.
+		input.set_caret_column.call_deferred(input.text.length())
 		input.accept_event()
 	elif event.keycode == KEY_DOWN:
 		if history_pos == -1: return
@@ -213,5 +248,5 @@ func _on_input_gui(event: InputEvent) -> void:
 			input.text = ""
 		else:
 			input.text = history[history_pos]
-		input.caret_column = input.text.length()
+		input.set_caret_column.call_deferred(input.text.length())
 		input.accept_event()

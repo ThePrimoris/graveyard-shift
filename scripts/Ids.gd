@@ -34,11 +34,13 @@ const EFFECT_SELL_PCT := "sell_pct"                    ## Counting House: +% ite
 const EFFECT_ALCHEMY_SPEED_PCT := "alchemy_speed_pct"  ## Apothecary: +% brew speed
 const EFFECT_EXHAUST_HASTE_PCT := "exhaust_haste_pct"  ## Incense: exhausted minions rest this % quicker
 const EFFECT_OFFLINE_GAIN_PCT := "offline_gain_pct"    ## Incense: offline seconds it covers pay +%
+# Deployment (DEP-8):
+const EFFECT_MINION_GATHER_PCT := "minion_gather_pct"  ## Waystation: +% deployed minion gather pace
 const EFFECT_ALL: Array[String] = [
 	EFFECT_HARVEST_XP_PCT, EFFECT_RARE_CHANCE_PCT, EFFECT_DOUBLE_DROP_PCT,
 	EFFECT_GROUNDS_YIELD_PCT, EFFECT_INVENTORY_SLOTS, EFFECT_OFFLINE_HOURS,
 	EFFECT_OFFERING_PCT, EFFECT_SELL_PCT, EFFECT_ALCHEMY_SPEED_PCT,
-	EFFECT_EXHAUST_HASTE_PCT, EFFECT_OFFLINE_GAIN_PCT,
+	EFFECT_EXHAUST_HASTE_PCT, EFFECT_OFFLINE_GAIN_PCT, EFFECT_MINION_GATHER_PCT,
 ]
 
 # --- Minion active-rune effects (combat) ------------------------------
@@ -96,6 +98,7 @@ const VIEW_SHOP := "shop"
 const VIEW_COMBAT := "combat"
 const VIEW_ALCHEMY := "alchemy_lab"
 const VIEW_FORGE := "forge_hall"
+const VIEW_GROUNDS := "grounds"
 
 # --- Named tutorial beats (fired via TutorialManager.notify_event) ----
 const EVENT_BOOK_OPENED := "book_opened"

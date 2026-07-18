@@ -115,6 +115,9 @@ func _make_minion_tile(minion_id: String, plot_index: int) -> Button:
 	var suffix = ""
 	if here: suffix = "  (here)"
 	elif elsewhere != -1: suffix = "  (Plot %d)" % (elsewhere + 1)
+	# Deployed minions can still be slotted — assign_to_plot recalls them
+	# first (and fails politely if the pack can't take their satchel).
+	elif MinionManager.is_deployed(minion_id): suffix = "  (deployed)"
 
 	tile.text = "%s\nLv %d%s" % [minion.name, MinionManager.get_level(minion_id), suffix]
 	if minion.icon:
@@ -148,8 +151,16 @@ func _close_picker() -> void:
 
 func update_ui() -> void:
 	if circle_button:
-		circle_button.tooltip_text = "The Necronomicon" if MinionManager.necronomicon_unlocked \
-			else "The graveyard's heart. Its purpose will be revealed."
+		if MinionManager.necronomicon_unlocked:
+			circle_button.tooltip_text = "The Necronomicon"
+			# The taken tome rests in the circle — the book icon is the tell.
+			if circle_button.icon == null and ResourceLoader.exists("res://icons/ui/necronomicon.png"):
+				circle_button.icon = load("res://icons/ui/necronomicon.png")
+				circle_button.expand_icon = true
+				circle_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		else:
+			circle_button.tooltip_text = "The graveyard's heart. Its purpose will be revealed."
+			circle_button.icon = null
 	for i in range(plot_buttons.size()):
 		var btn: Button = plot_buttons[i]
 		var occupant: String = MinionManager.plots[i] if i < MinionManager.plots.size() else ""

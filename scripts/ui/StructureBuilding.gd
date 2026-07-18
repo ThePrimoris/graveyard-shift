@@ -28,6 +28,12 @@ const RUNE := Color("#7bc06a")
 const POST := Color("#4a4560")
 const SPIRE := Color("#5a4f70")
 const SITE := Color("#5a4f70")
+const COPPER := Color("#b06e3c")
+const COPPER_LIT := Color("#d18a4e")
+const GLASS := Color(0.78, 0.84, 0.95, 0.30)
+const RELIC := Color("#9a7de0")
+const SMOKE := Color(0.75, 0.72, 0.85, 0.18)
+const COIN := Color("#e3bb63")
 const GOLD := Color("#c8a24d")
 const NAME_COL := Color("#e0d8c6")
 const PIP_OFF := Color("#3a3350")
@@ -106,12 +112,16 @@ func _draw() -> void:
 		"ossuary": _draw_ossuary(tier)
 		"wardens_grove": _draw_grove(tier)
 		"grave_lantern": _draw_lantern(tier)
+		"mausoleum": _draw_mausoleum(tier)
+		"counting_house": _draw_counting_house(tier)
+		"reliquary": _draw_reliquary(tier)
+		"apothecary": _draw_apothecary(tier)
 		_: _draw_generic(tier)
 
 	if is_selected:
 		var c := _corners()
 		draw_polyline(_closed(PackedVector2Array([c.A, c.B, c.C, c.D])), GOLD, 3.0, true)
-	_draw_label(s, tier)
+	# Nameplates moved to the GroundsLabels overlay so neighbors can't cover them.
 
 # --- Shared iso helpers ---
 
@@ -255,29 +265,151 @@ func _draw_lantern(t: int) -> void:
 		Vector2(ctr.x - lamp, ly - lamp * 1.7 - 8),
 		Vector2(ctr.x + lamp, ly - lamp * 1.7 - 8)]), GOLD if t >= 5 else FACE_L)
 
+## The Mausoleum: a stone tomb that gains columns, a pediment, and flanking
+## urns as the honored dead move in.
+func _draw_mausoleum(t: int) -> void:
+	if t <= 0:
+		_draw_site()
+		return
+	var h := 20.0 + t * 7.0
+	var b := _box(h)
+	# Colonnade across the right face, one more column per tier.
+	var n: int = 1 + mini(t, 4)
+	for i in range(n):
+		var col := _L(b.B, b.C, (i + 0.5) / float(n))
+		draw_rect(Rect2(col.x - 2.5, col.y - h * 0.9, 5, h * 0.88), COLUMN)
+	# The pediment: a shallow stone gable riding the roofline.
+	var peak: Vector2 = b.ctr + Vector2(0, -(8.0 + t * 3.0))
+	draw_colored_polygon(PackedVector2Array([b.Bt, b.Ct, peak]), ROOF_D)
+	draw_colored_polygon(PackedVector2Array([b.Ct, b.Dt, peak]), ROOF_L)
+	if t >= 2:
+		draw_line(b.Bt, peak, CAP, 1.5)
+		draw_line(b.Dt, peak, CAP, 1.5)
+	# The sealed door — stone, not wood; the dead of means knock from inside.
+	var dr := _L(b.D, b.C, 0.5)
+	draw_rect(Rect2(dr.x - 7, dr.y - 22, 14, 22), DOOR)
+	draw_arc(dr + Vector2(0, -22), 7.0, PI, TAU, 16, CAP, 2.0)
+	if t >= 3:
+		for u in [0.15, 0.85]:
+			var urn := _L(b.D, b.C, u)
+			draw_circle(urn + Vector2(0, -6), 4.0, STONE)
+			draw_rect(Rect2(urn.x - 2, urn.y - 3, 4, 3), STONE)
+	if t >= 4:
+		draw_rect(Rect2(peak.x - 2, peak.y - 10, 4, 10), CAP)
+	if t >= 5:
+		draw_circle(peak + Vector2(0, -14), 4.0, GOLD)
+
+## The Counting House: a timbered ledger-den. The coin sign grows with the
+## takings and the chimney smokes while the books are cooked.
+func _draw_counting_house(t: int) -> void:
+	if t <= 0:
+		_draw_site()
+		return
+	var h := 24.0 + t * 8.0
+	var b := _box(h)
+	# Timber framing on both faces.
+	for u in [0.25, 0.75]:
+		var fl := _L(b.D, b.C, u)
+		draw_line(fl, fl + Vector2(0, -h * 0.9), BARK, 2.0)
+		var fr := _L(b.B, b.C, u)
+		draw_line(fr, fr + Vector2(0, -h * 0.9), BARK, 2.0)
+	draw_line(_L(b.D, b.C, 0.0) + Vector2(0, -h * 0.55), _L(b.D, b.C, 1.0) + Vector2(0, -h * 0.55), BARK, 2.0)
+	# A lit ledger window per tier (cap 3) — someone is always counting.
+	var n: int = mini(t, 3)
+	for i in range(n):
+		var w := _L(b.B, b.C, float(i + 1) / float(n + 1))
+		draw_rect(Rect2(w.x - 4, w.y - h * 0.6, 8, 9), _alpha(WARM, 0.85))
+	# The hanging coin sign, larger as the house's cut grows.
+	var sp := _L(b.D, b.C, 0.22)
+	var r := 4.0 + t * 1.2
+	draw_line(sp + Vector2(0, -h * 0.78), sp + Vector2(0, -h * 0.78 + 8), POST, 2.0)
+	draw_circle(sp + Vector2(0, -h * 0.78 + 8 + r), r, COIN)
+	draw_arc(sp + Vector2(0, -h * 0.78 + 8 + r), r * 0.55, 0, TAU, 16, _alpha(DOOR, 0.6), 1.5)
+	if t >= 2:
+		var ch: Vector2 = b.At + Vector2(6, 4)
+		draw_rect(Rect2(ch.x - 3, ch.y - 12, 6, 12), COLUMN)
+		draw_circle(ch + Vector2(2, -16), 3.0, SMOKE)
+		draw_circle(ch + Vector2(5, -22), 4.0, SMOKE)
+	if t >= 4:
+		var st := _L(b.D, b.C, 0.7)
+		for i in range(3):
+			draw_rect(Rect2(st.x - 3 + i, st.y - 2 - i * 2, 6, 2), COIN)
+	var dr := _L(b.D, b.C, 0.5)
+	draw_rect(Rect2(dr.x - 5, dr.y - 16, 10, 16), DOOR)
+	if t >= 5:
+		draw_circle(b.ctr + Vector2(0, -6), 5.0, GOLD)
+
+## The Reliquary: a stepped shrine whose glass case holds a relic that burns
+## brighter — and hungrier — with every tier.
+func _draw_reliquary(t: int) -> void:
+	if t <= 0:
+		_draw_site()
+		return
+	var c := _center()
+	var glow := 10.0 + t * 7.0
+	_fill_ell(c + Vector2(0, -8), glow * 1.6, glow * 0.8, _alpha(RELIC, 0.06))
+	_fill_ell(c + Vector2(0, -8), glow, glow * 0.5, _alpha(RELIC, 0.08))
+	# Stepped plinth: one stone step per two tiers.
+	var steps: int = 1 + int(t / 2.0)
+	for i in range(steps):
+		var w := 22.0 - i * 5.0
+		var y := -i * 5.0
+		draw_colored_polygon(PackedVector2Array([
+			c + Vector2(-w, y), c + Vector2(0, y + w * 0.5), c + Vector2(w, y), c + Vector2(0, y - w * 0.5)]),
+			FACE_L if i % 2 == 0 else CAP)
+	var top := c + Vector2(0, -steps * 5.0 - 4.0)
+	# The glass case and the relic inside.
+	draw_colored_polygon(PackedVector2Array([
+		top + Vector2(-9, 0), top + Vector2(-9, -18), top + Vector2(0, -22),
+		top + Vector2(9, -18), top + Vector2(9, 0)]), GLASS)
+	var relic_r := 3.0 + t * 0.8
+	draw_circle(top + Vector2(0, -10), relic_r, RELIC)
+	draw_circle(top + Vector2(-1, -11), relic_r * 0.45, Color(0.95, 0.9, 1.0, 0.9))
+	if t >= 3:
+		for off in [Vector2(-16, 2), Vector2(16, 2)]:
+			draw_line(top + off, top + off + Vector2(0, -6), POST, 1.5)
+			draw_circle(top + off + Vector2(0, -8), 1.6, FLAME)
+	if t >= 5:
+		draw_arc(top + Vector2(0, -10), relic_r + 5.0, 0, TAU, 24, _alpha(GOLD, 0.7), 1.5)
+
+## The Apothecary: copper stills multiply and vent stranger smoke as the
+## Caretaker's brewing operation industrializes.
+func _draw_apothecary(t: int) -> void:
+	if t <= 0:
+		_draw_site()
+		return
+	var h := 18.0 + t * 5.0
+	var b := _box(h)
+	# Slanted lean-to roof rising toward the back.
+	draw_colored_polygon(PackedVector2Array([b.At, b.Bt, b.Bt + Vector2(0, -8), b.At + Vector2(0, -12)]), ROOF_L)
+	# Copper stills along the left face — one more kettle per two tiers.
+	var kettles: int = 1 + int(mini(t, 4) / 2.0) + (1 if t >= 5 else 0)
+	for i in range(kettles):
+		var kp := _L(b.D, b.C, (i + 0.6) / float(kettles + 0.4))
+		var kr := 5.0 + t * 0.8
+		draw_circle(kp + Vector2(0, -kr - 2), kr, COPPER)
+		draw_circle(kp + Vector2(-kr * 0.3, -kr - 3), kr * 0.35, COPPER_LIT)
+		# The swan-neck pipe.
+		draw_arc(kp + Vector2(kr * 0.4, -kr * 2.0), kr * 0.9, PI, PI + 1.8, 10, COPPER_LIT, 2.0)
+		if t >= 3:
+			draw_circle(kp + Vector2(kr, -kr * 2.6), 2.5, SMOKE)
+			draw_circle(kp + Vector2(kr + 3, -kr * 2.6 - 5), 3.2, SMOKE)
+	# Shelved bottles glinting on the right face.
+	var n: int = mini(t + 1, 5)
+	for i in range(n):
+		var bp := _L(b.B, b.C, float(i + 1) / float(n + 1))
+		draw_rect(Rect2(bp.x - 1.5, bp.y - h * 0.55, 3, 6), _alpha(RUNE, 0.9) if i % 2 == 0 else _alpha(RELIC, 0.9))
+	var dr := _L(b.B, b.C, 0.5)
+	draw_rect(Rect2(dr.x - 5, dr.y - 15, 10, 15), DOOR)
+	if t >= 5:
+		var gp := _L(b.D, b.C, 0.85)
+		draw_circle(gp + Vector2(0, -h * 0.9), 4.0, GOLD)
+
 func _draw_generic(t: int) -> void:
 	if t <= 0:
 		_draw_site()
 		return
 	_box(26.0 + t * 10.0)
-
-# --- Shared label (name + tier pips) ---
-
-func _draw_label(s: Structure, tier: int) -> void:
-	var font := ThemeDB.fallback_font
-	if font == null:
-		return
-	var maxed := tier >= s.max_level()
-	var nm := s.name
-	if nm.begins_with("The "):
-		nm = nm.substr(4)
-	var w := font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-	draw_string(font, Vector2(-w * 0.5, 20), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
-		GOLD if maxed else NAME_COL)
-	var mx := s.max_level()
-	var px := -(mx * 7) / 2.0 + 3.0
-	for i in range(mx):
-		draw_circle(Vector2(px + i * 7, 30), 2.6, GOLD if i < tier else PIP_OFF)
 
 func _closed(pts: PackedVector2Array) -> PackedVector2Array:
 	var p := pts.duplicate()

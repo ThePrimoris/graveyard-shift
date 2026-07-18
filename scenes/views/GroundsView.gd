@@ -1,14 +1,15 @@
 # GroundsView.gd
-# The Grounds overlay — isometric map of the graveyard (M2).
-# Built in code on a CanvasLayer like the Settings / Necronomicon overlays and
-# opened from the "Grounds" nav button (see Control.gd). Structures are placed
-# on the iso plot from their resource data, clicking one selects it (gold
-# footprint highlight), and the docked panel inspects and raises it through
-# GroundsManager. Rich per-tier building art arrives in M3.
-extends CanvasLayer
+# The Grounds — a full nav view (no longer an overlay): the isometric graveyard
+# on its expanding parcel map. Structures on owned land are clickable and raised
+# through the inspect panel; locked parcels show a deed signpost and the panel
+# becomes a deed of sale. The camera frames the land you own and grows with it;
+# drag pans, the wheel zooms.
+extends PanelContainer
 
 const GROUNDS_WORLD = preload("res://scripts/ui/GroundsWorld.gd")
 const STRUCTURE_BUILDING = preload("res://scripts/ui/StructureBuilding.gd")
+const PARCEL_PLOT = preload("res://scripts/ui/ParcelPlot.gd")
+const GROUNDS_LABELS = preload("res://scripts/ui/GroundsLabels.gd")
 
 const COL_SCREEN := Color("#0d0a18")
 const COL_PANEL := Color("#14101f")
@@ -21,21 +22,28 @@ const COL_RUST := Color(0.76, 0.353, 0.29)
 const COL_VIOLET := Color(0.663, 0.61, 0.867)
 
 const BAR_ITEMS: Array[String] = ["bones", "rotten_logs", "stone_debris"]
+## World-space rectangle the camera may roam (the drawn backdrop).
+const WORLD_RECT := Rect2(-760, -160, 1520, 1000)
 
 var gold_label: Label
 var mat_labels: Dictionary = {}       # item_id -> Label
 
+var camera: Camera2D
+var fit_zoom: float = 1.0
+
 var structures_node: Node2D
 var buildings: Dictionary = {}         # structure_id -> StructureBuilding
-var selected_id: String = ""
+var parcel_plots: Dictionary = {}      # parcel_id -> ParcelPlot
+var selected_id: String = ""           # selected structure ("" = none)
+var selected_parcel: String = ""       # selected locked parcel ("" = none)
 
 var panel_box: VBoxContainer
 var cost_rows: Array = []              # [{ "id", "need", "label" }]
 var build_button: Button
 
 func _ready() -> void:
-	layer = 58
 	add_to_group(Ids.GROUP_UI_UPDATES)
+	add_theme_stylebox_override("panel", _panel_style(COL_SCREEN, 0))
 	_build_ui()
 	if not GroundsManager.grounds_updated.is_connected(_on_grounds_changed):
 		GroundsManager.grounds_updated.connect(_on_grounds_changed)
@@ -44,34 +52,24 @@ func _ready() -> void:
 		_select(ids[0])
 	else:
 		_rebuild_panel()
+	_refresh_land()
+	# The view is built hidden; the SubViewport has no real size until the
+	# view is shown AND laid out, so re-frame after navigation settles.
+	visibility_changed.connect(_on_shown)
+	_on_shown()
 	update_ui()
 
+func _on_shown() -> void:
+	if not visible: return
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_fit_camera()
+
 func _build_ui() -> void:
-	var root := Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(root)
-
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.6)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	root.add_child(dim)
-
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		margin.add_theme_constant_override(m, 40)
-	root.add_child(margin)
-
-	var screen := PanelContainer.new()
-	screen.add_theme_stylebox_override("panel", _panel_style(COL_SCREEN, 16))
-	margin.add_child(screen)
-
 	var pad := MarginContainer.new()
 	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		pad.add_theme_constant_override(m, 14)
-	screen.add_child(pad)
+	add_child(pad)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
@@ -84,10 +82,18 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "The Grounds"
+	title.theme_type_variation = &"HeaderLabel"
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", COL_TEXT_HI)
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hud.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "drag to pan · scroll to zoom"
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", COL_TEXT_MID)
+	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hud.add_child(hint)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -109,6 +115,7 @@ func _build_ui() -> void:
 	svc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	svc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	svc.custom_minimum_size = Vector2(0, 360)
+	svc.gui_input.connect(_on_world_input)
 	body.add_child(svc)
 
 	var sv := SubViewport.new()
@@ -120,26 +127,33 @@ func _build_ui() -> void:
 	var world = GROUNDS_WORLD.new()
 	sv.add_child(world)
 
+	# Locked-land deed plots sit under the structures.
+	var parcels_node := Node2D.new()
+	world.add_child(parcels_node)
+	for parcel_id in GroundsManager.sorted_parcel_ids():
+		var p: GroundsParcel = GroundsManager.find_parcel(parcel_id)
+		if p == null or p.cost_gold <= 0:
+			continue
+		var plot = PARCEL_PLOT.new()
+		parcels_node.add_child(plot)
+		plot.setup(p)
+		plot.selected.connect(_on_parcel_selected)
+		parcel_plots[parcel_id] = plot
+
 	structures_node = Node2D.new()
 	structures_node.y_sort_enabled = true
 	world.add_child(structures_node)
 	_create_structures()
 
-	var cam := Camera2D.new()
-	cam.position = IsoUtil.plot_center()
-	cam.zoom = Vector2(1.15, 1.15)
-	world.add_child(cam)
-	cam.make_current()
+	# Nameplates draw above everything so no roofline swallows a label.
+	world.add_child(GROUNDS_LABELS.new())
+
+	camera = Camera2D.new()
+	camera.position = IsoUtil.plot_center()
+	world.add_child(camera)
+	camera.make_current()
 
 	body.add_child(_build_inspect_panel())
-
-	# --- Close ---
-	var close := Button.new()
-	close.text = "Close"
-	close.custom_minimum_size = Vector2(150, 34)
-	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close.pressed.connect(queue_free)
-	col.add_child(close)
 
 func _create_structures() -> void:
 	for structure_id in GroundsManager.sorted_ids():
@@ -152,13 +166,94 @@ func _create_structures() -> void:
 		b.selected.connect(_on_structure_selected)
 		buildings[structure_id] = b
 
+# --- Camera: fit the owned land, pan, zoom ---
+
+## Frames every unlocked parcel (plus a scenery margin) in the viewport.
+func _fit_camera() -> void:
+	if camera == null: return
+	var vp := camera.get_viewport()
+	if vp == null: return
+	var vp_size: Vector2 = vp.get_visible_rect().size
+	if vp_size.x < 2.0 or vp_size.y < 2.0: return
+
+	var bounds := Rect2()
+	var first := true
+	for parcel_id in GroundsManager.parcel_db:
+		if not GroundsManager.is_parcel_unlocked(parcel_id):
+			continue
+		var p: GroundsParcel = GroundsManager.find_parcel(parcel_id)
+		for pt in IsoUtil.footprint_polygon(p.origin, p.size):
+			if first:
+				bounds = Rect2(pt, Vector2.ZERO)
+				first = false
+			else:
+				bounds = bounds.expand(pt)
+	if first:
+		bounds = Rect2(IsoUtil.plot_center() - Vector2(300, 200), Vector2(600, 400))
+	# Margin: room for building heights above and nameplates around.
+	bounds = bounds.grow_individual(120, 150, 120, 70)
+
+	fit_zoom = clampf(minf(vp_size.x / bounds.size.x, vp_size.y / bounds.size.y), 0.5, 1.6)
+	camera.zoom = Vector2(fit_zoom, fit_zoom)
+	camera.position = bounds.get_center()
+
+func _on_world_input(event: InputEvent) -> void:
+	if camera == null: return
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_by(1.12)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_by(1.0 / 1.12)
+	elif event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		camera.position -= event.relative / camera.zoom.x
+		camera.position = camera.position.clamp(WORLD_RECT.position, WORLD_RECT.end)
+
+func _zoom_by(factor: float) -> void:
+	var z: float = clampf(camera.zoom.x * factor, fit_zoom * 0.6, 2.4)
+	camera.zoom = Vector2(z, z)
+
+# --- Selection ---
+
 func _on_structure_selected(structure_id: String) -> void:
+	# Structures on locked land aren't visible, but guard anyway.
+	if not GroundsManager.is_structure_land_owned(structure_id):
+		return
 	_select(structure_id)
+
+func _on_parcel_selected(parcel_id: String) -> void:
+	selected_id = ""
+	selected_parcel = parcel_id
+	for k in buildings:
+		buildings[k].set_selected(false)
+	for k in parcel_plots:
+		parcel_plots[k].set_selected(k == parcel_id)
+	_rebuild_panel()
 
 func _select(structure_id: String) -> void:
 	selected_id = structure_id
+	selected_parcel = ""
 	for k in buildings:
 		buildings[k].set_selected(k == structure_id)
+	for k in parcel_plots:
+		parcel_plots[k].set_selected(false)
+	_rebuild_panel()
+
+## Structures on land you don't own yet stay hidden — the wilderness keeps
+## its secrets until the deed is signed.
+func _refresh_land() -> void:
+	for structure_id in buildings:
+		buildings[structure_id].visible = GroundsManager.is_structure_land_owned(structure_id)
+
+func _on_grounds_changed() -> void:
+	_refresh_land()
+	# Buying land can invalidate a parcel selection (deed becomes tiles).
+	if selected_parcel != "" and GroundsManager.is_parcel_unlocked(selected_parcel):
+		var ids := GroundsManager.sorted_ids()
+		if not ids.is_empty():
+			_select(ids[0])
+			_fit_camera()
+			return
+	_fit_camera()
 	_rebuild_panel()
 
 # --- Inspect / build panel ---
@@ -184,8 +279,12 @@ func _rebuild_panel() -> void:
 	for c in panel_box.get_children():
 		c.queue_free()
 
+	if selected_parcel != "":
+		_build_deed_panel()
+		return
+
 	if selected_id == "" or not GroundsManager.structure_db.has(selected_id):
-		panel_box.add_child(_muted("Select a structure to inspect and raise it."))
+		panel_box.add_child(_muted("Select a structure to inspect and raise it, or a fenced-off parcel to buy the land."))
 		return
 
 	var s: Structure = GroundsManager.find_structure(selected_id)
@@ -204,15 +303,27 @@ func _rebuild_panel() -> void:
 
 	var current := GroundsManager.get_structure_value(selected_id)
 	var next_tier := GroundsManager.next_tier(selected_id)
+
+	# What the structure actually does, in plain rules at its current strength.
 	var effect := Label.new()
 	effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	effect.add_theme_font_size_override("font_size", 13)
 	effect.add_theme_color_override("font_color", COL_GREEN)
-	if next_tier == null:
-		effect.text = "%s — fully raised" % _fmt_value(s, current)
+	if tier == 0 and next_tier != null:
+		effect.text = "Nothing stands here yet. Tier 1: %s" % _effect_explanation(s, next_tier.magnitude)
 	else:
-		effect.text = "%s  →  %s" % [_fmt_value(s, current), _fmt_value(s, current + next_tier.magnitude)]
+		effect.text = _effect_explanation(s, current)
 	panel_box.add_child(effect)
+
+	# The upgrade, stated as old value -> new value.
+	if next_tier != null:
+		var up := Label.new()
+		up.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		up.add_theme_font_size_override("font_size", 12)
+		up.add_theme_color_override("font_color", COL_GOLD)
+		up.text = "Tier %d raises %s: %s  →  %s" % [tier + 1, s.effect_label,
+			_fmt_value(s, current), _fmt_value(s, current + next_tier.magnitude)]
+		panel_box.add_child(up)
 
 	if next_tier == null:
 		build_button = _make_build_button("Complete")
@@ -229,6 +340,32 @@ func _rebuild_panel() -> void:
 
 	build_button = _make_build_button("Raise to tier %d" % (tier + 1))
 	build_button.pressed.connect(_on_build_pressed)
+	panel_box.add_child(build_button)
+	_refresh_costs()
+
+## The deed of sale: a locked parcel's name, pitch, price, and Buy button.
+func _build_deed_panel() -> void:
+	var p: GroundsParcel = GroundsManager.find_parcel(selected_parcel)
+	if p == null:
+		return
+	panel_box.add_child(_heading(p.name))
+	panel_box.add_child(_label_chip("unclaimed land"))
+	panel_box.add_child(_muted(p.description))
+
+	# What stands on it, as a tease.
+	var here: Array[String] = []
+	for structure_id in GroundsManager.sorted_ids():
+		var parcel := GroundsManager.parcel_for_structure(structure_id)
+		if parcel != null and parcel.id == p.id:
+			here.append(GroundsManager.find_structure(structure_id).name)
+	if not here.is_empty():
+		panel_box.add_child(_muted("Room for: %s." % ", ".join(here)))
+
+	panel_box.add_child(HSeparator.new())
+	panel_box.add_child(_gold_cost_row(p.cost_gold))
+
+	build_button = _make_build_button("Buy the land")
+	build_button.pressed.connect(_on_buy_parcel_pressed)
 	panel_box.add_child(build_button)
 	_refresh_costs()
 
@@ -273,14 +410,18 @@ func _refresh_costs() -> void:
 		var ok: bool = have >= r["need"]
 		r["label"].text = "have %d %s" % [have, "✓" if ok else "✗"]
 		r["label"].add_theme_color_override("font_color", COL_GREEN if ok else COL_RUST)
-	if build_button and selected_id != "":
+	if build_button == null:
+		return
+	if selected_parcel != "":
+		build_button.disabled = not GroundsManager.can_afford_parcel(selected_parcel)
+	elif selected_id != "":
 		build_button.disabled = not GroundsManager.can_afford(selected_id)
 
 func _on_build_pressed() -> void:
 	GroundsManager.build(selected_id)
 
-func _on_grounds_changed() -> void:
-	_rebuild_panel()
+func _on_buy_parcel_pressed() -> void:
+	GroundsManager.buy_parcel(selected_parcel)
 
 # --- small builders ---
 
@@ -342,6 +483,30 @@ func _fmt_value(s: Structure, value: float) -> String:
 	if s.effect_unit == "%":
 		return "+%d%%" % int(round(value))
 	return "%d%s" % [int(round(value)), s.effect_unit]
+
+## A plain-rules sentence for what a structure's effect channel does at the
+## given strength — generated from the channel id so the panel's explanation
+## can't drift from what GroundsManager.get_bonus actually feeds.
+func _effect_explanation(s: Structure, value: float) -> String:
+	var v := _fmt_value(s, value)
+	match s.effect:
+		Ids.EFFECT_HARVEST_XP_PCT:
+			return "Every harvest pays %s skill XP." % v
+		Ids.EFFECT_RARE_CHANCE_PCT:
+			return "%s added to every rare-find roll on the grounds." % v
+		Ids.EFFECT_DOUBLE_DROP_PCT:
+			return "%s chance for any harvest to come up double." % v
+		Ids.EFFECT_INVENTORY_SLOTS:
+			return "Every backpack tab grows by %s." % v
+		Ids.EFFECT_OFFLINE_HOURS:
+			return "Harvests keep working %s longer while you're away." % v
+		Ids.EFFECT_OFFERING_PCT:
+			return "Altar offerings feed minions %s more XP." % v
+		Ids.EFFECT_SELL_PCT:
+			return "Everything you sell fetches %s more gold." % v
+		Ids.EFFECT_ALCHEMY_SPEED_PCT:
+			return "Brews at the Caretaker's Still run %s faster." % v
+	return "%s %s." % [v, s.effect_label]
 
 # --- Resource bar ---
 

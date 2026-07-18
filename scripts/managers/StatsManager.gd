@@ -36,8 +36,8 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 		"blurb": "The warband's first victory."},
 	{"id": "boss_taker", "name": "Warden No More", "stat": STAT_BOSSES_SLAIN, "at": 1,
 		"blurb": "A boss has fallen to the dead."},
-	{"id": "full_roster", "name": "Full Plots", "stat": STAT_MINIONS_RAISED, "at": 4,
-		"blurb": "Every minion type raised from the earth."},
+	{"id": "full_roster", "name": "Full Roster", "stat": STAT_MINIONS_RAISED, "at": 5,
+		"blurb": "Every servant on the roster — four from the earth, one from the vat."},
 	{"id": "generous_dead", "name": "The Generous Dead", "stat": STAT_OFFERINGS, "at": 25,
 		"blurb": "Twenty-five offerings laid on the altar."},
 	{"id": "cottage_industry", "name": "Cottage Industry", "stat": STAT_CRAFTS, "at": 50,
@@ -59,12 +59,28 @@ var stats: Dictionary = {}
 var earned: Array = []
 ## Fired once when restoration first reaches 100%.
 var restoration_celebrated: bool = false
+## Almanac ledgers (P7): item ids ever held, enemy ids slain -> count, and
+## node ids harvested -> count. Feed the Almanac's discovered/undiscovered split.
+var discovered_items: Dictionary = {}
+var slain_enemies: Dictionary = {}
+var harvested_nodes: Dictionary = {}
 
 func _ready() -> void:
-	GameManager.harvest_completed.connect(func(_node_id): bump(STAT_HARVESTS))
+	GameManager.harvest_completed.connect(func(node_id):
+		bump(STAT_HARVESTS)
+		harvested_nodes[node_id] = int(harvested_nodes.get(node_id, 0)) + 1)
 	GameManager.node_broken.connect(func(_node_id): bump(STAT_BREAKS))
 	AlchemyManager.brew_completed.connect(func(_recipe_id): bump(STAT_CRAFTS))
 	ForgeManager.brew_completed.connect(func(_recipe_id): bump(STAT_CRAFTS))
+
+## Almanac: an item has entered the pack at least once, ever.
+func mark_item_discovered(item_id: String) -> void:
+	discovered_items[item_id] = true
+
+## Almanac: a foe fell. Counted per enemy id for the bestiary.
+func mark_enemy_slain(enemy_id: String) -> void:
+	if enemy_id == "": return
+	slain_enemies[enemy_id] = int(slain_enemies.get(enemy_id, 0)) + 1
 
 func _process(delta: float) -> void:
 	# Playtime accrues quietly; no achievement reads it (yet), so no checks.
@@ -74,6 +90,9 @@ func reset_state() -> void:
 	stats.clear()
 	earned.clear()
 	restoration_celebrated = false
+	discovered_items.clear()
+	slain_enemies.clear()
+	harvested_nodes.clear()
 
 func get_stat(key: String) -> float:
 	return float(stats.get(key, 0.0))
@@ -127,6 +146,9 @@ func get_save_data() -> Dictionary:
 		"stats": stats.duplicate(),
 		"earned": earned.duplicate(),
 		"restoration_celebrated": restoration_celebrated,
+		"discovered_items": discovered_items.keys(),
+		"slain_enemies": slain_enemies.duplicate(),
+		"harvested_nodes": harvested_nodes.duplicate(),
 	}
 
 func restore_from_save(data: Dictionary) -> void:
@@ -138,3 +160,23 @@ func restore_from_save(data: Dictionary) -> void:
 	for a in data.get("earned", []):
 		earned.append(str(a))
 	restoration_celebrated = bool(data.get("restoration_celebrated", false))
+	discovered_items.clear()
+	for item_id in data.get("discovered_items", []):
+		discovered_items[str(item_id)] = true
+	slain_enemies.clear()
+	var saved_slain = data.get("slain_enemies", {})
+	for enemy_id in saved_slain:
+		slain_enemies[str(enemy_id)] = int(saved_slain[enemy_id])
+	harvested_nodes.clear()
+	var saved_nodes = data.get("harvested_nodes", {})
+	for node_id in saved_nodes:
+		harvested_nodes[str(node_id)] = int(saved_nodes[node_id])
+	# Migration: saves from before the Almanac never marked discoveries —
+	# whatever the pack holds right now is plainly discovered. Deferred so the
+	# inventory has finished restoring regardless of load order.
+	call_deferred("_sweep_inventory_discoveries")
+
+func _sweep_inventory_discoveries() -> void:
+	for slot in InventoryManager.slots:
+		if slot != null:
+			discovered_items[slot["item"].id] = true

@@ -10,10 +10,11 @@ config_version=5
 
 [application]
 
-config/name="GraveyardShift"
+config/name="Graveyard Shift"
+config/description="A necromantic incremental idle game."
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="uid://c2iv8bxlr5v0l"
 
 [autoload]
 
@@ -36,8 +37,6 @@ DebugConsole="*res://scripts/managers/DebugConsole.gd"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=2
-window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
 
 [gui]
 

@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "war_draught"
 name = "War Draught"
-description = "Distilled fury in amber glass. The drinker's blows land 30% harder for its next 3 turns."
+description = "Distilled fury in amber glass."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 12

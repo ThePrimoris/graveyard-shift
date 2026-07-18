@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "vigil_incense"
 name = "Vigil Incense"
-description = "Lichen smoke that sharpens every spade on the grounds. While it burns (20 minutes), each harvest has +15% chance to come up double."
+description = "Lichen smoke that sharpens every spade on the grounds."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 20

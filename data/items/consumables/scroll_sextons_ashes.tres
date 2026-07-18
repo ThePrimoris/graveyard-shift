@@ -7,7 +7,7 @@
 script = ExtResource("1_item")
 id = "scroll_sextons_ashes"
 name = "Recipe: Sexton's Ashes"
-description = "Burial rites the restless dead would rather you didn't read. Study it to add the Sexton's Ashes to the Still's repertoire."
+description = "Burial rites the restless dead would rather you didn't read."
 icon = ExtResource("2_icon")
 type = 4
 sell_value = 45
